@@ -12,6 +12,9 @@ python = ">=3.10,<4.0"
 shap = "^0.46.0"
 borutashap = "^1.0.17"
 pytest = "^8.3.2"
+mkdocs = "^1.6.0"
+mkdocs-material = "^9.5.31"
+scikit-learn = "^1.5.1"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^4.2.4"
@@ -19,6 +22,7 @@ notebook = "^7.2.1"
 ipykernel = "^6.29.5"
 nbformat = "^5.10.4"
 nbconvert = "^7.16.4"
+mkdocstrings = {extras = ["python"], version = "^0.25.2"}
 
 [build-system]
 requires = ["poetry-core"]
