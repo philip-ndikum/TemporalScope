@@ -1,4 +1,3 @@
-# PlatformsLanguage
 <p align="center">
   <strong><font size="6">TemporalScope</font></strong><br>
   <strong><font size="4">Model-Agnostic Temporal Feature Importance Analysis</font></strong>
