@@ -1,7 +1,5 @@
-<p align="center">
-  <strong><span style="font-size: 32px;">TemporalScope</span></strong><br>
-  <strong>Model-Agnostic Temporal Feature Importance Analysis</strong>
-</p>
+<h1 align="center">TemporalScope</h1>
+<h3 align="center">Model-Agnostic Temporal Feature Importance Analysis</h3>
 
 ---
 
