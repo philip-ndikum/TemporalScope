@@ -1,0 +1,51 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Make setup.sh executable
+        run: chmod +x ./setup.sh
+
+      - name: Run setup script
+        run: ./setup.sh
+
+      # Install git-secrets
+      - name: Install git-secrets
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-secrets
+
+      # Configure git-secrets without interactive terminal (disable tput and say)
+      - name: Configure git-secrets (non-interactive)
+        run: |
+          export TERM=dumb  # Disable terminal-based output
+          git secrets --install
+          git secrets --register-aws
+          git secrets --scan
+
+      # Copy the latest README.md into the 'temporalscope' directory
+      - name: Copy README.md to 'temporalscope'
+        run: cp README.md temporalscope/
+
+      # Run Black only on the 'temporalscope' source directory
+      - name: Run Black for code formatting
+        run: |
+          poetry run black temporalscope

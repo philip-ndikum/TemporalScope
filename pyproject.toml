@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "temporalscope"
+version = "0.1.0"
+description = "TemporalScope: Model-Agnostic Temporal Feature Importance Analysis."
+authors = ["Philip Ndikum <philip-ndikum@users.noreply.github.com>"]
+license = "Apache License 2.0"
+readme = "README.md"
+packages = [{include = "temporalscope"}]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+shap = "^0.46.0"
+borutashap = "^1.0.17"
+pytest = "^8.3.2"
+mkdocs-material = "^9.5.31"
+scikit-learn = "^1.5.1"
+sphinx = "^8.0.2"
+pydata-sphinx-theme = "^0.15.4"
+polars = "^1.5.0"
+black = {extras = ["jupyter"], version = "^24.8.0"}
+statsmodels = "^0.14.2"
+pyarrow = "^17.0.0"
+lightgbm = "^4.5.0"
+flax = "^0.8.5"
+jax = "^0.4.31"
+modin = {extras = ["all"], version = "^0.31.0"}
+bandit = "^1.7.9"
+flake8 = "^7.1.1"
+mypy = "^1.11.2"
+pandas-stubs = "^2.2.2.240807"
+sphinx-autobuild = "^2024.9.3"
+python-dotenv = "^1.0.1"
+jupyterlab = "^4.2.5"
+notebook = "^7.2.2"
+
+[tool.poetry.group.dev.dependencies]
+jupyterlab = "^4.2.4"
+notebook = "^7.2.1"
+ipykernel = "^6.29.5"
+nbformat = "^5.10.4"
+nbconvert = "^7.16.4"
+sphinx = "^8.0.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
