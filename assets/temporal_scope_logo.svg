@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   version="1.1"
+   id="svg1"
+   width="666.66669"
+   height="666.66669"
+   viewBox="0 0 666.66669 666.66669"
+   sodipodi:docname="temporal_scope_logo.svg"
+   inkscape:version="1.3.2 (091e20ef0f, 2023-11-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1">
+    <linearGradient
+       id="linearGradient10"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#501616;stop-opacity:0;"
+         offset="0"
+         id="stop10" />
+      <stop
+         style="stop-color:#501616;stop-opacity:0;"
+         offset="1"
+         id="stop11" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient10"
+       id="linearGradient11"
+       x1="-89.236968"
+       y1="285.14991"
+       x2="196.92293"
+       y2="285.14991"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:zoom="1.1625"
+     inkscape:cx="320.00001"
+     inkscape:cy="312.68818"
+     inkscape:window-width="1920"
+     inkscape:window-height="1003"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="group-R5">
+    <inkscape:page
+       x="0"
+       y="0"
+       inkscape:label="1"
+       id="page1"
+       width="666.66669"
+       height="666.66669"
+       margin="0"
+       bleed="0" />
+  </sodipodi:namedview>
+  <g
+     id="g1"
+     inkscape:groupmode="layer"
+     inkscape:label="1">
+    <g
+       id="group-R5">
+      <path
+         id="path2"
+         d="M 686.25007,661.93729 H 19.58342 V -4.7293658 H 686.25007 V 661.93729"
+         style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.133333" />
+      <text
+         id="text9"
+         xml:space="preserve"
+         x="112.29996"
+         y="324.29327"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:64px;font-family:'Antykwa Poltawskiego Light';-inkscape-font-specification:'Antykwa Poltawskiego Light, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.33333"
+         inkscape:export-filename="temporal_scope_logo.png"
+         inkscape:export-xdpi="200"
+         inkscape:export-ydpi="200"><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:64px;font-family:Clara;-inkscape-font-specification:'Clara, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;fill:#800080;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+           sodipodi:role="line"
+           id="tspan9"
+           x="112.29996"
+           y="324.29327">Temporal Scope</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:37.3333px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';fill:url(#linearGradient11);stroke-width:1.00157"
+         x="-90.9543"
+         y="299.1499"
+         id="text10"><tspan
+           sodipodi:role="line"
+           id="tspan10"
+           x="-90.9543"
+           y="299.1499"
+           style="opacity:0;fill:#000000;fill-opacity:0">asdasddsad</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:37.3333px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';opacity:0;fill:#000000;fill-opacity:0;stroke-width:1.00157"
+         x="224.74127"
+         y="477.00607"
+         id="text11"><tspan
+           sodipodi:role="line"
+           id="tspan11"
+           x="224.74127"
+           y="477.00607"
+           style="fill:#050301;fill-opacity:1">sdsdsda</tspan></text>
+      <text
+         xml:space="preserve"
+         style="font-size:42.6667px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';opacity:0;fill:#020105;fill-opacity:1;stroke-width:1.00157"
+         x="290.95767"
+         y="500.86694"
+         id="text12"><tspan
+           sodipodi:role="line"
+           id="tspan12"
+           x="290.95767"
+           y="500.86694"
+           style="opacity:1">asdasd</tspan></text>
+    </g>
+  </g>
+</svg>

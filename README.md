@@ -1,4 +1,7 @@
-<h1 align="center">TemporalScope</h1>
+<p align="center">
+  <img src="assets/temporal_scope_logo.png" alt="TemporalScope Logo" width="400">
+</p>
+
 <h3 align="center">Model-Agnostic Temporal Feature Importance Analysis</h3>
 
 ---
