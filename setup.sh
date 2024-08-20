@@ -4,8 +4,8 @@
 REQUIRED_PYTHON="3.10"
 PYTHON_VERSION=$(python3 --version | awk '{print $2}')
 
-if [[ "$PYTHON_VERSION" != "$REQUIRED_PYTHON" ]]; then
-    echo "Python $REQUIRED_PYTHON is required. Current version: $PYTHON_VERSION"
+if [[ "$PYTHON_VERSION" != "$REQUIRED_PYTHON"* ]]; then
+    echo "Python $REQUIRED_PYTHON.x is required. Current version: $PYTHON_VERSION"
     exit 1
 fi
 
