@@ -8,9 +8,8 @@
 
 ![License](https://img.shields.io/github/license/philip-ndikum/TemporalScope)
 ![Tests](https://github.com/philip-ndikum/TemporalScope/actions/workflows/run_tests.yml/badge.svg)
-![PyPI](https://img.shields.io/pypi/v/temporalscope)
-![Downloads](https://img.shields.io/pypi/dm/temporalscope)
-![PyPI pyversions](https://img.shields.io/pypi/pyversions/temporalscope)
+![Development Status](https://img.shields.io/badge/status-in%20development-yellow)
+![GitHub Issues](https://img.shields.io/github/issues/philip-ndikum/TemporalScope)
 
 **TemporalScope** is an innovative Python package designed to analyze and understand the temporal dynamics of feature importance across various machine learning models. Unlike traditional methods that treat feature importance as static, TemporalScope allows you to explore how feature importance evolves over time or across different data segments.
 
