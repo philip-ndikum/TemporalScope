@@ -60,11 +60,14 @@ We have a clear vision for the future development of TemporalScope. Our roadmap 
 
 ## **Contributing**
 
-We welcome contributions from developers, researchers, and data scientists. Whether you're interested in extending the package, fixing bugs, or improving documentation, your input is valuable to us. Please refer to our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute.
+TemporalScope was created and developed by [Philip Ndikum](https://github.com/philip-ndikum) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users.
 
-### **Acknowledgment and Consulting**
+We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
 
-TemporalScope was created and developed by [Philip Ndikum](https://github.com/philip-ndikum). For advisory or consulting services related to advanced and proprietary implementations of this open-source software, please reach out directly.
+We are also looking for contributors who are excited about taking on more significant roles in the development of TemporalScope. Those interested in leading future implementations or contributing in a more substantial capacity are welcome to get involved.
+
+For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
+
 
 ## **License and Legal Notice**
 
