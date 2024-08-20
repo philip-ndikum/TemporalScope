@@ -16,26 +16,25 @@ def calculate_masv(
     """
     Calculate Mean Absolute SHAP Values (MASV) for temporal feature importance.
 
-    Args:
-        model (Callable): Trained machine learning model.
-        data (pd.DataFrame): The dataset used for analysis. Rows represent 
-            samples, and columns represent features.
-        phases (list[tuple[int, int]]): A list of tuples, where each tuple 
-            represents the start and end of a phase (time window).
+    :param model: Trained machine learning model.
+    :param data: The dataset used for analysis. Rows represent samples, and 
+        columns represent features.
+    :param phases: A list of tuples, where each tuple represents the start and 
+        end of a phase (time window).
+    :return: A dictionary where keys are feature names and values are lists of 
+        MASV scores across phases.
 
-    Returns:
-        dict[str, list[float]]: A dictionary where keys are feature names and 
-        values are lists of MASV scores across phases.
-
-    Note:
+    .. note::
         The MASV is calculated as:
 
-        MASV = (1 / n) * sum(|SHAP_i|)
+        .. math::
+
+            MASV = \frac{1}{n} \sum |SHAP_i|
 
         Where `SHAP_i` is the SHAP value of feature `i` in a given phase, and 
         `n` is the number of samples in that phase.
 
-    References:
+    .. references::
         - Alomari, Y., & Ando, M. (2024). SHAP-based insights for aerospace 
           PHM: Temporal feature importance, dependencies, robustness, and 
           interaction analysis. ELTE Eötvös Loránd University, Faculty of 

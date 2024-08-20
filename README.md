@@ -18,14 +18,62 @@
 
 You can install TemporalScope from [PyPI](https://pypi.org/project/temporalscope/) with:
 
-- **Install using pip**: `pip install temporalscope`
+1. **Basic Installation using pip**:
+
+   `pip install temporalscope`
+
+2. **Installation with Optional Dependencies**: If you want to use additional backends like Dask, Modin, CUDF, or Polars, you can install them as follows:
+
+   `pip install temporalscope[dask,modin,cudf,polars]`
+
 
 ## **Usage**
 
-Here’s how you can use TemporalScope:
+You can use TemporalScope with the following steps:
 
-- **Import the package**: `import temporalscope`
-- **Analyze temporal feature importance**: Use the package's functions to explore how feature importance changes over time.
+1. **Import TemporalScope**: Start by importing the package.
+2. **Select Backend (Optional)**: TemporalScope defaults to using Pandas as the backend. However, you can specify other backends like Dask, Modin, or CuDF.
+3. **Load Data**: Load your time series data into the `TimeSeriesData` class, specifying the `time_col` and optionally the `id_col`. 
+4. **Apply a Feature Importance Method**: TemporalScope defaults to using a Random Forest model from scikit-learn if no model is specified. You can either:
+    - **A. Use a pre-trained model**: Pass a pre-trained model to the method.
+    - **B. Train a Random Forest model within the method**: TemporalScope handles model training and application automatically.
+5. **Analyze and Visualize Results**: Interpret the results to understand how feature importance evolves over time or across different phases.
+
+Now, let's refine the code example using a random forest model and an academic dataset. We'll use the California housing dataset as a simple example since it's well-known and accessible.
+
+```python
+# Step 1: Import TemporalScope and other necessary libraries
+import temporalscope as ts
+from sklearn.datasets import fetch_california_housing
+from sklearn.ensemble import RandomForestRegressor
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Step 2: Load your data (using Pandas backend by default)
+housing = fetch_california_housing(as_frame=True)
+df = pd.concat([housing.data, housing.target.rename('MedHouseVal')], axis=1)
+df['timestamp'] = pd.date_range(start='1/1/2000', periods=len(df), freq='M')
+data = ts.TimeSeriesData(data=df, time_col='timestamp')
+
+# Step 3A: Apply MASV method with a pre-trained model (Random Forest in this case)
+model = RandomForestRegressor(n_estimators=100)
+model.fit(df[housing.feature_names], df['MedHouseVal'])
+masv_results = data.calculate_masv(model=model, phases=[(0, 100), (100, 200)])
+
+# Step 3B: Alternatively, let TemporalScope train a Random Forest model
+# masv_results = data.calculate_masv(model=None, phases=[(0, 100), (100, 200)])
+
+# Step 4: Analyze and Visualize the results
+# masv_results will be a dictionary with feature names as keys and MASV scores as values
+for feature, masv_scores in masv_results.items():
+    plt.plot(masv_scores, label=f'{feature}')
+    
+plt.title('Mean Absolute SHAP Values Across Phases')
+plt.xlabel('Phase')
+plt.ylabel('MASV Score')
+plt.legend()
+plt.show()
+```
 
 ### **Example Use Cases**
 
