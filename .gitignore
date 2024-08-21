@@ -1,0 +1,86 @@
+# Python general
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Sphinx documentation
+docs/_build/
+docs/.doctrees/
+docs/.buildinfo
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+.profile
+.pytest_cache/
+.ipython/
+
+# Pandas / Data-related files
+*.csv
+*.h5
+*.pkl
+*.feather
+*.parquet
+*.xls
+*.xlsx
+*.xlsm
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Virtual environments
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE settings
+.idea/
+.vscode/
+*.swp
+
+# Coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
+
+# Pytest cache
+.cache/
+pytest_cache/
+.pytest_cache/
+
+# Generated docs
+/build/
+# System files
+.DS_Store
+Thumbs.db
