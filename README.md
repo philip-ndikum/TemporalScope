@@ -19,6 +19,17 @@
 
 3. **Standards and Scalability**: Developed according to Linux Foundation standards, **TemporalScope** offers robust documentation and a lean, scalable approach. It includes easy-to-use benchmarks for comparing different techniques, making it a valuable tool for both research and production environments.
 
+### **Table of Contents**
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Industrial Academic Applications](#industrial-academic-applications)
+- [Technical Methods](#technical-methods)
+- [Development Roadmap](#development-roadmap)
+- [Contributing](#contributing)
+- [License and Legal Notice](#license-and-legal-notice)
+
+
 ## **Installation**
 
 You can install TemporalScope from [PyPI](https://pypi.org/project/temporalscope/) with:
@@ -80,13 +91,21 @@ plt.legend()
 plt.show()
 ```
 
-### **Example Use Cases**
+## **Industrial Academic Applications**
+
+**DISCLAIMER**: The following use cases are provided for academic and informational purposes only. TemporalScope is intended to support research and development in understanding temporal dynamics in feature importance. These examples are not intended as guidance for industrial applications without further validation and expert consultation. The use of TemporalScope in any industrial or production environment is at the user's own risk, and the developers disclaim any liability for such use. Please refer to the [License and Legal Notice](#license-and-legal-notice) for further details.
+
+### **Example Academic Use Cases**
 
 | **Sector**    | **Use Case**                                                                                  | **Impact**                                                                                         |
 |---------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| **Finance**   | Analyzing how the importance of financial indicators changes across different market cycles.   | Improves investment strategies by understanding how market conditions affect the relevance of indicators. |
-| **Healthcare**| Tracking how patient data features contribute to health outcomes at various stages of treatment.| Enables personalized treatment plans by identifying critical features at different treatment phases.  |
-| **Engineering**| Examining the impact of factors on machinery lifecycle, guiding maintenance schedules.        | Reduces downtime and maintenance costs by understanding how wear and tear affect feature importance.  |
+| **Finance**   | **Quantitative Investing:** Understanding how the importance of financial indicators, such as interest rates or stock volatility, changes across different market cycles.   | Enhances quantitative investment strategies by identifying which indicators are most predictive in various market conditions, thereby improving risk management and investment decisions. |
+| **Finance**   | **Credit Risk Modelling:** Analyzing how the contribution of variables like income, credit history, or employment status fluctuates over time in credit scoring models.   | Supports the development of more robust credit scoring models by highlighting how feature relevance changes, potentially leading to more accurate risk assessments. |
+| **Healthcare**| **Patient Outcome Prediction:** Tracking how various patient data features, such as age, vital signs, and medical history, contribute to health outcomes at different stages of treatment or disease progression. | Facilitates the creation of personalized treatment plans by identifying critical factors at specific stages, leading to improved patient outcomes and optimized healthcare resources. |
+| **Engineering**| **Predictive Maintenance for Machinery:** Examining how factors like temperature, vibration, and usage patterns affect machinery lifecycle over time.        | Reduces machinery downtime and maintenance costs by providing insights into when and why certain components are likely to fail, enabling more effective maintenance scheduling. |
+| **Energy**    | **Load Forecasting:** Analyzing how the importance of variables such as weather conditions, time of day, and historical consumption data evolves in predicting energy demand.   | Improves energy load forecasting by adapting to changing conditions, leading to more efficient energy distribution and reduced operational costs. |
+| **Retail**    | **Customer Behavior Analysis:** Understanding how customer preferences and purchasing behaviors change over time, influenced by factors such as seasonal trends, promotions, and economic conditions. | Enables retailers to optimize inventory management, marketing strategies, and pricing models by identifying the most influential factors driving sales in different periods. |
+
 
 ## **Technical Methods**
 
