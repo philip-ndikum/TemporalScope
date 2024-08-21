@@ -19,6 +19,6 @@ TemporalScope documentation
    :toctree: _autosummary
    :recursive:
 
-   temporalscope.api
-   temporalscope.timeseriesdata
-   temporalscope.methods.mean_absolute_shap
+   api
+   timeseriesdata
+   methods.mean_absolute_shap

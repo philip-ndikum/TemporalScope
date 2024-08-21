@@ -388,24 +388,17 @@
 <span id="temporalscope-timeseriesdata"></span><h1>temporalscope.timeseriesdata<a class="headerlink" href="#module-temporalscope.timeseriesdata" title="Link to this heading">#</a></h1>
 <p>temporalscope/timeseriesdata.py</p>
 <p>This module implements the TimeSeriesData class, designed to provide a flexible and scalable interface for handling
-time series data using multiple backends. It supports Pandas, Dask, Modin, and CuDF to cater to different dataset sizes
-and computational needs.</p>
+time series data using multiple backends. It supports Polars as the default backend and Pandas as a secondary option
+for users who prefer the traditional data processing framework.</p>
 <p>Design Considerations:
-1. Backend Flexibility: Users can switch between Pandas, Dask, Modin, and CuDF depending on their dataset and computational</p>
-<blockquote>
-<div><p>requirements.</p>
-</div></blockquote>
-<ol class="arabic simple" start="2">
-<li><p>Optional Grouping: Grouping by an ID column (e.g., stock ID, item ID) is optional. The class ensures no duplicate time entries
-within groups if grouping is applied.</p></li>
-<li><p>Partitioning and Algorithmic Flexibility: Facilitates the use of partitioning schemes (e.g., sliding windows) and methods
-like SHAP for feature importance analysis, with the ability to easily extend with custom methods.</p></li>
-</ol>
+1. Backend Flexibility: Users can switch between Polars and Pandas depending on their dataset and computational requirements.
+2. Optional Grouping: Grouping by an ID column (e.g., stock ID, item ID) is optional. The class ensures no duplicate time entries within groups if grouping is applied.
+3. Partitioning and Algorithmic Flexibility: Facilitates the use of partitioning schemes (e.g., sliding windows) and methods like SHAP for feature importance analysis, with the ability to easily extend with custom methods.</p>
 <p class="rubric">Classes</p>
 <div class="pst-scrollable-table-container"><table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">TimeSeriesData</span></code>(df, time_col[, id_col, ...])</p></td>
-<td><p>Handles time series data with support for various backends like Pandas, Dask, Modin, and CuDF.</p></td>
+<td><p>Handles time series data with support for various backends like Polars and Pandas.</p></td>
 </tr>
 </tbody>
 </table>

@@ -80,12 +80,16 @@ class TimeSeriesData:
 
     def _polars_logic(self):
         """Apply Polars-specific logic like sorting and handling duplicates."""
-        self.df = self.df.sort(by=[self.id_col, self.time_col] if self.id_col else [self.time_col])
+        self.df = self.df.sort(
+            by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
+        )
         self._check_duplicates()
 
     def _pandas_logic(self):
         """Apply Pandas-specific logic like sorting and handling duplicates."""
-        self.df = self.df.sort_values(by=[self.id_col, self.time_col] if self.id_col else [self.time_col])
+        self.df = self.df.sort_values(
+            by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
+        )
         self._check_duplicates()
 
     def _check_duplicates(self):
@@ -108,14 +112,23 @@ class TimeSeriesData:
     def _apply_available_mask(self):
         """Generate an available mask column if not present."""
         if "available_mask" not in self.df.columns:
-            self.df = self.df.with_columns(pl.lit(1.0).alias("available_mask") if self.backend == "polars"
-                                           else self.df.assign(available_mask=1.0))
-            warnings.warn("No available_mask column found, assuming all data is available.")
+            self.df = self.df.with_columns(
+                pl.lit(1.0).alias("available_mask")
+                if self.backend == "polars"
+                else self.df.assign(available_mask=1.0)
+            )
+            warnings.warn(
+                "No available_mask column found, assuming all data is available."
+            )
 
     def groupby(self):
         """Group the DataFrame by the ID column if provided."""
         if self.id_col:
-            return self.df.groupby(self.id_col) if self.backend == "polars" else self.df.groupby(self.id_col)
+            return (
+                self.df.groupby(self.id_col)
+                if self.backend == "polars"
+                else self.df.groupby(self.id_col)
+            )
         return self.df
 
     def run_method(self, method: Callable, *args, **kwargs):
