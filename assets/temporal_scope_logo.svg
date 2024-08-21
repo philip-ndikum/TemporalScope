@@ -16,6 +16,12 @@
    xmlns:svg="http://www.w3.org/2000/svg">
   <defs
      id="defs1">
+    <rect
+       x="611.40976"
+       y="382.74055"
+       width="81.008396"
+       height="101.91272"
+       id="rect1" />
     <linearGradient
        id="linearGradient10"
        inkscape:collect="always">
@@ -40,7 +46,7 @@
   </defs>
   <sodipodi:namedview
      id="namedview1"
-     pagecolor="#505050"
+     pagecolor="#ffffff"
      bordercolor="#eeeeee"
      borderopacity="1"
      inkscape:showpageshadow="0"
@@ -48,14 +54,16 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#505050"
      inkscape:zoom="1.1625"
-     inkscape:cx="320.00001"
-     inkscape:cy="312.68818"
+     inkscape:cx="390.53763"
+     inkscape:cy="303.22581"
      inkscape:window-width="1920"
      inkscape:window-height="1003"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="group-R5">
+     inkscape:current-layer="g1"
+     inkscape:export-bgcolor="#00808000"
+     showguides="true">
     <inkscape:page
        x="0"
        y="0"
@@ -64,35 +72,32 @@
        width="666.66669"
        height="666.66669"
        margin="0"
-       bleed="0" />
+       bleed="0"
+       inkscape:export-filename="temporal_scope_logo.png"
+       inkscape:export-xdpi="200"
+       inkscape:export-ydpi="200" />
+    <sodipodi:guide
+       position="80.981183,477.54035"
+       orientation="1,0"
+       id="guide4"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="582.81922,444.99666"
+       orientation="1,0"
+       id="guide5"
+       inkscape:locked="false" />
   </sodipodi:namedview>
   <g
      id="g1"
      inkscape:groupmode="layer"
      inkscape:label="1">
     <g
-       id="group-R5">
-      <path
-         id="path2"
-         d="M 686.25007,661.93729 H 19.58342 V -4.7293658 H 686.25007 V 661.93729"
-         style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:0.133333" />
-      <text
-         id="text9"
-         xml:space="preserve"
-         x="112.29996"
-         y="324.29327"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:64px;font-family:'Antykwa Poltawskiego Light';-inkscape-font-specification:'Antykwa Poltawskiego Light, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.33333"
-         inkscape:export-filename="temporal_scope_logo.png"
-         inkscape:export-xdpi="200"
-         inkscape:export-ydpi="200"><tspan
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:64px;font-family:Clara;-inkscape-font-specification:'Clara, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;fill:#800080;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
-           sodipodi:role="line"
-           id="tspan9"
-           x="112.29996"
-           y="324.29327">Temporal Scope</tspan></text>
+       id="group-R5"
+       transform="matrix(1.0118134,0,0,0.80929026,0.85257311,-56.653272)"
+       style="fill:#008080">
       <text
          xml:space="preserve"
-         style="font-size:37.3333px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';fill:url(#linearGradient11);stroke-width:1.00157"
+         style="font-size:37.3333px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';fill:#008080;stroke-width:1.00157"
          x="-90.9543"
          y="299.1499"
          id="text10"><tspan
@@ -100,10 +105,10 @@
            id="tspan10"
            x="-90.9543"
            y="299.1499"
-           style="opacity:0;fill:#000000;fill-opacity:0">asdasddsad</tspan></text>
+           style="opacity:0;fill:#008080;fill-opacity:0">asdasddsad</tspan></text>
       <text
          xml:space="preserve"
-         style="font-size:37.3333px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';opacity:0;fill:#000000;fill-opacity:0;stroke-width:1.00157"
+         style="font-size:37.3333px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';opacity:0;fill:#008080;fill-opacity:0;stroke-width:1.00157"
          x="224.74127"
          y="477.00607"
          id="text11"><tspan
@@ -111,10 +116,10 @@
            id="tspan11"
            x="224.74127"
            y="477.00607"
-           style="fill:#050301;fill-opacity:1">sdsdsda</tspan></text>
+           style="fill:#008080;fill-opacity:1">sdsdsda</tspan></text>
       <text
          xml:space="preserve"
-         style="font-size:42.6667px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';opacity:0;fill:#020105;fill-opacity:1;stroke-width:1.00157"
+         style="font-size:42.6667px;font-family:Sans;-inkscape-font-specification:'Sans, Normal';opacity:0;fill:#008080;fill-opacity:1;stroke-width:1.00157"
          x="290.95767"
          y="500.86694"
          id="text12"><tspan
@@ -122,7 +127,35 @@
            id="tspan12"
            x="290.95767"
            y="500.86694"
-           style="opacity:1">asdasd</tspan></text>
+           style="opacity:1;fill:#008080">asdasd</tspan></text>
+      <text
+         xml:space="preserve"
+         id="text1"
+         style="white-space:pre;shape-inside:url(#rect1);fill:#008080" />
+      <rect
+         style="fill:#008080"
+         id="rect3"
+         width="495.8031"
+         height="176.72716"
+         x="79.415321"
+         y="368.42068"
+         inkscape:export-filename="temporal_scope_logo.png"
+         inkscape:export-xdpi="200"
+         inkscape:export-ydpi="200" />
     </g>
+    <text
+       id="text9"
+       xml:space="preserve"
+       x="120.33759"
+       y="330.5433"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:64px;font-family:'Antykwa Poltawskiego Light';-inkscape-font-specification:'Antykwa Poltawskiego Light, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:1.33333"
+       inkscape:export-filename="temporal_scope_logo.png"
+       inkscape:export-xdpi="200"
+       inkscape:export-ydpi="200"><tspan
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:64px;font-family:Clara;-inkscape-font-specification:'Clara, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;writing-mode:lr-tb;fill:#f9f9f9;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
+         sodipodi:role="line"
+         id="tspan9"
+         x="120.33759"
+         y="330.5433">Temporal Scope</tspan></text>
   </g>
 </svg>
