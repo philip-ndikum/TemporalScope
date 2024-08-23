@@ -5,13 +5,15 @@
 <h3 align="center">Model-Agnostic Temporal Feature Importance Analysis</h3>
 
 ---
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version">
+  <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
+  <img src="https://img.shields.io/badge/status-in%20development-yellow" alt="Development Status">
+  <img src="https://img.shields.io/badge/Contributions-Welcome-brightgreen" alt="Contributions Welcome">
+  <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
+</p>
 
-![License](https://img.shields.io/github/license/philip-ndikum/TemporalScope)
-![Tests](https://github.com/philip-ndikum/TemporalScope/actions/workflows/run_tests.yml/badge.svg)
-![Development Status](https://img.shields.io/badge/status-in%20development-yellow)
-![GitHub Issues](https://img.shields.io/github/issues/philip-ndikum/TemporalScope)
-
-**TemporalScope** is a lightweight, open-source Python package designed to analyze and understand the temporal dynamics of feature importance in machine learning models. Licensed under the Apache 2.0 License, **TemporalScope** provides a straightforward API to track and visualize how feature importance evolves over time, enabling deeper insights into temporal data patterns. This tool is ideal for researchers and practitioners who need to account for temporal variations in feature importance in their predictive models.
+**TemporalScope** is a lightweight, open-source software (OSS) Python package designed to analyze and understand the temporal dynamics of feature importance in machine learning models. Licensed under the Apache 2.0 License and developed with Linux Foundation standards, TemporalScope provides a straightforward API to track and visualize how feature importance evolves over time, enabling deeper insights into temporal data patterns. This tool is ideal for researchers and practitioners who need to account for temporal variations in feature importance in their predictive models.
 
 
 ### **Table of Contents**
