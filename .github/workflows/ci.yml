@@ -29,4 +29,4 @@ jobs:
 
       - name: Run Black for code formatting
         run: |
-          black .
+          poetry run black .
