@@ -21,18 +21,4 @@ fi
 # Install project dependencies
 poetry install
 
-# Check if Node.js and NPM are installed (for REPONLINTER)
-if ! command -v npm &> /dev/null
-then
-    echo "NPM not found. Installing Node.js and NPM..."
-    # This installs Node.js and NPM
-    curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-    sudo apt-get install -y nodejs
-else
-    echo "NPM is already installed."
-fi
-
-# Install REPOLINTER globally using NPM
-npm install -g repolinter
-
 echo "Setup completed successfully."

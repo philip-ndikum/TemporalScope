@@ -2,9 +2,9 @@ name: Test Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop, feature/*]
   pull_request:
-    branches: [main]
+    branches: [main, develop, feature/*]
 
 jobs:
   test:
@@ -18,8 +18,14 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
-        run: poetry install
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+
+      - name: Make setup.sh executable
+        run: chmod +x ./setup.sh
+
+      - name: Run setup script
+        run: ./setup.sh
 
       - name: Run tests
         run: poetry run pytest

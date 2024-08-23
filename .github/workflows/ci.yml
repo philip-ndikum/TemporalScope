@@ -18,8 +18,8 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
-        run: poetry install
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
 
       - name: Make setup.sh executable
         run: chmod +x ./setup.sh
@@ -30,4 +30,3 @@ jobs:
       - name: Run Black for code formatting
         run: |
           black .
-          # Optionally, you can check if the code would be reformatted by adding `--check`
