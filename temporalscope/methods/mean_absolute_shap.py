@@ -1,4 +1,5 @@
-"""
+""" temporalscope/methods/mean_absolute_shap.py
+
 This module implements the Mean Absolute SHAP (MASV) analysis, which evaluates
 temporal feature importance across different operational phases of a system.
 """
