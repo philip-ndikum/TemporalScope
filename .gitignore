@@ -5,6 +5,10 @@
 __pycache__/
 *.so
 
+# C extensions
+*.c
+*.h
+
 # Distribution / packaging
 .Python
 build/
@@ -81,6 +85,19 @@ pytest_cache/
 
 # Generated docs
 /build/
+
 # System files
 .DS_Store
 Thumbs.db
+
+# OS-specific
+*.swp
+._*
+.Spotlight-V100
+.Trashes
+*.sublime-workspace
+
+# Installer logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
