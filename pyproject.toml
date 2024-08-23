@@ -19,6 +19,10 @@ pydata-sphinx-theme = "^0.15.4"
 polars = "^1.5.0"
 black = {extras = ["jupyter"], version = "^24.8.0"}
 statsmodels = "^0.14.2"
+pyarrow = "^17.0.0"
+lightgbm = "^4.5.0"
+flax = "^0.8.5"
+jax = "^0.4.31"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^4.2.4"

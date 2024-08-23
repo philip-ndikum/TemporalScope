@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: Test Pipeline
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  ci:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,13 +21,5 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Make setup.sh executable
-        run: chmod +x ./setup.sh
-
-      - name: Run setup script
-        run: ./setup.sh
-
-      - name: Run Black for code formatting
-        run: |
-          black .
-          # Optionally, you can check if the code would be reformatted by adding `--check`
+      - name: Run tests
+        run: poetry run pytest

@@ -16,8 +16,7 @@ import pandas as pd
 import warnings
 
 class TemporalDataLoader:
-    """
-    Handles time series data with support for various backends like Polars and Pandas.
+    """ Handles time series data with support for various backends like Polars and Pandas.
 
     This class provides functionalities to manage time series data with optional static features,
     available masks, and backend flexibility. It also supports partitioning schemes, feature
@@ -155,8 +154,7 @@ class TemporalDataLoader:
         return self._df
 
     def run_method(self, method: Callable, *args, **kwargs):
-        """
-        Run an analytical method on the data.
+        """Run an analytical method on the data.
 
         :param method: The method to run.
         :type method: Callable
