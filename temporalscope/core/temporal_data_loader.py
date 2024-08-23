@@ -15,7 +15,7 @@ import polars as pl
 import pandas as pd
 import warnings
 
-class TemporalDataLoader:
+class TimeFrame:
     """ Handles time series data with support for various backends like Polars and Pandas.
 
     This class provides functionalities to manage time series data with optional static features,
@@ -32,14 +32,17 @@ class TemporalDataLoader:
     :type static_cols: Optional[list[str]]
     :param backend: The backend to use ('polars' or 'pandas'). Default is 'polars'.
     :type backend: str
+    :param sort: Optional. Whether to sort the data by time_col (and id_col if provided). Default is True.
+    :type sort: bool
     """
 
-    def __init__(self, df, time_col, id_col=None, static_cols=None, backend="polars"):
+    def __init__(self, df, time_col, id_col=None, static_cols=None, backend="polars", sort=True):
         self._df = df
         self._time_col = time_col
         self._id_col = id_col
         self._static_cols = static_cols
         self._backend = backend.lower()
+        self._sort = sort
         self._validate_input()
         self._apply_backend_logic()
         self._apply_static_features()
@@ -84,6 +87,14 @@ class TemporalDataLoader:
                 f"ID column '{self.id_col}' must be in the DataFrame columns if provided"
             )
 
+        # Ensure time_col is datetime for proper sorting
+        if self.backend == "pandas":
+            if not pd.api.types.is_datetime64_any_dtype(self._df[self.time_col]):
+                self._df[self.time_col] = pd.to_datetime(self._df[self.time_col])
+        elif self.backend == "polars":
+            if self._df[self.time_col].dtype != pl.Datetime:
+                self._df = self._df.with_columns(pl.col(self.time_col).str.strptime(pl.Datetime))
+
     def _apply_backend_logic(self):
         """Apply backend-specific logic such as sorting and grouping."""
         if self.backend == "polars":
@@ -93,16 +104,18 @@ class TemporalDataLoader:
 
     def _polars_logic(self):
         """Apply Polars-specific logic like sorting and handling duplicates."""
-        self._df = self._df.sort(
-            by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
-        )
+        if self._sort:
+            self._df = self._df.sort(
+                by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
+            )
         self._check_duplicates()
 
     def _pandas_logic(self):
         """Apply Pandas-specific logic like sorting and handling duplicates."""
-        self._df = self._df.sort_values(
-            by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
-        )
+        if self._sort:
+            self._df = self._df.sort_values(
+                by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
+            )
         self._check_duplicates()
 
     def _check_duplicates(self):
