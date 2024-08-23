@@ -25,6 +25,7 @@
 - [Technical Methods](#technical-methods)
 - [Development Roadmap](#development-roadmap)
 - [Contributing](#contributing)
+- [Citation](#cite-this-project)
 - [License and Legal Notice](#license-and-legal-notice)
 
 ## **Why use TemporalScope?**
@@ -146,6 +147,20 @@ We are also looking for contributors who are excited about taking on more signif
 
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
 
+## Cite this Project
+
+If you use **TemporalScope** in your research, please consider citing it:
+```
+{
+  @software{ndikum2024temporalscope,
+  author = {Philip Ndikum},
+  title = {TemporalScope: Model-Agnostic Temporal Feature Importance Analysis},
+  year = 2024,
+  version = {1.0.0},
+  publisher = {GitHub},
+  url = {https://github.com/philip-ndikum/TemporalScope}
+}
+```
 
 ## **License and Legal Notice**
 
