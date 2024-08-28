@@ -1,6 +1,6 @@
 """temporalscope/temporal_data_loader.py
 
-This module implements the TemporalDataLoader class, designed to provide a flexible and scalable interface for handling
+This module implements the TimeFrame class, designed to provide a flexible and scalable interface for handling
 time series data using multiple backends. It supports Polars as the default backend and Pandas as a secondary option
 for users who prefer the traditional data processing framework.
 
@@ -26,6 +26,8 @@ class TimeFrame:
     :type df: Union[pl.DataFrame, pd.DataFrame]
     :param time_col: The column representing time in the DataFrame.
     :type time_col: str
+    :param target_col: The column representing the target variable in the DataFrame.
+    :type target_col: str
     :param id_col: Optional. The column representing the ID for grouping. Default is None.
     :type id_col: Optional[str]
     :param static_cols: Optional. List of columns representing static features. Default is None.
@@ -34,19 +36,23 @@ class TimeFrame:
     :type backend: str
     :param sort: Optional. Whether to sort the data by time_col (and id_col if provided). Default is True.
     :type sort: bool
+    :param rename_target: Optional. Whether to rename the target_col to 'y'. Default is False.
+    :type rename_target: bool
     """
 
-    def __init__(self, df, time_col, id_col=None, static_cols=None, backend="polars", sort=True):
+    def __init__(self, df, time_col, target_col, id_col=None, static_cols=None, backend="polars", sort=True, rename_target=False):
         self._df = df
         self._time_col = time_col
+        self._target_col = target_col
         self._id_col = id_col
         self._static_cols = static_cols
         self._backend = backend.lower()
         self._sort = sort
+        self._rename_target = rename_target
         self._validate_input()
         self._apply_backend_logic()
         self._apply_static_features()
-        self._apply_available_mask()
+        self._rename_target_column()
 
     @property
     def backend(self) -> str:
@@ -57,6 +63,11 @@ class TimeFrame:
     def time_col(self) -> str:
         """Return the column name representing time."""
         return self._time_col
+
+    @property
+    def target_col(self) -> str:
+        """Return the column name representing the target variable."""
+        return self._target_col
 
     @property
     def id_col(self) -> Optional[str]:
@@ -81,6 +92,9 @@ class TimeFrame:
 
         if self.time_col not in self._df.columns:
             raise ValueError(f"Time column '{self.time_col}' must be in the DataFrame columns")
+
+        if self.target_col not in self._df.columns:
+            raise ValueError(f"Target column '{self.target_col}' must be in the DataFrame columns")
 
         if self.id_col and self.id_col not in self._df.columns:
             raise ValueError(
@@ -156,15 +170,13 @@ class TimeFrame:
                 "No available_mask column found, assuming all data is available."
             )
 
-    def groupby(self):
-        """Group the DataFrame by the ID column if provided."""
-        if self.id_col:
-            return (
-                self._df.groupby(self.id_col)
-                if self.backend == "polars"
-                else self._df.groupby(self.id_col)
-            )
-        return self._df
+    def _rename_target_column(self):
+        """Rename the target column to 'y' if rename_target is True."""
+        if self._rename_target:
+            if self.backend == "polars":
+                self._df = self._df.rename({self.target_col: 'y'})
+            elif self.backend == "pandas":
+                self._df.rename(columns={self.target_col: 'y'}, inplace=True)
 
     def run_method(self, method: Callable, *args, **kwargs):
         """Run an analytical method on the data.
@@ -177,3 +189,27 @@ class TimeFrame:
         :rtype: Any
         """
         return method(self, *args, **kwargs)
+
+    def get_data(self) -> Union[pl.DataFrame, pd.DataFrame]:
+        """Return the DataFrame in its current state.
+
+        :return: The DataFrame managed by the TimeFrame instance.
+        :rtype: Union[pl.DataFrame, pd.DataFrame]
+        """
+        return self._df
+
+    def get_grouped_data(self) -> Union[pl.DataFrame, pd.DataFrame]:
+        """Return the grouped DataFrame if an ID column is provided.
+
+        :return: Grouped DataFrame by the ID column if it is set, otherwise returns the original DataFrame.
+        :rtype: Union[pl.DataFrame, pd.DataFrame]
+        """
+        if not self.id_col:
+            raise ValueError("ID column is not set; cannot group data.")
+
+        if self.backend == "polars":
+            return self._df.groupby(self.id_col).agg(pl.all())
+        elif self.backend == "pandas":
+            return self._df.groupby(self.id_col).apply(lambda x: x)
+
+        return self._df

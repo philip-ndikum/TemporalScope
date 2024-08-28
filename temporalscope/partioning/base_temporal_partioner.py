@@ -1,5 +1,4 @@
-"""
-temporalscope/methods/base_temporal_partitioner.py
+""" temporalscope/methods/base_temporal_partitioner.py
 
 This module defines the BaseTemporalPartitioner class, an abstract base class for all temporal partitioning methods.
 Each partitioning method must inherit from this class and implement the required methods.
@@ -10,9 +9,8 @@ from typing import List, Tuple, Any
 import pandas as pd
 
 class BaseTemporalPartitioner(ABC):
-    """
-    Abstract base class for temporal partitioning methods. This class enforces a consistent API for all
-    partitioning methods.
+    """ Abstract base class for temporal partitioning methods. This class enforces a 
+    consistent API for all partitioning methods.
 
     :param data: The dataset to be partitioned.
     :type data: pd.DataFrame
@@ -38,8 +36,7 @@ class BaseTemporalPartitioner(ABC):
 
     @abstractmethod
     def apply_partition(self, partition: Tuple[int, int]) -> pd.DataFrame:
-        """
-        Abstract method that must be implemented by subclasses to apply a partition to the data.
+        """ Abstract method that must be implemented by subclasses to apply a partition to the data.
 
         :param partition: A tuple representing the start and end indices of the partition.
         :type partition: Tuple[int, int]
@@ -49,8 +46,7 @@ class BaseTemporalPartitioner(ABC):
         pass
 
     def get_partitioned_data(self) -> List[pd.DataFrame]:
-        """
-        Helper method that returns the data for each partition as a list of DataFrames.
+        """ Helper method that returns the data for each partition as a list of DataFrames.
 
         :return: List of partitioned DataFrames.
         :rtype: List[pd.DataFrame]

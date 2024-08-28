@@ -1,5 +1,4 @@
-"""
-temporalscope/temporal_model_trainer.py
+""" temporalscope/temporal_model_trainer.py
 
 This module implements the TemporalModelTrainer class, which provides functionality to train machine learning models
 on data partitioned by temporal methods. Users can pass their custom models or use a default lightweight model.
@@ -13,8 +12,8 @@ from temporalscope.methods.base_temporal_partitioner import BaseTemporalPartitio
 
 
 class TemporalModelTrainer:
-    """
-    Trains models on temporally partitioned data. Users can specify a custom model or use the default LightGBM model.
+    """ Trains models on temporally partitioned data. Users can specify a custom model 
+    or use the default LightGBM model.
 
     :param partitioner: An instance of a class that inherits from BaseTemporalPartitioner.
     :type partitioner: BaseTemporalPartitioner
@@ -67,7 +66,3 @@ class TemporalModelTrainer:
         self.model.fit(X, y)
         return self.model
 
-# Example usage:
-# partitioner = ReverseExpandingWindowPartitioner(data=my_dataframe, target='target_col')
-# trainer = TemporalModelTrainer(partitioner=partitioner)
-# predictions = trainer.train_and_evaluate()

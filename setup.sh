@@ -11,12 +11,15 @@ remove_pycaches() {
 remove_pycaches
 
 # Check for Python version
-REQUIRED_PYTHON="3.10"
+REQUIRED_PYTHON_MAJOR=3
+REQUIRED_PYTHON_MINOR=10
 PYTHON_VERSION=$(python3 --version | awk '{print $2}')
+PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
 echo "Current Python version: $PYTHON_VERSION"
 
-if [[ "$PYTHON_VERSION" != "$REQUIRED_PYTHON"* ]]; then
-    echo "Error: Python $REQUIRED_PYTHON.x is required. Current version: $PYTHON_VERSION"
+if [[ "$PYTHON_MAJOR" -ne "$REQUIRED_PYTHON_MAJOR" || "$PYTHON_MINOR" -lt "$REQUIRED_PYTHON_MINOR" ]]; then
+    echo "Error: Python $REQUIRED_PYTHON_MAJOR.$REQUIRED_PYTHON_MINOR or higher is required. Current version: $PYTHON_VERSION"
     exit 1
 fi
 echo "Python version is compatible."
@@ -31,14 +34,19 @@ else
     echo "Poetry is already installed."
 fi
 
-# Ensure the virtual environment uses Python 3.10
-echo "Configuring the virtual environment to use Python 3.10..."
-poetry env use python3.10
-echo "Virtual environment set to use Python 3.10."
+# Ensure the virtual environment uses the current Python version
+echo "Configuring the virtual environment to use Python $PYTHON_VERSION..."
+poetry env use python3.$PYTHON_MINOR
+echo "Virtual environment set to use Python $PYTHON_VERSION."
 
 # Install project dependencies
 echo "Installing project dependencies..."
 poetry install
 echo "Project dependencies installed."
+
+# Set up Jupyter kernel
+echo "Setting up Jupyter kernel named 'temporalscope'..."
+poetry run python3 -m ipykernel install --user --name=temporalscope --display-name "Python (temporalscope)"
+echo "Jupyter kernel 'temporalscope' set up successfully."
 
 echo "Setup completed successfully."
