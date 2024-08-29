@@ -1,4 +1,4 @@
-"""temporalscope/temporal_data_loader.py
+""" temporalscope/core/temporal_data_loader.py
 
 This module implements the TimeFrame class, designed to provide a flexible and scalable interface for handling
 time series data using multiple backends. It supports Polars as the default backend and Pandas as a secondary option
@@ -9,13 +9,11 @@ from typing import Union, Optional
 import polars as pl
 import pandas as pd
 import warnings
-from temporalscope.methods.base_temporal_partitioner import BaseTemporalPartitioner
-
+from temporalscope.partitioning.base_temporal_partitioner import BaseTemporalPartitioner
 
 TF_DEFAULT_CFG = {
     "BACKENDS": {"pl": "polars", "pd": "pandas"},
 }
-
 
 class TimeFrame:
     """Handles time series data with support for various backends like Polars and Pandas.
@@ -37,6 +35,14 @@ class TimeFrame:
     :type sort: bool
     :param rename_target: Optional. Whether to rename the target_col to 'y'. Default is False.
     :type rename_target: bool
+
+    .. note::
+
+       The default assumption for the `TimeFrame` class is that the dataset is cleaned and prepared for one-step-ahead 
+       forecasting, where the `target_col` directly corresponds to the label. The `id_col` is included for grouping and 
+       sorting purposes but is not used in the default model-building process. If you are using custom TensorFlow or 
+       PyTorch models that forecast multiple steps ahead, ensure that these models are compatible with the SHAP APIs 
+       and consider handling the `id_col` appropriately.
     """
 
     def __init__(

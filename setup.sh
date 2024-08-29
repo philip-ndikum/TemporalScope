@@ -49,4 +49,13 @@ echo "Setting up Jupyter kernel named 'temporalscope'..."
 poetry run python3 -m ipykernel install --user --name=temporalscope --display-name "Python (temporalscope)"
 echo "Jupyter kernel 'temporalscope' set up successfully."
 
+# Copy README.md to /temporalscope directory
+if [ -f "README.md" ]; then
+    echo "Copying README.md to the temporalscope directory..."
+    cp README.md temporalscope/
+    echo "README.md copied successfully."
+else
+    echo "README.md not found. Skipping copy."
+fi
+
 echo "Setup completed successfully."

@@ -1,4 +1,4 @@
-"""temporalscope/partitioning/base_temporal_partitioner.py
+""" temporalscope/partitioning/base_temporal_partitioner.py
 
 This module defines the BaseTemporalPartitioner class, an abstract base class for all temporal partitioning methods.
 Each partitioning method must inherit from this class and implement the required methods.
@@ -16,18 +16,21 @@ class BaseTemporalPartitioner(ABC):
 
     :param data: The dataset to be partitioned.
     :type data: Union[pd.DataFrame, pl.DataFrame]
-    :param target: The target column name.
-    :type target: str
+    :param time_col: The time column name, which will be used for sorting.
+    :type time_col: str
     :param id_col: Optional. The column used for grouping (e.g., stock ticker, item ID).
     :type id_col: Optional[str]
     """
 
     def __init__(
-        self, data: Union[pd.DataFrame, pl.DataFrame], target: str, id_col: str = None
+        self, data: Union[pd.DataFrame, pl.DataFrame], time_col: str, id_col: str = None
     ):
         self.data = data
-        self.target = target
+        self.time_col = time_col
         self.id_col = id_col
+
+        # Sort data by time_col and id_col (if provided)
+        self.data = self._sort_data()
 
     def _check_data_type(self, data: Any, expected_type: str) -> None:
         """Check the type of the data against the expected type (Pandas or Polars).
@@ -42,6 +45,23 @@ class BaseTemporalPartitioner(ABC):
             raise TypeError("Expected data to be a Pandas DataFrame.")
         elif expected_type == "polars" and not isinstance(data, pl.DataFrame):
             raise TypeError("Expected data to be a Polars DataFrame.")
+
+    def _sort_data(self) -> Union[pd.DataFrame, pl.DataFrame]:
+        """Sorts the data by time_col and id_col (if provided).
+
+        :return: The sorted DataFrame.
+        :rtype: Union[pd.DataFrame, pl.DataFrame]
+        """
+        if isinstance(self.data, pd.DataFrame):
+            if self.id_col:
+                return self.data.sort_values(by=[self.id_col, self.time_col]).reset_index(drop=True)
+            return self.data.sort_values(by=self.time_col).reset_index(drop=True)
+        elif isinstance(self.data, pl.DataFrame):
+            if self.id_col:
+                return self.data.sort([self.id_col, self.time_col])
+            return self.data.sort(self.time_col)
+
+        raise TypeError("Unsupported data type. Data must be a Pandas or Polars DataFrame.")
 
     @abstractmethod
     def get_partitions(self) -> List[Tuple[int, int]]:
