@@ -1,4 +1,4 @@
-""" temporalscope/partitioning/base_temporal_partitioner.py
+"""temporalscope/partitioning/base_temporal_partitioner.py
 
 This module defines the BaseTemporalPartitioner class, an abstract base class for all temporal partitioning methods.
 Each partitioning method must inherit from this class and implement the required methods.
@@ -9,6 +9,10 @@ from typing import List, Tuple, Any, Union
 import pandas as pd
 import polars as pl
 
+# Default configuration for TimeFrame
+TF_DEFAULT_CFG = {
+    "BACKENDS": {"pl": "polars", "pd": "pandas"},
+}
 
 class BaseTemporalPartitioner(ABC):
     """Abstract base class for temporal partitioning methods. This class enforces a
@@ -20,14 +24,52 @@ class BaseTemporalPartitioner(ABC):
     :type time_col: str
     :param id_col: Optional. The column used for grouping (e.g., stock ticker, item ID).
     :type id_col: Optional[str]
+    :param backend: The backend to use ('pl' for Polars or 'pd' for Pandas). Default is 'pl'.
+    :type backend: str
+
+    .. note::
+        The backend parameter controls whether the partitioning is performed using Polars or Pandas. Ensure that the 
+        data passed to the partitioner is compatible with the specified backend.
+
+    .. rubric:: Examples
+
+    .. code-block:: python
+
+        # Example usage with Pandas DataFrame
+        data = pd.DataFrame({'time': pd.date_range(start='2021-01-01', periods=20, freq='D'), 'value': range(20)})
+        partitioner = SlidingWindowPartitioner(data=data, time_col='time', backend='pd')
+
+        # Example usage with Polars DataFrame
+        data = pl.DataFrame({'time': pl.date_range(start='2021-01-01', periods=20, interval='1d'), 'value': range(20)})
+        partitioner = SlidingWindowPartitioner(data=data, time_col='time', backend='pl')
     """
 
     def __init__(
-        self, data: Union[pd.DataFrame, pl.DataFrame], time_col: str, id_col: str = None
+        self,
+        data: Union[pd.DataFrame, pl.DataFrame],
+        time_col: str,
+        id_col: str = None,
+        backend: str = "pl",
     ):
         self.data = data
         self.time_col = time_col
         self.id_col = id_col
+
+        # Handle both short forms and full names
+        backend_lower = backend.lower()
+        if backend_lower in TF_DEFAULT_CFG["BACKENDS"]:
+            self.backend = TF_DEFAULT_CFG["BACKENDS"][backend_lower]
+        elif backend_lower in TF_DEFAULT_CFG["BACKENDS"].values():
+            self.backend = backend_lower
+        else:
+            raise ValueError(
+                f"Unsupported backend '{backend}'. Supported backends are: "
+                f"{', '.join(TF_DEFAULT_CFG['BACKENDS'].keys())}, "
+                f"{', '.join(TF_DEFAULT_CFG['BACKENDS'].values())}"
+            )
+
+        # Validate the data type based on the specified backend
+        self._check_data_type(self.data, self.backend)
 
         # Sort data by time_col and id_col (if provided)
         self.data = self._sort_data()
@@ -52,16 +94,18 @@ class BaseTemporalPartitioner(ABC):
         :return: The sorted DataFrame.
         :rtype: Union[pd.DataFrame, pl.DataFrame]
         """
-        if isinstance(self.data, pd.DataFrame):
+        if self.backend == "pandas":
             if self.id_col:
                 return self.data.sort_values(by=[self.id_col, self.time_col]).reset_index(drop=True)
             return self.data.sort_values(by=self.time_col).reset_index(drop=True)
-        elif isinstance(self.data, pl.DataFrame):
+        elif self.backend == "polars":
             if self.id_col:
                 return self.data.sort([self.id_col, self.time_col])
             return self.data.sort(self.time_col)
 
-        raise TypeError("Unsupported data type. Data must be a Pandas or Polars DataFrame.")
+        raise TypeError(
+            "Unsupported data type. Data must be a Pandas or Polars DataFrame."
+        )
 
     @abstractmethod
     def get_partitions(self) -> List[Tuple[int, int]]:
@@ -95,7 +139,7 @@ class BaseTemporalPartitioner(ABC):
         partitioned_data = [self.apply_partition(partition) for partition in partitions]
         self._check_data_type(
             partitioned_data[0],
-            "pandas" if isinstance(self.data, pd.DataFrame) else "polars",
+            "pandas" if self.backend == "pandas" else "polars",
         )
         return partitioned_data
 

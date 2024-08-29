@@ -5,11 +5,11 @@ time series data using multiple backends. It supports Polars as the default back
 for users who prefer the traditional data processing framework.
 """
 
-from typing import Union, Optional
+from typing import Union, Optional, List, Tuple, Callable
 import polars as pl
 import pandas as pd
 import warnings
-from temporalscope.partitioning.base_temporal_partitioner import BaseTemporalPartitioner
+from temporalscope.partition.base_temporal_partioner import BaseTemporalPartitioner
 
 TF_DEFAULT_CFG = {
     "BACKENDS": {"pl": "polars", "pd": "pandas"},
@@ -38,32 +38,60 @@ class TimeFrame:
 
     .. note::
 
-       The default assumption for the `TimeFrame` class is that the dataset is cleaned and prepared for one-step-ahead 
-       forecasting, where the `target_col` directly corresponds to the label. The `id_col` is included for grouping and 
-       sorting purposes but is not used in the default model-building process. If you are using custom TensorFlow or 
-       PyTorch models that forecast multiple steps ahead, ensure that these models are compatible with the SHAP APIs 
-       and consider handling the `id_col` appropriately.
-    """
+       The default assumption for the `TimeFrame` class is that the dataset is cleaned and prepared for one-step-ahead
+       forecasting, where the `target_col` directly corresponds to the label. The `id_col` is included for grouping and
+       sorting purposes but is not used in the default model-building process.
 
+    .. warning::
+
+       Ensure that the `time_col` is properly formatted as a datetime type to avoid issues with sorting and grouping.
+
+    .. rubric:: Examples
+
+    .. code-block:: python
+
+       # Example of creating a TimeFrame with Polars DataFrame
+       data = pl.DataFrame({
+           'time': pl.date_range(start='2021-01-01', periods=100, interval='1d'),
+           'value': range(100)
+       })
+       tf = TimeFrame(data, time_col='time', target_col='value')
+
+       # Accessing the data
+       print(tf.get_data().head())
+    """
     def __init__(
         self,
-        df,
-        time_col,
-        target_col,
-        id_col=None,
-        backend="pl",
-        sort=True,
-        rename_target=False,
+        df: Union[pl.DataFrame, pd.DataFrame],
+        time_col: str,
+        target_col: str,
+        id_col: Optional[str] = None,
+        backend: str = "pl",
+        sort: bool = True,
+        rename_target: bool = False,
     ):
         self._cfg = TF_DEFAULT_CFG.copy()
         self._df = df
         self._time_col = time_col
         self._target_col = target_col
         self._id_col = id_col
-        self._backend = self._cfg["BACKENDS"].get(backend.lower())
+
+        # Handle both short forms and full names
+        backend_lower = backend.lower()
+        if backend_lower in self._cfg["BACKENDS"]:
+            self._backend = self._cfg["BACKENDS"][backend_lower]
+        elif backend_lower in self._cfg["BACKENDS"].values():
+            self._backend = backend_lower
+        else:
+            raise ValueError(
+                f"Unsupported backend '{backend}'. Supported backends are: "
+                f"{', '.join(self._cfg['BACKENDS'].keys())}, "
+                f"{', '.join(self._cfg['BACKENDS'].values())}"
+            )
+
         self._sort = sort
         self._rename_target = rename_target
-        self._partition_cfg = {"partitions": None, "partitioner": None}  
+        self._partition_cfg = {"partitions": None, "partitioner": None}
 
         self._validate_config()
         self._validate_input()
@@ -102,15 +130,15 @@ class TimeFrame:
 
     def _validate_input(self) -> None:
         """Validate the input DataFrame and ensure required columns are present."""
-        if self.backend == "polars":
+        # Validate the DataFrame type based on the backend
+        if self._backend == "polars":
             if not isinstance(self._df, pl.DataFrame):
-                raise TypeError("Expected a Polars DataFrame")
-        elif self.backend == "pandas":
+                raise TypeError("Expected a Polars DataFrame.")
+        elif self._backend == "pandas":
             if not isinstance(self._df, pd.DataFrame):
-                raise TypeError("Expected a Pandas DataFrame")
-        else:
-            raise ValueError("Unsupported backend. Use 'polars' or 'pandas'.")
+                raise TypeError("Expected a Pandas DataFrame.")
 
+        # Validate required columns
         if self.time_col not in self._df.columns:
             raise ValueError(
                 f"Time column '{self.time_col}' must be in the DataFrame columns"
@@ -127,10 +155,10 @@ class TimeFrame:
             )
 
         # Ensure time_col is datetime for proper sorting
-        if self.backend == "pandas":
+        if self._backend == "pandas":
             if not pd.api.types.is_datetime64_any_dtype(self._df[self.time_col]):
                 self._df[self.time_col] = pd.to_datetime(self._df[self.time_col])
-        elif self.backend == "polars":
+        elif self._backend == "polars":
             if self._df[self.time_col].dtype != pl.Datetime:
                 self._df = self._df.with_columns(
                     pl.col(self.time_col).str.strptime(pl.Datetime)
@@ -138,9 +166,9 @@ class TimeFrame:
 
     def _apply_backend_logic(self):
         """Apply backend-specific logic such as sorting and grouping."""
-        if self.backend == "polars":
+        if self._backend == "polars":
             self._polars_logic()
-        elif self.backend == "pandas":
+        elif self._backend == "pandas":
             self._pandas_logic()
 
     def _polars_logic(self):
@@ -161,26 +189,26 @@ class TimeFrame:
 
     def _check_duplicates(self):
         """Check for duplicate time entries within groups."""
-        if self.backend == "polars":
+        if self._backend == "polars":
             if self.id_col:
                 duplicates = self._df.filter(
                     self._df[[self.id_col, self.time_col]].is_duplicated()
                 )
             else:
                 duplicates = self._df.filter(self._df[self.time_col].is_duplicated())
-        elif self.backend == "pandas":
+        elif self._backend == "pandas":
             if self.id_col:
                 duplicates = self._df.duplicated(subset=[self.id_col, self.time_col])
             else:
                 duplicates = self._df.duplicated(subset=[self.time_col])
 
-        if len(duplicates) > 0 if self.backend == "polars" else duplicates.any():
+        if len(duplicates) > 0 if self._backend == "polars" else duplicates.any():
             raise ValueError("Duplicate time entries found within the same group.")
 
     def _apply_available_mask(self):
         """Generate an available mask column if not present."""
         if "available_mask" not in self._df.columns:
-            if self.backend == "polars":
+            if self._backend == "polars":
                 self._df = self._df.with_columns(pl.lit(1.0).alias("available_mask"))
             else:
                 self._df["available_mask"] = 1.0
@@ -191,21 +219,21 @@ class TimeFrame:
     def _rename_target_column(self):
         """Rename the target column to 'y' if rename_target is True."""
         if self._rename_target:
-            if self.backend == "polars":
+            if self._backend == "polars":
                 self._df = self._df.rename({self.target_col: "y"})
-            elif self.backend == "pandas":
+            elif self._backend == "pandas":
                 self._df.rename(columns={self.target_col: "y"}, inplace=True)
 
     def apply_partitioning(self, partitioner: BaseTemporalPartitioner):
         """Apply a partitioning strategy and update the partition configuration."""
         self._partition_cfg["partitions"] = partitioner.get_partitions()
-        self._partition_cfg["partitioner"] = partitioner 
+        self._partition_cfg["partitioner"] = partitioner
 
     def get_partitioned_data(self) -> List[Union[pd.DataFrame, pl.DataFrame]]:
         """Return the partitioned data based on the current partition configuration."""
         if self._partition_cfg["partitions"] is None:
             raise ValueError("No partitioning strategy has been applied.")
-        partitioner = self._partition_cfg["partitioner"] 
+        partitioner = self._partition_cfg["partitioner"]
         return partitioner.get_partitioned_data()
 
     def get_partition_indices(self) -> List[Tuple[int, int]]:
@@ -243,9 +271,9 @@ class TimeFrame:
         if not self.id_col:
             raise ValueError("ID column is not set; cannot group data.")
 
-        if self.backend == "polars":
+        if self._backend == self._cfg["BACKENDS"]["pl"]:
             return self._df.groupby(self.id_col).agg(pl.all())
-        elif self.backend == "pandas":
+        elif self._backend == self._cfg["BACKENDS"]["pd"]:
             return self._df.groupby(self.id_col).apply(lambda x: x)
 
         return self._df
