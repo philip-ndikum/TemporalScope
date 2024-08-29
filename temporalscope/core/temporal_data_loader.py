@@ -14,9 +14,25 @@ from typing import Union, Optional, Callable, List, Tuple
 import polars as pl
 import pandas as pd
 import warnings
+from temporalscope.partioning.base_temporal_partioner import NaivePartitioner
+
+TF_DEFAULT_CFG = {
+    "BACKENDS": {"pl": "polars", "pd": "pandas"},
+    "PARTITION_STRATEGIES": {
+        "naive": NaivePartitioner,
+    },
+    "MODEL_PARAMS": {
+        "objective": "regression",
+        "boosting_type": "gbdt",
+        "metric": "rmse",
+        "verbosity": -1,
+    },
+    "DISTRIBUTED_TRAINING": False,
+}
+
 
 class TimeFrame:
-    """ Handles time series data with support for various backends like Polars and Pandas.
+    """Handles time series data with support for various backends like Polars and Pandas.
 
     This class provides functionalities to manage time series data with optional static features,
     available masks, and backend flexibility. It also supports partitioning schemes, feature
@@ -32,27 +48,46 @@ class TimeFrame:
     :type id_col: Optional[str]
     :param static_cols: Optional. List of columns representing static features. Default is None.
     :type static_cols: Optional[list[str]]
-    :param backend: The backend to use ('polars' or 'pandas'). Default is 'polars'.
+    :param backend: The backend to use ('pl' for Polars or 'pd' for Pandas). Default is 'pl'.
     :type backend: str
     :param sort: Optional. Whether to sort the data by time_col (and id_col if provided). Default is True.
     :type sort: bool
     :param rename_target: Optional. Whether to rename the target_col to 'y'. Default is False.
     :type rename_target: bool
+    :param partition_strategy: Optional. The strategy used to partition the data. Default is None.
+    :type partition_strategy: Optional[str]
     """
 
-    def __init__(self, df, time_col, target_col, id_col=None, static_cols=None, backend="polars", sort=True, rename_target=False):
+    def __init__(
+        self,
+        df,
+        time_col,
+        target_col,
+        id_col=None,
+        static_cols=None,
+        backend="pl",
+        sort=True,
+        rename_target=False,
+        partition_strategy="naive",
+    ):
+        self._cfg = TF_DEFAULT_CFG.copy()
         self._df = df
         self._time_col = time_col
         self._target_col = target_col
         self._id_col = id_col
         self._static_cols = static_cols
-        self._backend = backend.lower()
+        self._backend = self._cfg["BACKENDS"].get(backend.lower())
         self._sort = sort
         self._rename_target = rename_target
+        self._partition_strategy = partition_strategy
+        self._partition_indices = None
+
+        self._validate_config()
         self._validate_input()
         self._apply_backend_logic()
         self._apply_static_features()
         self._rename_target_column()
+        self._update_partition_indices()
 
     @property
     def backend(self) -> str:
@@ -79,6 +114,26 @@ class TimeFrame:
         """Return the list of static columns if provided."""
         return self._static_cols
 
+    @property
+    def partition_strategy(self) -> Optional[str]:
+        """Return the partitioning strategy used."""
+        return self._partition_strategy
+
+    @property
+    def partition_indices(self) -> Optional[list]:
+        """Return the indices used for partitioning."""
+        return self._partition_indices
+
+    def _validate_config(self):
+        """Validate the instance configuration against the default configuration."""
+        for key in TF_DEFAULT_CFG.keys():
+            if key not in self._cfg:
+                raise ValueError(f"Missing configuration key: {key}")
+            if type(self._cfg[key]) != type(TF_DEFAULT_CFG[key]):
+                raise TypeError(
+                    f"Incorrect type for configuration key: {key}. Expected {type(TF_DEFAULT_CFG[key])}, got {type(self._cfg[key])}."
+                )
+
     def _validate_input(self) -> None:
         """Validate the input DataFrame and ensure required columns are present."""
         if self.backend == "polars":
@@ -91,10 +146,14 @@ class TimeFrame:
             raise ValueError("Unsupported backend. Use 'polars' or 'pandas'.")
 
         if self.time_col not in self._df.columns:
-            raise ValueError(f"Time column '{self.time_col}' must be in the DataFrame columns")
+            raise ValueError(
+                f"Time column '{self.time_col}' must be in the DataFrame columns"
+            )
 
         if self.target_col not in self._df.columns:
-            raise ValueError(f"Target column '{self.target_col}' must be in the DataFrame columns")
+            raise ValueError(
+                f"Target column '{self.target_col}' must be in the DataFrame columns"
+            )
 
         if self.id_col and self.id_col not in self._df.columns:
             raise ValueError(
@@ -107,7 +166,9 @@ class TimeFrame:
                 self._df[self.time_col] = pd.to_datetime(self._df[self.time_col])
         elif self.backend == "polars":
             if self._df[self.time_col].dtype != pl.Datetime:
-                self._df = self._df.with_columns(pl.col(self.time_col).str.strptime(pl.Datetime))
+                self._df = self._df.with_columns(
+                    pl.col(self.time_col).str.strptime(pl.Datetime)
+                )
 
     def _apply_backend_logic(self):
         """Apply backend-specific logic such as sorting and grouping."""
@@ -140,9 +201,7 @@ class TimeFrame:
                     self._df[[self.id_col, self.time_col]].is_duplicated()
                 )
             else:
-                duplicates = self._df.filter(
-                    self._df[self.time_col].is_duplicated()
-                )
+                duplicates = self._df.filter(self._df[self.time_col].is_duplicated())
         elif self.backend == "pandas":
             if self.id_col:
                 duplicates = self._df.duplicated(subset=[self.id_col, self.time_col])
@@ -174,9 +233,41 @@ class TimeFrame:
         """Rename the target column to 'y' if rename_target is True."""
         if self._rename_target:
             if self.backend == "polars":
-                self._df = self._df.rename({self.target_col: 'y'})
+                self._df = self._df.rename({self.target_col: "y"})
             elif self.backend == "pandas":
-                self._df.rename(columns={self.target_col: 'y'}, inplace=True)
+                self._df.rename(columns={self.target_col: "y"}, inplace=True)
+
+    def _update_partition_indices(self):
+        """Update the partition indices based on the selected strategy."""
+        if self._partition_strategy is None:
+            self._partition_indices = None
+        else:
+            strategy_func = self._cfg["PARTITION_STRATEGIES"].get(
+                self._partition_strategy
+            )
+            if not strategy_func:
+                raise ValueError(
+                    f"Unsupported partition strategy: {self._partition_strategy}"
+                )
+            partitioner = strategy_func(
+                self._df, self._time_col, self._target_col, self._id_col
+            )
+            self._partition_indices = partitioner.get_partitions()
+
+    def set_partition_strategy(self, strategy: str):
+        """Set the partitioning strategy and update partition indices."""
+        if strategy not in PARTITION_STRATEGIES:
+            raise ValueError(f"Unsupported partition strategy: {strategy}")
+        self._partition_strategy = strategy
+        self._update_partition_indices()
+
+    def get_partitioned_data(self) -> List[Union[pl.DataFrame, pd.DataFrame]]:
+        """Return the data partitioned according to the selected strategy."""
+        if self._partition_indices is None:
+            raise ValueError(
+                "Partition strategy is not set or partition indices are not generated."
+            )
+        return [self._df.iloc[start:end] for start, end in self._partition_indices]
 
     def run_method(self, method: Callable, *args, **kwargs):
         """Run an analytical method on the data.

@@ -8,6 +8,7 @@ from temporalscope.partioning.base_temporal_partitioner import BaseTemporalParti
 import pandas as pd
 from typing import List, Tuple
 
+
 class NaivePartitioner(BaseTemporalPartitioner):
     """
     Naive partitioning method that divides the dataset into equal-sized partitions.
@@ -21,8 +22,10 @@ class NaivePartitioner(BaseTemporalPartitioner):
     :param n_partitions: Number of partitions to create.
     :type n_partitions: int
     """
-    
-    def __init__(self, data: pd.DataFrame, target: str, id_col: str = None, n_partitions: int = 3):
+
+    def __init__(
+        self, data: pd.DataFrame, target: str, id_col: str = None, n_partitions: int = 3
+    ):
         super().__init__(data, target, id_col)
         self.n_partitions = n_partitions
 
@@ -30,8 +33,14 @@ class NaivePartitioner(BaseTemporalPartitioner):
         """Generate naive partitions of equal size."""
         total_rows = len(self.data)
         partition_size = total_rows // self.n_partitions
-        partitions = [(i * partition_size, (i + 1) * partition_size) for i in range(self.n_partitions)]
-        partitions[-1] = (partitions[-1][0], total_rows)  # Ensure the last partition includes all remaining data
+        partitions = [
+            (i * partition_size, (i + 1) * partition_size)
+            for i in range(self.n_partitions)
+        ]
+        partitions[-1] = (
+            partitions[-1][0],
+            total_rows,
+        )  # Ensure the last partition includes all remaining data
         return partitions
 
     def apply_partition(self, partition: Tuple[int, int]) -> pd.DataFrame:

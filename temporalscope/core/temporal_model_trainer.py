@@ -12,7 +12,7 @@ from temporalscope.methods.base_temporal_partitioner import BaseTemporalPartitio
 
 
 class TemporalModelTrainer:
-    """ Trains models on temporally partitioned data. Users can specify a custom model 
+    """Trains models on temporally partitioned data. Users can specify a custom model
     or use the default LightGBM model.
 
     :param partitioner: An instance of a class that inherits from BaseTemporalPartitioner.
@@ -27,18 +27,20 @@ class TemporalModelTrainer:
         self,
         partitioner: BaseTemporalPartitioner,
         model: Optional[Callable] = None,
-        model_params: Optional[Dict[str, Union[str, int, float]]] = None
+        model_params: Optional[Dict[str, Union[str, int, float]]] = None,
     ):
         self.partitioner = partitioner
         self.model = model or self._initialize_default_model(model_params)
 
-    def _initialize_default_model(self, model_params: Optional[Dict[str, Union[str, int, float]]]):
+    def _initialize_default_model(
+        self, model_params: Optional[Dict[str, Union[str, int, float]]]
+    ):
         """Initialize a default LightGBM model with specified or default parameters."""
         params = model_params or {
-            'objective': 'regression',
-            'boosting_type': 'gbdt',
-            'metric': 'rmse',
-            'verbosity': -1,
+            "objective": "regression",
+            "boosting_type": "gbdt",
+            "metric": "rmse",
+            "verbosity": -1,
         }
         return lgb.LGBMRegressor(**params)
 
@@ -65,4 +67,3 @@ class TemporalModelTrainer:
         y = phase_data[self.partitioner.target]
         self.model.fit(X, y)
         return self.model
-

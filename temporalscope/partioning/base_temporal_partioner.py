@@ -8,8 +8,9 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Any
 import pandas as pd
 
+
 class BaseTemporalPartitioner(ABC):
-    """ Abstract base class for temporal partitioning methods. This class enforces a 
+    """Abstract base class for temporal partitioning methods. This class enforces a
     consistent API for all partitioning methods.
 
     :param data: The dataset to be partitioned.
@@ -19,6 +20,7 @@ class BaseTemporalPartitioner(ABC):
     :param id_col: Optional. The column used for grouping (e.g., stock ticker, item ID).
     :type id_col: Optional[str]
     """
+
     def __init__(self, data: pd.DataFrame, target: str, id_col: str = None):
         self.data = data
         self.target = target
@@ -36,7 +38,7 @@ class BaseTemporalPartitioner(ABC):
 
     @abstractmethod
     def apply_partition(self, partition: Tuple[int, int]) -> pd.DataFrame:
-        """ Abstract method that must be implemented by subclasses to apply a partition to the data.
+        """Abstract method that must be implemented by subclasses to apply a partition to the data.
 
         :param partition: A tuple representing the start and end indices of the partition.
         :type partition: Tuple[int, int]
@@ -46,7 +48,7 @@ class BaseTemporalPartitioner(ABC):
         pass
 
     def get_partitioned_data(self) -> List[pd.DataFrame]:
-        """ Helper method that returns the data for each partition as a list of DataFrames.
+        """Helper method that returns the data for each partition as a list of DataFrames.
 
         :return: List of partitioned DataFrames.
         :rtype: List[pd.DataFrame]
