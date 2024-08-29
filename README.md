@@ -65,37 +65,51 @@ You can use TemporalScope with the following steps:
 Now, let's refine the code example using a random forest model and an academic dataset. We'll use the California housing dataset as a simple example since it's well-known and accessible.
 
 ```python
-# Step 1: Import TemporalScope and other necessary libraries
-import temporalscope as ts
-from sklearn.datasets import fetch_california_housing
-from sklearn.ensemble import RandomForestRegressor
+import polars as pl
 import pandas as pd
-import matplotlib.pyplot as plt
+from statsmodels.datasets import macrodata
+from temporalscope.core.temporal_data_loader import TimeFrame
+from temporalscope.partioning.naive_partitioner import NaivePartitioner
+from temporalscope.core.temporal_model_trainer import TemporalModelTrainer
 
-# Step 2: Load your data (using Pandas backend by default)
-housing = fetch_california_housing(as_frame=True)
-df = pd.concat([housing.data, housing.target.rename('MedHouseVal')], axis=1)
-df['timestamp'] = pd.date_range(start='1/1/2000', periods=len(df), freq='M')
-data = ts.TimeSeriesData(data=df, time_col='timestamp')
+# 1. Load the dataset using Pandas (or convert to Polars)
+macro_df = macrodata.load_pandas().data
+macro_df['time'] = pd.date_range(start='1959-01-01', periods=len(macro_df), freq='Q')
 
-# Step 3A: Apply MASV method with a pre-trained model (Random Forest in this case)
-model = RandomForestRegressor(n_estimators=100)
-model.fit(df[housing.feature_names], df['MedHouseVal'])
-masv_results = data.calculate_masv(model=model, phases=[(0, 100), (100, 200)])
+# Convert the Pandas DataFrame to a Polars DataFrame
+macro_df_polars = pl.DataFrame(macro_df)
 
-# Step 3B: Alternatively, let TemporalScope train a Random Forest model
-# masv_results = data.calculate_masv(model=None, phases=[(0, 100), (100, 200)])
+# 2. Initialize the TimeFrame object with the data
+economic_tf = TimeFrame(
+    df=macro_df_polars,
+    time_col='time',
+    target_col='realgdp',
+    backend='pl',  # Using Polars as the backend
+)
 
-# Step 4: Analyze and Visualize the results
-# masv_results will be a dictionary with feature names as keys and MASV scores as values
-for feature, masv_scores in masv_results.items():
-    plt.plot(masv_scores, label=f'{feature}')
-    
-plt.title('Mean Absolute SHAP Values Across Phases')
-plt.xlabel('Phase')
-plt.ylabel('MASV Score')
-plt.legend()
-plt.show()
+# 3. Apply Partitioning Strategy (like sklearn's train_test_split)
+partitioner = NaivePartitioner(economic_tf)
+partitioned_data = partitioner.apply()  # Returns a list of partitioned dataframes
+
+# 4. Train and evaluate the model using the partitioned data
+model_trainer = TemporalModelTrainer(
+    partitioned_data=partitioned_data,  # Directly passing the partitioned data
+    model=None,  # Use the default model (LightGBM)
+    model_params={
+        'objective': 'regression',
+        'boosting_type': 'gbdt',
+        'metric': 'rmse',
+        'verbosity': -1
+    }
+)
+
+# 5. Execute the training and evaluate
+results = model_trainer.train_and_evaluate()
+
+# Output predictions and metrics
+for partition_name, predictions in results.items():
+    print(f"Predictions for {partition_name}:")
+    print(predictions[:5])  # Display first 5 predictions
 ```
 
 ## **Industrial Academic Applications**
