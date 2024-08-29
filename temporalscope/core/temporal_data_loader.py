@@ -3,40 +3,25 @@
 This module implements the TimeFrame class, designed to provide a flexible and scalable interface for handling
 time series data using multiple backends. It supports Polars as the default backend and Pandas as a secondary option
 for users who prefer the traditional data processing framework.
-
-Design Considerations:
-1. Backend Flexibility: Users can switch between Polars and Pandas depending on their dataset and computational requirements.
-2. Optional Grouping: Grouping by an ID column (e.g., stock ID, item ID) is optional. The class ensures no duplicate time entries within groups if grouping is applied.
-3. Partitioning and Algorithmic Flexibility: Facilitates the use of partitioning schemes (e.g., sliding windows) and methods like SHAP for feature importance analysis, with the ability to easily extend with custom methods.
 """
 
-from typing import Union, Optional, Callable, List, Tuple
+from typing import Union, Optional
 import polars as pl
 import pandas as pd
 import warnings
-from temporalscope.partioning.base_temporal_partioner import NaivePartitioner
+from temporalscope.methods.base_temporal_partitioner import BaseTemporalPartitioner
+
 
 TF_DEFAULT_CFG = {
     "BACKENDS": {"pl": "polars", "pd": "pandas"},
-    "PARTITION_STRATEGIES": {
-        "naive": NaivePartitioner,
-    },
-    "MODEL_PARAMS": {
-        "objective": "regression",
-        "boosting_type": "gbdt",
-        "metric": "rmse",
-        "verbosity": -1,
-    },
-    "DISTRIBUTED_TRAINING": False,
 }
 
 
 class TimeFrame:
     """Handles time series data with support for various backends like Polars and Pandas.
 
-    This class provides functionalities to manage time series data with optional static features,
-    available masks, and backend flexibility. It also supports partitioning schemes, feature
-    importance methods, and can handle large datasets efficiently.
+    This class provides functionalities to manage time series data with optional grouping,
+    available masks, and backend flexibility. It can handle large datasets efficiently.
 
     :param df: The input DataFrame.
     :type df: Union[pl.DataFrame, pd.DataFrame]
@@ -46,16 +31,12 @@ class TimeFrame:
     :type target_col: str
     :param id_col: Optional. The column representing the ID for grouping. Default is None.
     :type id_col: Optional[str]
-    :param static_cols: Optional. List of columns representing static features. Default is None.
-    :type static_cols: Optional[list[str]]
     :param backend: The backend to use ('pl' for Polars or 'pd' for Pandas). Default is 'pl'.
     :type backend: str
     :param sort: Optional. Whether to sort the data by time_col (and id_col if provided). Default is True.
     :type sort: bool
     :param rename_target: Optional. Whether to rename the target_col to 'y'. Default is False.
     :type rename_target: bool
-    :param partition_strategy: Optional. The strategy used to partition the data. Default is None.
-    :type partition_strategy: Optional[str]
     """
 
     def __init__(
@@ -64,30 +45,24 @@ class TimeFrame:
         time_col,
         target_col,
         id_col=None,
-        static_cols=None,
         backend="pl",
         sort=True,
         rename_target=False,
-        partition_strategy="naive",
     ):
         self._cfg = TF_DEFAULT_CFG.copy()
         self._df = df
         self._time_col = time_col
         self._target_col = target_col
         self._id_col = id_col
-        self._static_cols = static_cols
         self._backend = self._cfg["BACKENDS"].get(backend.lower())
         self._sort = sort
         self._rename_target = rename_target
-        self._partition_strategy = partition_strategy
-        self._partition_indices = None
+        self._partition_cfg = {"partitions": None, "partitioner": None}  
 
         self._validate_config()
         self._validate_input()
         self._apply_backend_logic()
-        self._apply_static_features()
         self._rename_target_column()
-        self._update_partition_indices()
 
     @property
     def backend(self) -> str:
@@ -108,21 +83,6 @@ class TimeFrame:
     def id_col(self) -> Optional[str]:
         """Return the column name used for grouping or None if not set."""
         return self._id_col
-
-    @property
-    def static_cols(self) -> Optional[list[str]]:
-        """Return the list of static columns if provided."""
-        return self._static_cols
-
-    @property
-    def partition_strategy(self) -> Optional[str]:
-        """Return the partitioning strategy used."""
-        return self._partition_strategy
-
-    @property
-    def partition_indices(self) -> Optional[list]:
-        """Return the indices used for partitioning."""
-        return self._partition_indices
 
     def _validate_config(self):
         """Validate the instance configuration against the default configuration."""
@@ -211,13 +171,6 @@ class TimeFrame:
         if len(duplicates) > 0 if self.backend == "polars" else duplicates.any():
             raise ValueError("Duplicate time entries found within the same group.")
 
-    def _apply_static_features(self):
-        """Process static features if provided."""
-        if self.static_cols:
-            if not all(col in self._df.columns for col in self.static_cols):
-                raise ValueError("Some static columns are not found in the DataFrame")
-            # Additional logic for processing static features could go here
-
     def _apply_available_mask(self):
         """Generate an available mask column if not present."""
         if "available_mask" not in self._df.columns:
@@ -237,37 +190,23 @@ class TimeFrame:
             elif self.backend == "pandas":
                 self._df.rename(columns={self.target_col: "y"}, inplace=True)
 
-    def _update_partition_indices(self):
-        """Update the partition indices based on the selected strategy."""
-        if self._partition_strategy is None:
-            self._partition_indices = None
-        else:
-            strategy_func = self._cfg["PARTITION_STRATEGIES"].get(
-                self._partition_strategy
-            )
-            if not strategy_func:
-                raise ValueError(
-                    f"Unsupported partition strategy: {self._partition_strategy}"
-                )
-            partitioner = strategy_func(
-                self._df, self._time_col, self._target_col, self._id_col
-            )
-            self._partition_indices = partitioner.get_partitions()
+    def apply_partitioning(self, partitioner: BaseTemporalPartitioner):
+        """Apply a partitioning strategy and update the partition configuration."""
+        self._partition_cfg["partitions"] = partitioner.get_partitions()
+        self._partition_cfg["partitioner"] = partitioner 
 
-    def set_partition_strategy(self, strategy: str):
-        """Set the partitioning strategy and update partition indices."""
-        if strategy not in PARTITION_STRATEGIES:
-            raise ValueError(f"Unsupported partition strategy: {strategy}")
-        self._partition_strategy = strategy
-        self._update_partition_indices()
+    def get_partitioned_data(self) -> List[Union[pd.DataFrame, pl.DataFrame]]:
+        """Return the partitioned data based on the current partition configuration."""
+        if self._partition_cfg["partitions"] is None:
+            raise ValueError("No partitioning strategy has been applied.")
+        partitioner = self._partition_cfg["partitioner"] 
+        return partitioner.get_partitioned_data()
 
-    def get_partitioned_data(self) -> List[Union[pl.DataFrame, pd.DataFrame]]:
-        """Return the data partitioned according to the selected strategy."""
-        if self._partition_indices is None:
-            raise ValueError(
-                "Partition strategy is not set or partition indices are not generated."
-            )
-        return [self._df.iloc[start:end] for start, end in self._partition_indices]
+    def get_partition_indices(self) -> List[Tuple[int, int]]:
+        """Return the partition indices."""
+        if self._partition_cfg["partitions"] is None:
+            raise ValueError("No partitioning strategy has been applied.")
+        return self._partition_cfg["partitions"]
 
     def run_method(self, method: Callable, *args, **kwargs):
         """Run an analytical method on the data.
