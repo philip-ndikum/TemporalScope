@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/temporalscope_github_banner.svg" alt="TemporalScope Logo" >
+  <img src="../assets/temporalscope_github_banner.svg" alt="TemporalScope Logo" >
 </p>
 
 <h3 align="center">Model-Agnostic Temporal Feature Importance Analysis</h3>

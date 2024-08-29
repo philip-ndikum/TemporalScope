@@ -7,6 +7,21 @@ remove_pycaches() {
     echo "__pycache__ directories removed."
 }
 
+# Function to copy README.md to the /temporalscope directory and adjust image paths
+copy_and_adjust_readme() {
+    if [ -f "README.md" ]; then
+        echo "Copying README.md to the temporalscope directory..."
+        cp README.md temporalscope/
+
+        # Adjust relative paths for images in the copied README.md
+        echo "Adjusting image paths in the copied README.md..."
+        sed -i 's/src="assets\//src="\.\.\/assets\//g' temporalscope/README.md
+        echo "Image paths adjusted successfully."
+    else
+        echo "README.md not found. Skipping copy."
+    fi
+}
+
 # Remove all __pycache__ directories
 remove_pycaches
 
@@ -49,13 +64,7 @@ echo "Setting up Jupyter kernel named 'temporalscope'..."
 poetry run python3 -m ipykernel install --user --name=temporalscope --display-name "Python (temporalscope)"
 echo "Jupyter kernel 'temporalscope' set up successfully."
 
-# Copy README.md to /temporalscope directory
-if [ -f "README.md" ]; then
-    echo "Copying README.md to the temporalscope directory..."
-    cp README.md temporalscope/
-    echo "README.md copied successfully."
-else
-    echo "README.md not found. Skipping copy."
-fi
+# Copy README.md to /temporalscope directory and adjust paths
+copy_and_adjust_readme
 
 echo "Setup completed successfully."
