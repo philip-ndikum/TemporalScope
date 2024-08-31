@@ -193,13 +193,14 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/125715876?v=4?s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a> <a href="#maintenance-philip-ndikum" title="Maintenance">🚧</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/125715876?v=4?s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a></td>
       <!-- Add more contributors below by copying and modifying this block -->
       <!-- <td align="center" valign="top" width="14.28%"><a href="https://github.com/your-co-developer"><img src="https://avatars.githubusercontent.com/u/your-co-developer-id?v=4?s=100" width="100px;" alt="Co-Developer Name"/><br /><sub><b>Co-Developer Name</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=your-co-developer" title="Code">💻</a></td> -->
     </tr>
   </tbody>
 </table>
 <!-- ALL-CONTRIBUTORS-LIST:END -->
+
 
 
 ## Cite this Project
