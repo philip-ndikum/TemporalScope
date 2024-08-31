@@ -6,11 +6,11 @@
 
 <p align="center">
   <a href="https://twitter.com/intent/tweet?text=Explore%20TemporalScope%20-%20Model-Agnostic%20Temporal%20Feature%20Importance%20Analysis!&url=https://github.com/philip-ndikum/TemporalScope&via=philip_ndikum&hashtags=MachineLearning,TemporalAnalysis,OpenSource" target="_blank">
-    <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social" alt="Tweet">
+    <img src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social&label=Tweet" alt="Tweet" style="height: 28px;">
   </a>
   &nbsp;
   <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://github.com/philip-ndikum/TemporalScope" target="_blank">
-    <img src="https://img.shields.io/badge/Share%20on%20LinkedIn-0077B5?&logo=linkedin&logoColor=white&style=for-the-badge" alt="Share on LinkedIn">
+    <img src="https://img.shields.io/badge/Share%20on%20LinkedIn-0077B5?&logo=linkedin&logoColor=white&style=flat-square" alt="Share on LinkedIn" style="height: 28px;">
   </a>
 </p>
 
