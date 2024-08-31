@@ -175,13 +175,31 @@ We have a clear vision for the future development of TemporalScope. Our roadmap 
 
 ## **Contributing**
 
-TemporalScope was created and developed by [Philip Ndikum](https://github.com/philip-ndikum) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users.
+TemporalScope was conceived by [Philip Ndikum](https://github.com/philip-ndikum) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users.
 
 We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
 
 We are also looking for contributors who are excited about taking on more significant roles in the development of TemporalScope. Those interested in leading future implementations or contributing in a more substantial capacity are welcome to get involved.
 
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
+
+### **Contributors ✨**
+
+Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tbody>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/15316026?v=4?s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a> <a href="#maintenance-philip-ndikum" title="Maintenance">🚧</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/your-co-developer"><img src="https://avatars.githubusercontent.com/u/your-co-developer-id?v=4?s=100" width="100px;" alt="Co-Developer Name"/><br /><sub><b>Co-Developer Name</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=your-co-developer" title="Code">💻</a></td>
+    </tr>
+  </tbody>
+</table>
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
 
 ## Cite this Project
 
