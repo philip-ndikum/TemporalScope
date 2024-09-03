@@ -8,11 +8,7 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, Any, Union
 import pandas as pd
 import polars as pl
-
-# Default configuration for TimeFrame
-TF_DEFAULT_CFG = {
-    "BACKENDS": {"pl": "polars", "pd": "pandas"},
-}
+from temporalscope.config import TF_DEFAULT_CFG
 
 
 class BaseTemporalPartitioner(ABC):

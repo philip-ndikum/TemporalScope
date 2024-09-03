@@ -6,7 +6,6 @@ on data partitioned by temporal methods. Users can pass their custom models or u
 
 from typing import Callable, Optional, List, Dict, Union
 import pandas as pd
-import numpy as np
 import lightgbm as lgb
 from temporalscope.methods.base_temporal_partitioner import BaseTemporalPartitioner
 

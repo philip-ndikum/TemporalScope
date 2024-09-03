@@ -12,10 +12,7 @@ import polars as pl
 import pandas as pd
 import warnings
 from temporalscope.partition.base_temporal_partioner import BaseTemporalPartitioner
-
-TF_DEFAULT_CFG = {
-    "BACKENDS": {"pl": "polars", "pd": "pandas", "md": "modin"},
-}
+from temporalscope.config import TF_DEFAULT_CFG
 
 
 class TimeFrame:
@@ -32,7 +29,7 @@ class TimeFrame:
     :type target_col: str
     :param id_col: Optional. The column representing the ID for grouping. Default is None.
     :type id_col: Optional[str]
-    :param backend: The backend to use ('pl' for Polars, 'pd' for Pandas, or 'md' for Modin). Default is 'pl'.
+    :param backend: The backend to use ('pl' for Polars, 'pd' for Pandas, or 'mpd' for Modin). Default is 'pl'.
     :type backend: str
     :param sort: Optional. Whether to sort the data by time_col (and id_col if provided). Default is True.
     :type sort: bool
@@ -69,7 +66,7 @@ class TimeFrame:
            'time': pd.date_range(start='2021-01-01', periods=100, freq='D'),
            'value': range(100)
        })
-       tf = TimeFrame(data, time_col='time', target_col='value', backend='md')
+       tf = TimeFrame(data, time_col='time', target_col='value', backend='mpd')
 
        # Accessing the data
        print(tf.get_data().head())
@@ -133,17 +130,15 @@ class TimeFrame:
         for key in TF_DEFAULT_CFG.keys():
             if key not in self._cfg:
                 raise ValueError(f"Missing configuration key: {key}")
-            if type(self._cfg[key]) != type(TF_DEFAULT_CFG[key]):
+            if not isinstance(self._cfg[key], type(TF_DEFAULT_CFG[key])):
                 raise TypeError(
                     f"Incorrect type for configuration key: {key}. Expected {type(TF_DEFAULT_CFG[key])}, got {type(self._cfg[key])}."
                 )
-
 
     @property
     def backend(self) -> str:
         """Return the backend used ('polars', 'pandas', or 'modin')."""
         return self._backend
-
 
     def _validate_input(self) -> None:
         """Validate the input DataFrame and ensure required columns are present."""

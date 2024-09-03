@@ -1,4 +1,4 @@
-""" temporalscope/methods/mean_absolute_shap.py
+"""temporalscope/methods/mean_absolute_shap.py
 
 This module implements the Mean Absolute SHAP (MASV) analysis, which evaluates
 temporal feature importance across different operational phases of a system.
@@ -7,32 +7,29 @@ temporal feature importance across different operational phases of a system.
 from shap import Explainer
 import numpy as np
 import pandas as pd
-from typing import Callable
+from typing import Callable, Dict, List
+from temporalscope.partition.base_temporal_partioner import BaseTemporalPartitioner
 
 
 def calculate_masv(
-    model: Callable, data: pd.DataFrame, phases: list[tuple[int, int]]
-) -> dict[str, list[float]]:
+    model: Callable, data: pd.DataFrame, partitioner: BaseTemporalPartitioner
+) -> Dict[str, List[float]]:
     """
-    Calculate Mean Absolute SHAP Values (MASV) for temporal feature importance.
+    Calculate Mean Absolute SHAP Values (MASV) for temporal feature importance across partitions.
 
     :param model: Trained machine learning model.
-    :param data: The dataset used for analysis. Rows represent samples, and
-        columns represent features.
-    :param phases: A list of tuples, where each tuple represents the start and
-        end of a phase (time window).
-    :return: A dictionary where keys are feature names and values are lists of
-        MASV scores across phases.
+    :param data: The dataset used for analysis. Rows represent samples, and columns represent features.
+    :param partitioner: The partitioner object to divide the data into phases.
+    :return: A dictionary where keys are feature names and values are lists of MASV scores across partitions.
 
     .. note::
         The MASV is calculated as:
 
         .. math::
 
-            MASV = \frac{1}{n} \sum |SHAP_i|
+            MASV = \\frac{1}{n} \\sum |SHAP_i|
 
-        Where `SHAP_i` is the SHAP value of feature `i` in a given phase, and
-        `n` is the number of samples in that phase.
+        Where `SHAP_i` is the SHAP value of feature `i` in a given phase, and `n` is the number of samples in that phase.
 
     .. references::
         - Alomari, Y., & Ando, M. (2024). SHAP-based insights for aerospace
@@ -44,30 +41,26 @@ def calculate_masv(
     # Initialize the SHAP explainer with the provided model
     explainer = Explainer(model)
 
-    # Calculate SHAP values for the entire dataset
-    shap_values = explainer(data)
+    # Get the partitions from the partitioner
+    partitions = partitioner.get_partitions()
 
     # Initialize an empty dictionary to store MASV scores
-    masv_dict = {}
+    masv_dict = {feature: [] for feature in data.columns}
 
-    # Iterate over each phase
-    for phase in phases:
-        start, end = phase
+    # Iterate over each partition
+    for partition in partitions:
+        # Extract data for the current partition
+        phase_data = data.iloc[partition[0] : partition[1]]
 
-        # Extract data for the current phase using slicing
-        phase_data = data.iloc[start:end]
+        # Calculate SHAP values for the partition data
+        shap_values = explainer(phase_data)
 
-        # Calculate SHAP values for the phase data
-        shap_vals = explainer.shap_values(phase_data)
-
-        # Compute the mean absolute SHAP values for the phase
-        masv_phase = np.mean(np.abs(shap_vals), axis=0)
+        # Compute the mean absolute SHAP values for the partition
+        masv_phase = np.mean(np.abs(shap_values.values), axis=0)
 
         # Update the dictionary with MASV scores for each feature
         for i, feature in enumerate(data.columns):
-            if feature not in masv_dict:
-                masv_dict[feature] = []
             masv_dict[feature].append(masv_phase[i])
 
-    # Return the dictionary containing MASV scores for each feature across phases
+    # Return the dictionary containing MASV scores for each feature across partitions
     return masv_dict
