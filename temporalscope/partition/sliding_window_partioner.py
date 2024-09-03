@@ -113,7 +113,7 @@ class SlidingWindowPartitioner(BaseTemporalPartitioner):
     ) -> Union[pd.DataFrame, pl.DataFrame]:
         """Applies a partition to the data and returns the corresponding subset.
 
-        If the partition size is smaller than the window size and expand_last is True, 
+        If the partition size is smaller than the window size and expand_last is True,
         the partition will be padded with the fill_value.
 
         :param partition: A tuple representing the start and end indices of the partition.
@@ -130,8 +130,13 @@ class SlidingWindowPartitioner(BaseTemporalPartitioner):
                     empty_row = {col: self.fill_value for col in partition_data.columns}
                     partition_data = partition_data.append(empty_row, ignore_index=True)
             elif isinstance(partition_data, pl.DataFrame):
-                fill_series = [pl.Series(name, [self.fill_value] * (self.window_size - len(partition_data)))
-                               for name in partition_data.columns]
+                fill_series = [
+                    pl.Series(
+                        name,
+                        [self.fill_value] * (self.window_size - len(partition_data)),
+                    )
+                    for name in partition_data.columns
+                ]
                 partition_data = pl.concat([partition_data] + fill_series, rechunk=True)
 
         return partition_data
@@ -144,11 +149,15 @@ class SlidingWindowPartitioner(BaseTemporalPartitioner):
         """
         if isinstance(self.data, pd.DataFrame):
             if self.id_col:
-                return self.data.sort_values(by=[self.id_col, self.time_col]).reset_index(drop=True)
+                return self.data.sort_values(
+                    by=[self.id_col, self.time_col]
+                ).reset_index(drop=True)
             return self.data.sort_values(by=self.time_col).reset_index(drop=True)
         elif isinstance(self.data, pl.DataFrame):
             if self.id_col:
                 return self.data.sort([self.id_col, self.time_col])
             return self.data.sort(self.time_col)
 
-        raise TypeError("Unsupported data type. Data must be a Pandas or Polars DataFrame.")
+        raise TypeError(
+            "Unsupported data type. Data must be a Pandas or Polars DataFrame."
+        )

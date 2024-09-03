@@ -14,6 +14,7 @@ TF_DEFAULT_CFG = {
     "BACKENDS": {"pl": "polars", "pd": "pandas"},
 }
 
+
 class BaseTemporalPartitioner(ABC):
     """Abstract base class for temporal partitioning methods. This class enforces a
     consistent API for all partitioning methods.
@@ -28,7 +29,7 @@ class BaseTemporalPartitioner(ABC):
     :type backend: str
 
     .. note::
-        The backend parameter controls whether the partitioning is performed using Polars or Pandas. Ensure that the 
+        The backend parameter controls whether the partitioning is performed using Polars or Pandas. Ensure that the
         data passed to the partitioner is compatible with the specified backend.
 
     .. rubric:: Examples
@@ -96,7 +97,9 @@ class BaseTemporalPartitioner(ABC):
         """
         if self.backend == "pandas":
             if self.id_col:
-                return self.data.sort_values(by=[self.id_col, self.time_col]).reset_index(drop=True)
+                return self.data.sort_values(
+                    by=[self.id_col, self.time_col]
+                ).reset_index(drop=True)
             return self.data.sort_values(by=self.time_col).reset_index(drop=True)
         elif self.backend == "polars":
             if self.id_col:

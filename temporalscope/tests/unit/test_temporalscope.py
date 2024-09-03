@@ -1,6 +1,7 @@
+""" tests/test_temporalscope.py
 """
-tests/test_temporalscope.py
-"""
+
+import pytest
 
 
 def test_import_temporalscope():
@@ -10,5 +11,4 @@ def test_import_temporalscope():
     try:
         import temporalscope
     except ImportError:
-        assert False, "Failed to import 'temporalscope'"
-    assert True
+        pytest.fail("Failed to import 'temporalscope'")

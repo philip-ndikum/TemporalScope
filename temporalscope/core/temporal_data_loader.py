@@ -1,8 +1,10 @@
 """ temporalscope/core/temporal_data_loader.py
 
 This module implements the TimeFrame class, designed to provide a flexible and scalable interface for handling
-time series data using multiple backends. It supports Polars as the default backend and Pandas as a secondary option
-for users who prefer the traditional data processing framework.
+time series data using multiple backends. It supports Polars as the default backend, Pandas as a secondary option
+for users who prefer the traditional data processing framework, and Modin for users needing scalable Pandas-like
+data processing with distributed computing.
+
 """
 
 from typing import Union, Optional, List, Tuple, Callable
@@ -12,24 +14,25 @@ import warnings
 from temporalscope.partition.base_temporal_partioner import BaseTemporalPartitioner
 
 TF_DEFAULT_CFG = {
-    "BACKENDS": {"pl": "polars", "pd": "pandas"},
+    "BACKENDS": {"pl": "polars", "pd": "pandas", "md": "modin"},
 }
 
+
 class TimeFrame:
-    """Handles time series data with support for various backends like Polars and Pandas.
+    """Handles time series data with support for various backends like Polars, Pandas, and Modin.
 
     This class provides functionalities to manage time series data with optional grouping,
     available masks, and backend flexibility. It can handle large datasets efficiently.
 
     :param df: The input DataFrame.
-    :type df: Union[pl.DataFrame, pd.DataFrame]
+    :type df: Union[pl.DataFrame, pd.DataFrame, modin.pandas.DataFrame]
     :param time_col: The column representing time in the DataFrame.
     :type time_col: str
     :param target_col: The column representing the target variable in the DataFrame.
     :type target_col: str
     :param id_col: Optional. The column representing the ID for grouping. Default is None.
     :type id_col: Optional[str]
-    :param backend: The backend to use ('pl' for Polars or 'pd' for Pandas). Default is 'pl'.
+    :param backend: The backend to use ('pl' for Polars, 'pd' for Pandas, or 'md' for Modin). Default is 'pl'.
     :type backend: str
     :param sort: Optional. Whether to sort the data by time_col (and id_col if provided). Default is True.
     :type sort: bool
@@ -59,7 +62,19 @@ class TimeFrame:
 
        # Accessing the data
        print(tf.get_data().head())
+
+       # Example of creating a TimeFrame with Modin DataFrame
+       import modin.pandas as pd
+       data = pd.DataFrame({
+           'time': pd.date_range(start='2021-01-01', periods=100, freq='D'),
+           'value': range(100)
+       })
+       tf = TimeFrame(data, time_col='time', target_col='value', backend='md')
+
+       # Accessing the data
+       print(tf.get_data().head())
     """
+
     def __init__(
         self,
         df: Union[pl.DataFrame, pd.DataFrame],
@@ -99,11 +114,6 @@ class TimeFrame:
         self._rename_target_column()
 
     @property
-    def backend(self) -> str:
-        """Return the backend used ('polars' or 'pandas')."""
-        return self._backend
-
-    @property
     def time_col(self) -> str:
         """Return the column name representing time."""
         return self._time_col
@@ -128,6 +138,13 @@ class TimeFrame:
                     f"Incorrect type for configuration key: {key}. Expected {type(TF_DEFAULT_CFG[key])}, got {type(self._cfg[key])}."
                 )
 
+
+    @property
+    def backend(self) -> str:
+        """Return the backend used ('polars', 'pandas', or 'modin')."""
+        return self._backend
+
+
     def _validate_input(self) -> None:
         """Validate the input DataFrame and ensure required columns are present."""
         # Validate the DataFrame type based on the backend
@@ -137,6 +154,11 @@ class TimeFrame:
         elif self._backend == "pandas":
             if not isinstance(self._df, pd.DataFrame):
                 raise TypeError("Expected a Pandas DataFrame.")
+        elif self._backend == "modin":
+            import modin.pandas as mpd
+
+            if not isinstance(self._df, mpd.DataFrame):
+                raise TypeError("Expected a Modin DataFrame.")
 
         # Validate required columns
         if self.time_col not in self._df.columns:
@@ -155,7 +177,7 @@ class TimeFrame:
             )
 
         # Ensure time_col is datetime for proper sorting
-        if self._backend == "pandas":
+        if self._backend in ["pandas", "modin"]:
             if not pd.api.types.is_datetime64_any_dtype(self._df[self.time_col]):
                 self._df[self.time_col] = pd.to_datetime(self._df[self.time_col])
         elif self._backend == "polars":
@@ -170,6 +192,8 @@ class TimeFrame:
             self._polars_logic()
         elif self._backend == "pandas":
             self._pandas_logic()
+        elif self._backend == "modin":
+            self._modin_logic()
 
     def _polars_logic(self):
         """Apply Polars-specific logic like sorting and handling duplicates."""
@@ -187,6 +211,14 @@ class TimeFrame:
             )
         self._check_duplicates()
 
+    def _modin_logic(self):
+        """Apply Modin-specific logic like sorting and handling duplicates."""
+        if self._sort:
+            self._df = self._df.sort_values(
+                by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
+            )
+        self._check_duplicates()
+
     def _check_duplicates(self):
         """Check for duplicate time entries within groups."""
         if self._backend == "polars":
@@ -196,7 +228,7 @@ class TimeFrame:
                 )
             else:
                 duplicates = self._df.filter(self._df[self.time_col].is_duplicated())
-        elif self._backend == "pandas":
+        elif self._backend in ["pandas", "modin"]:
             if self.id_col:
                 duplicates = self._df.duplicated(subset=[self.id_col, self.time_col])
             else:
@@ -210,7 +242,7 @@ class TimeFrame:
         if "available_mask" not in self._df.columns:
             if self._backend == "polars":
                 self._df = self._df.with_columns(pl.lit(1.0).alias("available_mask"))
-            else:
+            else:  # for pandas and modin
                 self._df["available_mask"] = 1.0
             warnings.warn(
                 "No available_mask column found, assuming all data is available."
@@ -221,7 +253,7 @@ class TimeFrame:
         if self._rename_target:
             if self._backend == "polars":
                 self._df = self._df.rename({self.target_col: "y"})
-            elif self._backend == "pandas":
+            elif self._backend in ["pandas", "modin"]:
                 self._df.rename(columns={self.target_col: "y"}, inplace=True)
 
     def apply_partitioning(self, partitioner: BaseTemporalPartitioner):

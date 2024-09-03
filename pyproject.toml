@@ -23,6 +23,8 @@ pyarrow = "^17.0.0"
 lightgbm = "^4.5.0"
 flax = "^0.8.5"
 jax = "^0.4.31"
+modin = {extras = ["all"], version = "^0.31.0"}
+bandit = "^1.7.9"
 
 [tool.poetry.group.dev.dependencies]
 jupyterlab = "^4.2.4"
