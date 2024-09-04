@@ -22,8 +22,23 @@ copy_and_adjust_readme() {
     fi
 }
 
+# Function to copy the banner image to all notebook directories
+distribute_images() {
+    echo "Distributing images to notebook directories..."
+    local src="assets/temporalscope_github_banner.svg"
+    local dest="notebooks"
+    if [ -f "$src" ]; then
+        find "$dest" -type d -exec cp "$src" {} \;
+        echo "Images distributed successfully."
+    else
+        echo "Source image not found: $src"
+    fi
+}
+
+
 # Remove all __pycache__ directories
 remove_pycaches
+distribute_images
 
 # Check for Python version
 REQUIRED_PYTHON_MAJOR=3

@@ -10,9 +10,13 @@ data processing with distributed computing.
 from typing import Union, Optional, List, Tuple, Callable
 import polars as pl
 import pandas as pd
-import warnings
+import modin.pandas as mpd
+from temporalscope.config import (
+    get_default_backend_cfg,
+    validate_input,
+    validate_backend,
+)
 from temporalscope.partition.base_temporal_partioner import BaseTemporalPartitioner
-from temporalscope.config import TF_DEFAULT_CFG
 
 
 class TimeFrame:
@@ -20,6 +24,10 @@ class TimeFrame:
 
     This class provides functionalities to manage time series data with optional grouping,
     available masks, and backend flexibility. It can handle large datasets efficiently.
+    The class is intended for Machine & Deep Learning time series forecasting not classical
+    time series forecasting. The implementation assumes one-step ahead but other classes
+    & modules can be utilized for partioning for pre-trained multi-step DL models that are
+    compatible with SHAP & related tools e.g. PyTorch or Tensorflow forecasting models.
 
     :param df: The input DataFrame.
     :type df: Union[pl.DataFrame, pd.DataFrame, modin.pandas.DataFrame]
@@ -31,7 +39,7 @@ class TimeFrame:
     :type id_col: Optional[str]
     :param backend: The backend to use ('pl' for Polars, 'pd' for Pandas, or 'mpd' for Modin). Default is 'pl'.
     :type backend: str
-    :param sort: Optional. Whether to sort the data by time_col (and id_col if provided). Default is True.
+    :param sort: Optional. Sort the data by time_col (and id_col if provided) in ascending order. Default is True.
     :type sort: bool
     :param rename_target: Optional. Whether to rename the target_col to 'y'. Default is False.
     :type rename_target: bool
@@ -61,12 +69,12 @@ class TimeFrame:
        print(tf.get_data().head())
 
        # Example of creating a TimeFrame with Modin DataFrame
-       import modin.pandas as pd
-       data = pd.DataFrame({
+       import modin.pandas as mpd
+       df = mpd.DataFrame({
            'time': pd.date_range(start='2021-01-01', periods=100, freq='D'),
            'value': range(100)
        })
-       tf = TimeFrame(data, time_col='time', target_col='value', backend='mpd')
+       tf = TimeFrame(df, time_col='time', target_col='value', backend='mpd')
 
        # Accessing the data
        print(tf.get_data().head())
@@ -74,7 +82,7 @@ class TimeFrame:
 
     def __init__(
         self,
-        df: Union[pl.DataFrame, pd.DataFrame],
+        df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame],
         time_col: str,
         target_col: str,
         id_col: Optional[str] = None,
@@ -82,33 +90,21 @@ class TimeFrame:
         sort: bool = True,
         rename_target: bool = False,
     ):
-        self._cfg = TF_DEFAULT_CFG.copy()
+        self._cfg = get_default_backend_cfg()
+        self._backend = backend
         self._df = df
         self._time_col = time_col
         self._target_col = target_col
         self._id_col = id_col
-
-        # Handle both short forms and full names
-        backend_lower = backend.lower()
-        if backend_lower in self._cfg["BACKENDS"]:
-            self._backend = self._cfg["BACKENDS"][backend_lower]
-        elif backend_lower in self._cfg["BACKENDS"].values():
-            self._backend = backend_lower
-        else:
-            raise ValueError(
-                f"Unsupported backend '{backend}'. Supported backends are: "
-                f"{', '.join(self._cfg['BACKENDS'].keys())}, "
-                f"{', '.join(self._cfg['BACKENDS'].values())}"
-            )
-
         self._sort = sort
         self._rename_target = rename_target
-        self._partition_cfg = {"partitions": None, "partitioner": None}
-
-        self._validate_config()
-        self._validate_input()
-        self._apply_backend_logic()
         self._rename_target_column()
+
+        if self._sort:
+            self.sort_data(ascending=True)
+
+        validate_backend(self._backend)
+        validate_input(self._df, self._backend)
 
     @property
     def time_col(self) -> str:
@@ -125,131 +121,110 @@ class TimeFrame:
         """Return the column name used for grouping or None if not set."""
         return self._id_col
 
-    def _validate_config(self):
-        """Validate the instance configuration against the default configuration."""
-        for key in TF_DEFAULT_CFG.keys():
-            if key not in self._cfg:
-                raise ValueError(f"Missing configuration key: {key}")
-            if not isinstance(self._cfg[key], type(TF_DEFAULT_CFG[key])):
-                raise TypeError(
-                    f"Incorrect type for configuration key: {key}. Expected {type(TF_DEFAULT_CFG[key])}, got {type(self._cfg[key])}."
-                )
+    def validate_columns(self):
+        """Validate the presence and types of required columns in the DataFrame."""
+        # Check for the presence of required columns
+        required_columns = [self.time_col, self.target_col] + (
+            [self.id_col] if self.id_col else []
+        )
+        missing_columns = [
+            col for col in required_columns if col not in self._df.columns
+        ]
+        if missing_columns:
+            raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
 
-    @property
-    def backend(self) -> str:
-        """Return the backend used ('polars', 'pandas', or 'modin')."""
-        return self._backend
-
-    def _validate_input(self) -> None:
-        """Validate the input DataFrame and ensure required columns are present."""
-        # Validate the DataFrame type based on the backend
-        if self._backend == "polars":
-            if not isinstance(self._df, pl.DataFrame):
-                raise TypeError("Expected a Polars DataFrame.")
-        elif self._backend == "pandas":
-            if not isinstance(self._df, pd.DataFrame):
-                raise TypeError("Expected a Pandas DataFrame.")
-        elif self._backend == "modin":
-            import modin.pandas as mpd
-
-            if not isinstance(self._df, mpd.DataFrame):
-                raise TypeError("Expected a Modin DataFrame.")
-
-        # Validate required columns
-        if self.time_col not in self._df.columns:
-            raise ValueError(
-                f"Time column '{self.time_col}' must be in the DataFrame columns"
-            )
-
-        if self.target_col not in self._df.columns:
-            raise ValueError(
-                f"Target column '{self.target_col}' must be in the DataFrame columns"
-            )
-
-        if self.id_col and self.id_col not in self._df.columns:
-            raise ValueError(
-                f"ID column '{self.id_col}' must be in the DataFrame columns if provided"
-            )
-
-        # Ensure time_col is datetime for proper sorting
-        if self._backend in ["pandas", "modin"]:
+        # Ensure time_col is properly formatted as datetime for sorting and operations
+        if self._backend in ["pd", "mpd"]:
             if not pd.api.types.is_datetime64_any_dtype(self._df[self.time_col]):
                 self._df[self.time_col] = pd.to_datetime(self._df[self.time_col])
-        elif self._backend == "polars":
+        elif self._backend == "pl":
             if self._df[self.time_col].dtype != pl.Datetime:
                 self._df = self._df.with_columns(
                     pl.col(self.time_col).str.strptime(pl.Datetime)
                 )
 
-    def _apply_backend_logic(self):
-        """Apply backend-specific logic such as sorting and grouping."""
-        if self._backend == "polars":
-            self._polars_logic()
-        elif self._backend == "pandas":
-            self._pandas_logic()
-        elif self._backend == "modin":
-            self._modin_logic()
-
-    def _polars_logic(self):
-        """Apply Polars-specific logic like sorting and handling duplicates."""
-        if self._sort:
-            self._df = self._df.sort(
-                by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
-            )
-        self._check_duplicates()
-
-    def _pandas_logic(self):
-        """Apply Pandas-specific logic like sorting and handling duplicates."""
-        if self._sort:
-            self._df = self._df.sort_values(
-                by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
-            )
-        self._check_duplicates()
-
-    def _modin_logic(self):
-        """Apply Modin-specific logic like sorting and handling duplicates."""
-        if self._sort:
-            self._df = self._df.sort_values(
-                by=[self.id_col, self.time_col] if self.id_col else [self.time_col]
-            )
-        self._check_duplicates()
-
-    def _check_duplicates(self):
-        """Check for duplicate time entries within groups."""
-        if self._backend == "polars":
-            if self.id_col:
-                duplicates = self._df.filter(
-                    self._df[[self.id_col, self.time_col]].is_duplicated()
-                )
-            else:
-                duplicates = self._df.filter(self._df[self.time_col].is_duplicated())
-        elif self._backend in ["pandas", "modin"]:
-            if self.id_col:
-                duplicates = self._df.duplicated(subset=[self.id_col, self.time_col])
-            else:
-                duplicates = self._df.duplicated(subset=[self.time_col])
-
-        if len(duplicates) > 0 if self._backend == "polars" else duplicates.any():
-            raise ValueError("Duplicate time entries found within the same group.")
-
-    def _apply_available_mask(self):
-        """Generate an available mask column if not present."""
-        if "available_mask" not in self._df.columns:
-            if self._backend == "polars":
-                self._df = self._df.with_columns(pl.lit(1.0).alias("available_mask"))
-            else:  # for pandas and modin
-                self._df["available_mask"] = 1.0
-            warnings.warn(
-                "No available_mask column found, assuming all data is available."
-            )
-
     def _rename_target_column(self):
         """Rename the target column to 'y' if rename_target is True."""
         if self._rename_target:
-            if self._backend == "polars":
+            if self._backend == "pl":
                 self._df = self._df.rename({self.target_col: "y"})
-            elif self._backend in ["pandas", "modin"]:
+            elif self._backend in ["pd", "mpd"]:
                 self._df.rename(columns={self.target_col: "y"}, inplace=True)
+
+    def sort_data(self, ascending: bool = True):
+        """Sorts the DataFrame based on the backend.
+
+        :param ascending: Specifies whether to sort in ascending order.
+        :type ascending: bool
+        """
+        sort_key = [self.id_col, self.time_col] if self.id_col else [self.time_col]
+        if self._backend == "pl":
+            # Polars sorting - use reverse which is the opposite of ascending
+            self._df = self._df.sort(sort_key, reverse=not ascending)
+        elif self._backend == "pd":
+            # Pandas sorting
+            self._df = self._df.sort_values(by=sort_key, ascending=ascending)
+        elif self._backend == "mpd":
+            # Modin uses the same API as Pandas for sorting
+            self._df = self._df.sort_values(by=sort_key, ascending=ascending)
+
+    def check_duplicates(self):
+        """Check for duplicate time entries within groups, handling different data backends."""
+        if self._backend == "pl":
+            # Polars specific check
+            duplicates = self._df.filter(
+                self._df.select(
+                    [self._id_col, self._time_col] if self._id_col else [self._time_col]
+                ).is_duplicated()
+            )
+            if duplicates.height > 0:
+                raise ValueError("Duplicate time entries found within the same group.")
+        elif self._backend == "pd":
+            # Pandas specific check
+            duplicates = self._df.duplicated(
+                subset=(
+                    [self._id_col, self._time_col] if self._id_col else [self._time_col]
+                )
+            )
+            if duplicates.any():
+                raise ValueError("Duplicate time entries found within the same group.")
+        elif self._backend == "mpd":
+            # Modin uses the same API as Pandas for this operation
+            duplicates = self._df.duplicated(
+                subset=(
+                    [self._id_col, self._time_col] if self._id_col else [self._time_col]
+                )
+            )
+            if duplicates.any():
+                raise ValueError("Duplicate time entries found within the same group.")
+
+    def get_data(self) -> Union[pl.DataFrame, pd.DataFrame]:
+        """Return the DataFrame in its current state.
+
+        :return: The DataFrame managed by the TimeFrame instance.
+        :rtype: Union[pl.DataFrame, pd.DataFrame]
+        """
+        return self._df
+
+    def get_grouped_data(self) -> Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]:
+        """Return the grouped DataFrame if an ID column is provided.
+
+        :return: Grouped DataFrame by the ID column if it is set, otherwise returns the original DataFrame.
+        :rtype: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        """
+        if not self.id_col:
+            raise ValueError("ID column is not set; cannot group data.")
+
+        if self._backend == "pl":
+            return self._df.groupby(self.id_col).agg(pl.all())
+        elif self._backend == "pd":
+            return self._df.groupby(self.id_col).apply(lambda x: x)
+        elif self._backend == "mpd":
+            return self._df.groupby(self.id_col).apply(
+                lambda x: x
+            )  # Modin uses pandas-like syntax
+
+        raise ValueError("Unsupported backend specified.")
 
     def apply_partitioning(self, partitioner: BaseTemporalPartitioner):
         """Apply a partitioning strategy and update the partition configuration."""
@@ -280,27 +255,3 @@ class TimeFrame:
         :rtype: Any
         """
         return method(self, *args, **kwargs)
-
-    def get_data(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        """Return the DataFrame in its current state.
-
-        :return: The DataFrame managed by the TimeFrame instance.
-        :rtype: Union[pl.DataFrame, pd.DataFrame]
-        """
-        return self._df
-
-    def get_grouped_data(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        """Return the grouped DataFrame if an ID column is provided.
-
-        :return: Grouped DataFrame by the ID column if it is set, otherwise returns the original DataFrame.
-        :rtype: Union[pl.DataFrame, pd.DataFrame]
-        """
-        if not self.id_col:
-            raise ValueError("ID column is not set; cannot group data.")
-
-        if self._backend == self._cfg["BACKENDS"]["pl"]:
-            return self._df.groupby(self.id_col).agg(pl.all())
-        elif self._backend == self._cfg["BACKENDS"]["pd"]:
-            return self._df.groupby(self.id_col).apply(lambda x: x)
-
-        return self._df
