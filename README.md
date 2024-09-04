@@ -37,7 +37,8 @@
 </p>
 
 
-**TemporalScope** is a lightweight, open-source software (OSS) Python package designed to analyze and understand the temporal dynamics of feature importance in machine learning models. Licensed under the Apache 2.0 License and developed with Linux Foundation standards, TemporalScope provides a straightforward API to track and visualize how feature importance evolves over time, enabling deeper insights into temporal data patterns. This tool is ideal for researchers and practitioners who need to account for temporal variations in feature importance in their predictive models.
+**TemporalScope** is an open-source software (OSS) Python package designed to analyze and understand the temporal dynamics of feature importance in Artificial Intelligence (AI) and Machine Learning (ML) models. Licensed under the Apache 2.0 License and developed with Linux Foundation standards, TemporalScope synthesizes key concepts from current research literature, serving as a flexible tool to track and visualize how feature importance evolves over time. This package enables researchers and practitioners in finance, engineering, and other time-sensitive domains to leverage these techniques for deeper insights into their temporal data and models.
+
 
 
 ### **Table of Contents**
