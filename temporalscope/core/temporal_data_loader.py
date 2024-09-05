@@ -98,13 +98,31 @@ class TimeFrame:
         self._id_col = id_col
         self._sort = sort
         self._rename_target = rename_target
-        self._rename_target_column()
 
+        # Setup TimeFrame including renaming, sorting, and validations
+        self.setup_timeframe()
+
+    def setup_timeframe(self):
+        """Sets up the TimeFrame object by validating and preparing data as required."""
+        # Rename target column if required before any validation
+        if self._rename_target:
+            self._rename_target_column()
+
+        # Validate the columns are present and correct after potential renaming
+        self.validate_columns()
+
+        # Now sort data, assuming all columns are correct and exist
         if self._sort:
             self.sort_data(ascending=True)
 
+        # Final validations after setup
         validate_backend(self._backend)
         validate_input(self._df, self._backend)
+
+    @property
+    def backend(self) -> str:
+        """Return the backend used ('pl' for Polars, 'pd' for Pandas, or 'mpd' for Modin)."""
+        return self._backend
 
     @property
     def time_col(self) -> str:
@@ -121,10 +139,21 @@ class TimeFrame:
         """Return the column name used for grouping or None if not set."""
         return self._id_col
 
+    def _rename_target_column(self):
+        """Rename the target column to 'y' if rename_target is True."""
+        if self._rename_target:
+            if self._backend == "pl":
+                self._df = self._df.rename({self.target_col: "y"})
+            elif self._backend in ["pd", "mpd"]:
+                self._df.rename(columns={self.target_col: "y"}, inplace=True)
+
     def validate_columns(self):
         """Validate the presence and types of required columns in the DataFrame."""
+        # Adjust to check for renamed column if necessary
+        target_col_name = "y" if self._rename_target else self._target_col
+
         # Check for the presence of required columns
-        required_columns = [self.time_col, self.target_col] + (
+        required_columns = [self.time_col, target_col_name] + (
             [self.id_col] if self.id_col else []
         )
         missing_columns = [
@@ -143,14 +172,6 @@ class TimeFrame:
                     pl.col(self.time_col).str.strptime(pl.Datetime)
                 )
 
-    def _rename_target_column(self):
-        """Rename the target column to 'y' if rename_target is True."""
-        if self._rename_target:
-            if self._backend == "pl":
-                self._df = self._df.rename({self.target_col: "y"})
-            elif self._backend in ["pd", "mpd"]:
-                self._df.rename(columns={self.target_col: "y"}, inplace=True)
-
     def sort_data(self, ascending: bool = True):
         """Sorts the DataFrame based on the backend.
 
@@ -159,13 +180,12 @@ class TimeFrame:
         """
         sort_key = [self.id_col, self.time_col] if self.id_col else [self.time_col]
         if self._backend == "pl":
-            # Polars sorting - use reverse which is the opposite of ascending
-            self._df = self._df.sort(sort_key, reverse=not ascending)
-        elif self._backend == "pd":
-            # Pandas sorting
-            self._df = self._df.sort_values(by=sort_key, ascending=ascending)
-        elif self._backend == "mpd":
-            # Modin uses the same API as Pandas for sorting
+            # Update for Polars: use `desc` directly on the column spec for descending order
+            if not ascending:
+                sort_key = [(col, pl.SORT_DESCENDING) for col in sort_key]
+            self._df = self._df.sort(sort_key)
+        elif self._backend in ["pd", "mpd"]:
+            # Pandas and Modin sorting
             self._df = self._df.sort_values(by=sort_key, ascending=ascending)
 
     def check_duplicates(self):

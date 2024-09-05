@@ -95,11 +95,10 @@ def test_duplicate_time_entries(sample_pandas_df):
     """Test handling of duplicate time entries."""
     sample_pandas_df.loc[1, "time"] = sample_pandas_df.loc[0, "time"]
     tf = TimeFrame(sample_pandas_df, time_col="time", target_col="value", backend="pd")
-    try:
+    with pytest.raises(
+        ValueError, match="Duplicate time entries found within the same group."
+    ):
         tf.check_duplicates()
-        pytest.fail("Duplicate time entries should raise a ValueError.")
-    except ValueError:
-        pass
 
 
 def test_get_data(sample_pandas_df):
@@ -120,5 +119,7 @@ def test_rename_target_column(sample_pandas_df):
         rename_target=True,
     )
     df = tf.get_data()
-    if "y" not in df.columns or "value" in df.columns:
-        pytest.fail("Renaming of target column failed.")
+    # Ensure 'y' is the new column name and 'value' is not present
+    assert (
+        "y" in df.columns and "value" not in df.columns
+    ), "Renaming of target column failed."

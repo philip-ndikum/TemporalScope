@@ -5,10 +5,11 @@ Each partitioning method must inherit from this class and implement the required
 """
 
 from abc import ABC, abstractmethod
-from typing import Union, Optional, List, Tuple, Callable, Any
+from typing import Union, Optional, List, Tuple, Any
 import pandas as pd
 import polars as pl
 import modin.pandas as mpd
+from temporalscope.config import validate_backend
 
 
 class BaseTemporalPartitioner(ABC):
@@ -58,31 +59,22 @@ class BaseTemporalPartitioner(ABC):
         # Sort df by time_col and id_col (if provided)
         self.df = self._sort_data()
 
-    def _sort_data(self) -> Union[pd.DataFrame, pl.DataFrame]:
-        """Sorts the df by time_col and id_col (if provided).
+    def _sort_data(self) -> Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]:
+        """Sorts the df by time_col and id_col (if provided), according to the backend.
 
         :return: The sorted DataFrame.
-        :rtype: Union[pd.DataFrame, pl.DataFrame]
+        :rtype: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]
         """
-        if self.backend == "pd":
-            if self.id_col:
-                return self.df.sort_values(by=[self.id_col, self.time_col]).reset_index(
-                    drop=True
-                )
-            return self.df.sort_values(by=self.time_col).reset_index(drop=True)
+        if self.backend == "pd" or self.backend == "mpd":
+            sort_args = [self.id_col, self.time_col] if self.id_col else [self.time_col]
+            return self.df.sort_values(by=sort_args).reset_index(drop=True)
         elif self.backend == "pl":
             if self.id_col:
-                return self.df.sort([self.id_col, self.time_col])
-            return self.df.sort(self.time_col)
-        elif self.backend == "mpd":
-            # Assuming modin.pd follows similar syntax to pandas
-            if self.id_col:
-                return self.df.sort_values(by=[self.id_col, self.time_col]).reset_index(
-                    drop=True
-                )
-            return self.df.sort_values(by=self.time_col).reset_index(drop=True)
+                return self.df.sort([self.id_col, self.time_col], reverse=False)
+            else:
+                return self.df.sort(self.time_col, reverse=False)
         else:
-            raise ValueError("Unsupported backend configuration.")
+            raise ValueError(f"Unsupported backend configuration: {self.backend}")
 
     def _check_data_type(self, data: Any, expected_type: str) -> None:
         """Check the type of the data against the expected type (Pandas or Polars).
@@ -97,49 +89,6 @@ class BaseTemporalPartitioner(ABC):
             raise TypeError("Expected data to be a Pandas DataFrame.")
         elif expected_type == "polars" and not isinstance(data, pl.DataFrame):
             raise TypeError("Expected data to be a Polars DataFrame.")
-
-    def _sort_data(self) -> Union[pd.DataFrame, pl.DataFrame]:
-        """Sorts the data by time_col and id_col (if provided).
-
-        :return: The sorted DataFrame.
-        :rtype: Union[pd.DataFrame, pl.DataFrame]
-        """
-        if self.backend == "pandas":
-            if self.id_col:
-                return self.data.sort_values(
-                    by=[self.id_col, self.time_col]
-                ).reset_index(drop=True)
-            return self.data.sort_values(by=self.time_col).reset_index(drop=True)
-        elif self.backend == "polars":
-            if self.id_col:
-                return self.data.sort([self.id_col, self.time_col])
-            return self.data.sort(self.time_col)
-
-        raise TypeError(
-            "Unsupported data type. Data must be a Pandas or Polars DataFrame."
-        )
-
-    @abstractmethod
-    def get_partitions(self) -> List[Tuple[int, int]]:
-        """Abstract method that must be implemented by subclasses to generate partitions.
-
-        :return: List of tuples where each tuple represents the start and end indices of a partition.
-        :rtype: List[Tuple[int, int]]
-        """
-        pass
-
-    @abstractmethod
-    def apply_partition(
-        self, partition: Tuple[int, int]
-    ) -> Union[pd.DataFrame, pl.DataFrame]:
-        """Abstract method that must be implemented by subclasses to apply a partition to the data.
-
-        :param partition: A tuple representing the start and end indices of the partition.
-        :type partition: Tuple[int, int]
-        :return: The partitioned DataFrame.
-        :rtype: Union[pd.DataFrame, pl.DataFrame]
-        """
-        pass
 
     def get_partitioned_data(self) -> List[Union[pd.DataFrame, pl.DataFrame]]:
         """Helper method that returns the data for each partition as a list of DataFrames.
@@ -162,3 +111,25 @@ class BaseTemporalPartitioner(ABC):
         :rtype: List[Tuple[int, int]]
         """
         return self.get_partitions()
+
+    @abstractmethod
+    def get_partitions(self) -> List[Tuple[int, int]]:
+        """Abstract method that must be implemented by subclasses to generate partitions.
+
+        :return: List of tuples where each tuple represents the start and end indices of a partition.
+        :rtype: List[Tuple[int, int]]
+        """
+        pass
+
+    @abstractmethod
+    def apply_partition(
+        self, partition: Tuple[int, int]
+    ) -> Union[pd.DataFrame, pl.DataFrame]:
+        """Abstract method that must be implemented by subclasses to apply a partition to the data.
+
+        :param partition: A tuple representing the start and end indices of the partition.
+        :type partition: Tuple[int, int]
+        :return: The partitioned DataFrame.
+        :rtype: Union[pd.DataFrame, pl.DataFrame]
+        """
+        pass

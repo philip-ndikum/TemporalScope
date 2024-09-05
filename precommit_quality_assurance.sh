@@ -24,4 +24,4 @@ mypy .
 print_centered "Running Bandit"
 bandit -r .
 
-print_centered "Pre-commit QA checks completed"
+print_centered "TemporalScope ✨ Pre-commit QA checks completed!"

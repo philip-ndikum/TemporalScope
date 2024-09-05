@@ -1,17 +1,66 @@
-# -- Path setup --------------------------------------------------------------
-import os
+"""TemporalScope/docs/conf.py
+
+This module configures Sphinx for the TemporalScope project to automatically generate documentation.
+It ensures the Python path is set correctly and dynamically updates the autosummary files to reflect
+the current structure of the project.
+"""
+
 import sys
+from pathlib import Path
+import pkgutil
+from sphinx.application import Sphinx
+import sphinx.ext.autosummary.generate as autosummary_generate
+import shutil
 
-# Adjust the path to point to the correct source directory (temporalscope/temporalscope)
-source_path = os.path.abspath("../../temporalscope/temporalscope")
-sys.path.insert(0, source_path)
+# Constants for directory paths
+ROOT_DIR = "TemporalScope"
+SRC_DIR = "temporalscope"
+DOCUMENTATION_DIR = "_autosummary"
 
-# Print out the path being used for the source code
-print(f"Source code path added to sys.path: {source_path}")
+def setup_documentation_path():
+    """
+    Configures the system path for Sphinx documentation generation.
+    """
+    current_directory = Path(__file__).resolve().parent
+    project_root = current_directory.parent.parent
+    source_path = project_root / ROOT_DIR / SRC_DIR
+
+    if not source_path.exists():
+        raise FileNotFoundError(f"Source path does not exist: {source_path}")
+
+    sys.path.insert(0, str(source_path))
+    print(f"Source code path added to sys.path: {source_path}")
+
+def generate_autosummary(app: Sphinx):
+    """
+    Automatically generates autosummary files for all modules in the project.
+    """
+    document_base_path = Path(app.srcdir) / DOCUMENTATION_DIR
+    if document_base_path.exists():
+        shutil.rmtree(document_base_path)  # Clear existing files
+    document_base_path.mkdir(parents=True, exist_ok=True)
+
+    root_package_path = Path(app.srcdir).parent / ROOT_DIR / SRC_DIR
+    if not root_package_path.exists():
+        raise FileNotFoundError(f"Package path does not exist: {root_package_path}")
+
+    for importer, modname, ispkg in pkgutil.walk_packages(
+        path=[str(root_package_path)], prefix=f"{ROOT_DIR}.{SRC_DIR}."
+    ):
+        output_file_path = document_base_path / f"{modname}.rst"
+        with open(output_file_path, "w") as f:
+            autosummary_generate.generate_autosummary_content(
+                modname, None, f, app.config, template_dir="_templates/autosummary"
+            )
+
+def setup(app: Sphinx):
+    app.connect("builder-inited", generate_autosummary)
+
+setup_documentation_path()  # Ensure this is called at the beginning
 
 # -- Project information -----------------------------------------------------
 project = "TemporalScope"
-copyright = "2024 Philip Ndikum. Apache 2.0 License"
+copyright = "2024, Philip Ndikum"
 author = "Philip Ndikum"
 release = "0.1.0"
 
@@ -28,7 +77,6 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # -- Options for HTML output -------------------------------------------------
 html_theme = "pydata_sphinx_theme"
-
 html_theme_options = {
     "navbar_end": ["search-field.html", "navbar-icon-links.html"],
     "icon_links": [
@@ -38,8 +86,6 @@ html_theme_options = {
             "icon": "fab fa-github-square",
         },
     ],
-    # Darker version of Ivy Green color for the theme
-    # "primary_color": "#264d40",  # Dark Ivy Green
 }
 
 html_static_path = ["_static"]

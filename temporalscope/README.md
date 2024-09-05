@@ -186,7 +186,7 @@ We are also looking for contributors who are excited about taking on more signif
 
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
 
-### **Contributors ✨**
+### **Contributors 💠**
 
 Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
 
