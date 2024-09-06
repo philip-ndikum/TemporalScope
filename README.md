@@ -37,30 +37,19 @@
 </p>
 
 
-**TemporalScope** is an open-source software (OSS) Python package designed to analyze and understand the temporal dynamics of feature importance in Artificial Intelligence (AI) and Machine Learning (ML) models. Licensed under the Apache 2.0 License and developed with Linux Foundation standards, TemporalScope synthesizes key concepts from current research literature, serving as a flexible tool to track and visualize how feature importance evolves over time. This package enables researchers and practitioners in finance, engineering, and other time-sensitive domains to leverage these techniques for deeper insights into their temporal data and models.
-
+**TemporalScope** is an open-source Python package that provides flexible tools for analyzing and visualizing the temporal dynamics of feature importance in Artificial Intelligence (AI) and Machine Learning (ML) models. Licensed under the Apache 2.0 License and developed in accordance with Linux Foundation standards, TemporalScope is grounded in cutting-edge academic research. The package integrates advanced methods such as Boruta-SHAP, SHAP, and other feature selection techniques, offering a scientifically driven framework for understanding how feature importance evolves over time.
 
 
 ### **Table of Contents**
 
-- [Why use TemporalScope?](#Why-use-TemporalScope?)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Industrial Academic Applications](#industrial-academic-applications)
+- [Why use TemporalScope?](#Why-use-TemporalScope?)
 - [Technical Methods](#technical-methods)
-- [Development Roadmap](#development-roadmap)
+- [Development Roadmap & Changelog](#development-roadmap--changelog)
 - [Contributing](#contributing)
 - [Citation](#cite-this-project)
-- [License and Legal Notice](#license-and-legal-notice)
-
-## **Why use TemporalScope?**
-
-1. **Addressing Non-Stationarity**: Research has shown that using SHAP or causal methods on a single dataset can be insufficient due to non-stationarity—changes in data distribution over time. **TemporalScope** directly addresses this challenge, offering a more nuanced and accurate analysis of feature importance.
-
-2. **Built on Cutting-Edge Research**: **TemporalScope** is grounded in the latest scientific literature, designed to solve a critical problem faced by analysts, scientists, and quantitative professionals worldwide. It allows for a deeper understanding of how features influence model predictions over time, helping to uncover hidden patterns and insights.
-
-3. **Standards and Scalability**: Developed according to Linux Foundation standards, **TemporalScope** offers robust documentation and a lean, scalable approach. Driven by the scientific community we hope to attract developers to help us improve the software through time.
-
+- [License, Limitations and Legal Notice](#license-limitations-and-legal-notice)
 
 ## **Installation**
 
@@ -137,7 +126,22 @@ for partition_name, predictions in results.items():
     print(predictions[:5])  # Display first 5 predictions
 ```
 
-## **Industrial Academic Applications**
+## **Why use TemporalScope?**
+
+| **Feature**                     | **Description**                                                                                                                                       |
+|----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Enterprise-Grade**             | Adheres to Linux Foundation Open-Source Security standards, encouraging contributors to reference academic papers and use quality assurance scripts to maintain software reliability.  |
+| **Modularity**                   | Incorporates Pandas, Polars, Modin, SHAP, Boruta-SHAP, and partitioning algorithms from the literature, making the software flexible and expandable as research advances. |
+| **Explainability**               | Designed to spur further research into temporal-driven explainability, providing a framework that can evolve with contributions from the global AI community. |
+| **Boruta-SHAP Integration**      | Combines the Boruta feature selection method with SHAP for robust, interpretable feature importance across time.                                         |
+| **Time-Aware Feature Tracking**  | Tracks feature importance over time, accounting for changes in data distribution and offering insights into temporal shifts.                             |
+| **Scalability**                  | Built to efficiently handle large datasets, with scalability in mind for both academic and industrial applications.                                     |
+| **Extensible Framework**         | Easily integrates with custom feature importance methods and workflows, allowing users to extend the package as needed.                                |
+| **Detailed Visualizations**      | Provides tools for visualizing changes in feature importance over time, aiding in model interpretability and data analysis.                             |
+| **Robust Documentation**         | Offers comprehensive documentation with examples and tutorials, adhering to Linux Foundation development standards for high-quality open-source software. |
+
+
+### **Industrial Academic Applications**
 
 **DISCLAIMER**: The following use cases are provided for academic and informational purposes only. TemporalScope is intended to support research and development in understanding temporal dynamics in feature importance. These examples are not intended as guidance for industrial applications without further validation and expert consultation. The use of TemporalScope in any industrial or production environment is at the user's own risk, and the developers disclaim any liability for such use. Please refer to the [License and Legal Notice](#license-and-legal-notice) for further details.
 
@@ -152,29 +156,19 @@ for partition_name, predictions in results.items():
 | **Energy**    | **Load Forecasting:** Analyzing how the importance of variables such as weather conditions, time of day, and historical consumption data evolves in predicting energy demand.   | Improves energy load forecasting by adapting to changing conditions, leading to more efficient energy distribution and reduced operational costs. |
 | **Retail**    | **Customer Behavior Analysis:** Understanding how customer preferences and purchasing behaviors change over time, influenced by factors such as seasonal trends, promotions, and economic conditions. | Enables retailers to optimize inventory management, marketing strategies, and pricing models by identifying the most influential factors driving sales in different periods. |
 
+## Development Roadmap & Changelog
 
-## **Technical Methods**
+**TemporalScope** follows **Semantic Versioning (SemVer)**, a standard for versioning that helps communicate the impact of changes in each release. Each version is numbered in the format **MAJOR.MINOR.PATCH** where major releases (1.x.x) introduce breaking changes, minor releases (0.x.x) add new features, and patch releases (0.1.x) fix bugs or make small improvements. The changelog exists to track all significant changes, ensuring transparency and compliance with the Apache License and Linux Foundation standards. Below is the roadmap outlining the planned development over a 12–18 month cycle, with contributors expected to update the changelog whenever new features, fixes, or improvements are introduced.
 
-TemporalScope leverages advanced methodologies to provide a comprehensive analysis of temporal feature importance. Each method is designed to tackle specific aspects of non-stationarity and data segmentation:
+| **Version** | **Status**     | **Features**                                                                                     |
+|-------------|----------------|-------------------------------------------------------------------------------------------------|
+| **0.1.0**   | Pre-release    | Initial version with basic end-to-end functionality. First release to PyPI and Conda.             |
+| **0.2.0**   | Planned        | Add more end-to-end examples and tutorials for practical use cases.                              |
+| **0.3.0**   | Planned        | Incorporate Clara LLM module for SHAP output & enhanced visualizations.                          |
+| **0.5.0**   | Planned        | Achieve stable version with 3–12 months of user testing, bug fixes, and robust performance testing.|
+| **1.0.0**   | Stable         | Full stable release with extensive documentation and bug-free functionality after community testing. |
 
-| **Method**                         | **Description**                                                                                          |
-|------------------------------------|----------------------------------------------------------------------------------------------------------|
-| **Reverse Expanding Window**       | Analyzes feature importance by incrementally expanding the data window, tracking how importance evolves over time. |
-| **Partitioning Approach**          | Segments data into distinct phases (e.g., time-based) and examines feature importance within each segment.|
-| **WinIT Approach**                 | Captures temporal dependencies by summarizing feature importance across a moving window of past data points.|
-
-## **Development Roadmap**
-
-We have a clear vision for the future development of TemporalScope. Our roadmap outlines the planned features and the stages of development:
-
-| **Version** | **Status**    | **Features**                                                                                     |
-|-------------|---------------|-------------------------------------------------------------------------------------------------|
-| **0.0.1**   | Current       | Initial setup with basic structure and functionality.                                            |
-| **0.0.2**   | In Progress   | Implement the Reverse Expanding Window method with thorough scientific documentation and testing.|
-| **0.0.3**   | Planned       | Integrate additional methods with comprehensive documentation, attribution, and testing.         |
-| **0.0.5**   | Planned       | Develop benchmarking tools and unit tests across various datasets to validate performance.       |
-| **0.8.0**   | Pre-release   | Perform extensive testing with selected users to identify potential improvements.                |
-| **1.0.0**   | Stable        | Release a fully stable version with extensive documentation, testing, and user feedback integration.|
+Contributors: Please ensure that all changes (new features, bug fixes, and performance improvements) are reflected in the changelog and version history in accordance with licensing requirements.
 
 ## **Contributing**
 
@@ -220,11 +214,14 @@ If you use **TemporalScope** in your research, please consider citing it:
 }
 ```
 
-## **License and Legal Notice**
+## **License, Limitations, and Legal Notice**
 
-TemporalScope is licensed under the [Apache License 2.0](LICENSE). By using this package, you agree to comply with the terms and conditions set forth in this license.
+**TemporalScope** is primarily an academic tool designed for research and informational purposes. Practitioners and users of this software are strongly encouraged to consult the accompanying [SCIENTIFIC_LITERATURE.md](SCIENTIFIC_LITERATURE.md) document to fully understand the theoretical limitations, assumptions, and context of the techniques implemented within this package. Furthermore, use of this software falls under "as-is" software as defined by the [Apache License 2.0](LICENSE) provided in this repository and outlined below.
 
-**LEGAL NOTICE**: THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE. 
+By using this package, you agree to comply with the terms and conditions set forth in the **Apache License 2.0**.
+
+**LEGAL NOTICE**: THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 THIS SOFTWARE IS INTENDED FOR ACADEMIC AND INFORMATIONAL PURPOSES ONLY. IT SHOULD NOT BE USED IN PRODUCTION ENVIRONMENTS OR FOR CRITICAL DECISION-MAKING WITHOUT PROPER VALIDATION. ANY USE OF THIS SOFTWARE IS AT THE USER'S OWN RISK.
+
 
