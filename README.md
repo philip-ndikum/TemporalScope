@@ -178,7 +178,7 @@ We have a clear vision for the future development of TemporalScope. Our roadmap 
 
 ## **Contributing**
 
-TemporalScope was conceived by [Philip Ndikum](https://github.com/philip-ndikum) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users.
+TemporalScope was conceived by [Philip Ndikum](https://github.com/philip-ndikum), Serge Ndikum and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users.
 
 We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
 
@@ -197,8 +197,7 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
   <tbody>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/125715876?v=4?s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a></td>
-      <!-- Add more contributors below by copying and modifying this block -->
-      <!-- <td align="center" valign="top" width="14.28%"><a href="https://github.com/your-co-developer"><img src="https://avatars.githubusercontent.com/u/your-co-developer-id?v=4?s=100" width="100px;" alt="Co-Developer Name"/><br /><sub><b>Co-Developer Name</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=your-co-developer" title="Code">💻</a></td> -->
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kanenorman"><img src="https://avatars.githubusercontent.com/u/25833025?v=4?s=100" width="100px;" alt="Kane Norman"/><br /><sub><b>Kane Norman</b></sub></a><br /><a href="https://github.com/kanenorman" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
