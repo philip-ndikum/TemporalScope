@@ -1,38 +1,93 @@
 #!/bin/bash
 
-# Check for Python version
-REQUIRED_PYTHON="3.10"
-PYTHON_VERSION=$(python3 --version | awk '{print $2}')
+print_divider() {
+    echo -e "\n================================================================"
+}
 
-if [[ "$PYTHON_VERSION" != "$REQUIRED_PYTHON" ]]; then
-    echo "Python $REQUIRED_PYTHON is required. Current version: $PYTHON_VERSION"
-    exit 1
-fi
+remove_pycaches() {
+    print_divider
+    echo "Removing all __pycache__ directories..."
+    find . -type d -name "__pycache__" -exec rm -r {} +
+    echo "__pycache__ directories removed."
+}
 
-# Check if Poetry is installed
-if ! command -v poetry &> /dev/null
-then
-    echo "Poetry not found. Installing..."
-    curl -sSL https://install.python-poetry.org | python3 -
-else
-    echo "Poetry is already installed."
-fi
+check_python_version() {
+    print_divider
+    REQUIRED_PYTHON_MAJOR=3
+    REQUIRED_PYTHON_MINOR=10
+    PYTHON_VERSION=$(python3 --version | awk '{print $2}')
+    PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
+    PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
+    echo "Current Python version: $PYTHON_VERSION"
 
-# Install project dependencies
-poetry install
+    if [[ "$PYTHON_MAJOR" -ne "$REQUIRED_PYTHON_MAJOR" || "$PYTHON_MINOR" -lt "$REQUIRED_PYTHON_MINOR" ]]; then
+        echo "Error: Python $REQUIRED_PYTHON_MAJOR.$REQUIRED_PYTHON_MINOR or higher is required. Current version: $PYTHON_VERSION"
+        exit 1
+    fi
+    echo "Python version is compatible."
+}
 
-# Check if Node.js and NPM are installed (for REPONLINTER)
-if ! command -v npm &> /dev/null
-then
-    echo "NPM not found. Installing Node.js and NPM..."
-    # This installs Node.js and NPM
-    curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-    sudo apt-get install -y nodejs
-else
-    echo "NPM is already installed."
-fi
+install_poetry() {
+    print_divider
+    if ! command -v poetry &> /dev/null
+    then
+        echo "Poetry not found. Installing Poetry..."
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "Poetry installed."
+    else
+        echo "Poetry is already installed."
+    fi
+}
 
-# Install REPOLINTER globally using NPM
-npm install -g repolinter
+setup_virtual_environment() {
+    print_divider
+    PYTHON_MINOR=$(python3 --version | awk '{print $2}' | cut -d. -f2)
+    echo "Configuring the virtual environment to use Python $PYTHON_VERSION..."
+    poetry env use python3.$PYTHON_MINOR
+    echo "Virtual environment set to use Python $PYTHON_VERSION."
+}
 
-echo "Setup completed successfully."
+install_dependencies() {
+    print_divider
+    echo "Installing project dependencies..."
+    poetry install
+    echo "Project dependencies installed."
+}
+
+setup_jupyter_kernel() {
+    print_divider
+    echo "Setting up Jupyter kernel named 'temporalscope'..."
+    poetry run python3 -m ipykernel install --user --name=temporalscope --display-name "Python (temporalscope)"
+    echo "Jupyter kernel 'temporalscope' set up successfully."
+}
+
+copy_readme() {
+    print_divider
+    if [ -f "README.md" ]; then
+        echo "Copying README.md to the temporalscope directory..."
+        cp README.md temporalscope/
+        echo "Adjusting image paths in the copied README.md..."
+        sed -i 's/src="assets\//src="\.\.\/assets\//g' temporalscope/README.md
+        echo "Image paths adjusted successfully."
+    else
+        echo "README.md not found. Skipping copy."
+    fi
+}
+
+# Main script execution
+remove_pycaches
+check_python_version
+install_poetry
+setup_virtual_environment
+install_dependencies
+setup_jupyter_kernel
+copy_readme
+
+# Set vim as global editor for Git
+git config --global core.editor "vim"
+
+
+echo "TemporalScope ✨ setup completed successfully!"
+echo "Run the package using:"
+echo "     $ poetry shell # to activate the poetry shell"
+echo "Access Jupyter Notebooks via the 'temporalscope' kernel installed."

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/temporalscope_github_banner.svg" alt="TemporalScope Logo" >
+  <img src="../assets/temporalscope_github_banner.svg" alt="TemporalScope Logo" >
 </p>
 
 <h3 align="center">Scientificially driven Model-Agnostic Temporal Feature Importance Analysis</h3>
@@ -191,9 +191,8 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
 <table>
   <tbody>
     <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/125715876?v=4&s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kanenorman"><img src="https://avatars.githubusercontent.com/u/25833025?v=4&s=100" width="100px;" alt="Kane Norman"/><br /><sub><b>Kane Norman</b></sub></a><br /><a href="https://github.com/kanenorman" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/51185594"><img src="https://avatars.githubusercontent.com/u/51185594?v=4&s=100" width="100px;" alt="Friend's Name"/><br /><sub><b>Friend's Name</b></sub></a><br /><a href="https://github.com/51185594" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/125715876?v=4?s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kanenorman"><img src="https://avatars.githubusercontent.com/u/25833025?v=4?s=100" width="100px;" alt="Kane Norman"/><br /><sub><b>Kane Norman</b></sub></a><br /><a href="https://github.com/kanenorman" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>

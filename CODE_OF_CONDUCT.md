@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-As contributors and maintainers of this project, we commit to fostering a professional and academically rigorous environment.
+As contributors and maintainers of this project, we commit to fostering a professional and academically rigorous environment under Linux Foundation standards.
 
 ## Core Principles
 

@@ -1,0 +1,5 @@
+# .flake8
+[flake8]
+max-line-length = 140
+exclude = .ipynb_checkpoints, __pycache__, *.pyc, .git, .venv
+ignore = E203, W503

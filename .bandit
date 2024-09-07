@@ -1,0 +1,4 @@
+exclude_dirs:
+  - temporalscope/tests/
+  - temporalscope/.ipynb_checkpoints/
+
