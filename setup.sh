@@ -1,9 +1,17 @@
 #!/bin/bash
 
+# TemporalScope/setup.sh
+# This script automates the environment setup for the TemporalScope project. 
+# It removes caches, checks the Python version, installs Poetry, configures the virtual environment, 
+# installs dependencies, sets up a Jupyter kernel, and ensures the README is correctly copied.
+# The script is designed for smooth CI/CD integration with detailed logging.
+
+# Function to print a divider for clarity
 print_divider() {
     echo -e "\n================================================================"
 }
 
+# Function to remove __pycache__ directories
 remove_pycaches() {
     print_divider
     echo "Removing all __pycache__ directories..."
@@ -11,6 +19,7 @@ remove_pycaches() {
     echo "__pycache__ directories removed."
 }
 
+# Function to check if Python version is compatible
 check_python_version() {
     print_divider
     REQUIRED_PYTHON_MAJOR=3
@@ -27,10 +36,10 @@ check_python_version() {
     echo "Python version is compatible."
 }
 
+# Function to install Poetry if not already installed
 install_poetry() {
     print_divider
-    if ! command -v poetry &> /dev/null
-    then
+    if ! command -v poetry &> /dev/null; then
         echo "Poetry not found. Installing Poetry..."
         curl -sSL https://install.python-poetry.org | python3 -
         echo "Poetry installed."
@@ -39,6 +48,7 @@ install_poetry() {
     fi
 }
 
+# Function to configure the Poetry virtual environment
 setup_virtual_environment() {
     print_divider
     PYTHON_MINOR=$(python3 --version | awk '{print $2}' | cut -d. -f2)
@@ -47,6 +57,7 @@ setup_virtual_environment() {
     echo "Virtual environment set to use Python $PYTHON_VERSION."
 }
 
+# Function to install project dependencies via Poetry
 install_dependencies() {
     print_divider
     echo "Installing project dependencies..."
@@ -54,6 +65,7 @@ install_dependencies() {
     echo "Project dependencies installed."
 }
 
+# Function to set up a Jupyter kernel for the project
 setup_jupyter_kernel() {
     print_divider
     echo "Setting up Jupyter kernel named 'temporalscope'..."
@@ -61,6 +73,7 @@ setup_jupyter_kernel() {
     echo "Jupyter kernel 'temporalscope' set up successfully."
 }
 
+# Function to copy and adjust the README.md file
 copy_readme() {
     print_divider
     if [ -f "README.md" ]; then
@@ -74,20 +87,24 @@ copy_readme() {
     fi
 }
 
-# Main script execution
-remove_pycaches
-check_python_version
-install_poetry
-setup_virtual_environment
-install_dependencies
-setup_jupyter_kernel
-copy_readme
+# Main script execution flow
+main() {
+    remove_pycaches
+    check_python_version
+    install_poetry
+    setup_virtual_environment
+    install_dependencies
+    setup_jupyter_kernel
+    copy_readme
 
-# Set vim as global editor for Git
-git config --global core.editor "vim"
+    # Set vim as the global editor for Git
+    git config --global core.editor "vim"
 
+    echo "✨   TemporalScope setup completed successfully!"
+    echo "Run the package using:"
+    echo "     $ poetry shell # to activate the poetry shell"
+    echo "Access Jupyter Notebooks via the 'temporalscope' kernel installed."
+}
 
-echo "TemporalScope ✨ setup completed successfully!"
-echo "Run the package using:"
-echo "     $ poetry shell # to activate the poetry shell"
-echo "Access Jupyter Notebooks via the 'temporalscope' kernel installed."
+# Run the main function
+main

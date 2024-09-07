@@ -1,4 +1,4 @@
-""" temporalscope/tests/unit/test_core_config.py
+""" temporalscope/tests/unit/test_core_conf.py
 
 TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,11 +17,32 @@ import pytest
 import polars as pl
 import pandas as pd
 import modin.pandas as mpd
-from temporalscope.config import (
+from temporalscope.conf import (
     get_default_backend_cfg,
     validate_backend,
     validate_input,
 )
+from unittest.mock import patch
+from temporalscope.conf import get_api_keys
+
+# Define mock API key constants to make it clear these are not real secrets
+MOCK_OPENAI_API_KEY = 'mock_openai_key'
+MOCK_CLAUDE_API_KEY = 'mock_claude_key'
+
+def test_get_api_keys():
+    """Test that get_api_keys retrieves environment variables correctly."""
+    
+    # Mock environment variables using the defined constants
+    with patch.dict('os.environ', {'OPENAI_API_KEY': MOCK_OPENAI_API_KEY, 'CLAUDE_API_KEY': MOCK_CLAUDE_API_KEY}):
+        api_keys = get_api_keys()
+        assert api_keys["OPENAI_API_KEY"] == MOCK_OPENAI_API_KEY
+        assert api_keys["CLAUDE_API_KEY"] == MOCK_CLAUDE_API_KEY
+    
+    # Test when no environment variables are set
+    with patch.dict('os.environ', {}, clear=True):
+        api_keys = get_api_keys()
+        assert api_keys["OPENAI_API_KEY"] is None
+        assert api_keys["CLAUDE_API_KEY"] is None
 
 
 def test_get_default_backend_cfg():
@@ -33,11 +54,10 @@ def test_get_default_backend_cfg():
     assert result == expected_cfg
 
 
-def test_validate_backend_supported():
+@pytest.mark.parametrize("backend", ["pl", "pd", "mpd"])
+def test_validate_backend_supported(backend):
     """Test that supported backends are validated successfully."""
-    validate_backend("pl")
-    validate_backend("pd")
-    validate_backend("mpd")
+    validate_backend(backend)
 
 
 @pytest.mark.parametrize("invalid_backend", ["tf", "spark", "unknown"])

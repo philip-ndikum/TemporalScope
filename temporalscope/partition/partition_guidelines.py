@@ -24,7 +24,7 @@ import warnings
 import pandas as pd
 import polars as pl
 import modin.pandas as mpd
-from temporalscope.config import validate_backend
+from temporalscope.conf import validate_backend
 
 PandasLike = TypeVar("PandasLike", pd.DataFrame, mpd.DataFrame)
 

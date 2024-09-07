@@ -31,7 +31,7 @@ def calculate_masv(
 
         Where `SHAP_i` is the SHAP value of feature `i` in a given phase, and `n` is the number of samples in that phase.
 
-    .. references::
+    References:
         - Alomari, Y., & Ando, M. (2024). SHAP-based insights for aerospace
           PHM: Temporal feature importance, dependencies, robustness, and
           interaction analysis. ELTE Eötvös Loránd University, Faculty of

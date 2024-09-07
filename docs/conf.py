@@ -3,76 +3,25 @@
 This module configures Sphinx for the TemporalScope project to automatically generate documentation.
 It ensures the Python path is set correctly and dynamically updates the autosummary files to reflect
 the current structure of the project.
-"""
 
+TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+import os
 import sys
 from pathlib import Path
-import pkgutil
-from sphinx.application import Sphinx
-import sphinx.ext.autosummary.generate as autosummary_generate
-import shutil
 
-# Constants for directory paths
-ROOT_DIR = "TemporalScope"
-SRC_DIR = "temporalscope"
-DOCUMENTATION_DIR = "_autosummary"
-
-<<<<<<< HEAD
-
-=======
->>>>>>> 6ecf0623f3d8d3c1f7607c1dd06e9c824d0dab98
-def setup_documentation_path():
-    """
-    Configures the system path for Sphinx documentation generation.
-    """
-    current_directory = Path(__file__).resolve().parent
-    project_root = current_directory.parent.parent
-    source_path = project_root / ROOT_DIR / SRC_DIR
-
-    if not source_path.exists():
-        raise FileNotFoundError(f"Source path does not exist: {source_path}")
-
-    sys.path.insert(0, str(source_path))
-    print(f"Source code path added to sys.path: {source_path}")
-
-<<<<<<< HEAD
-
-=======
->>>>>>> 6ecf0623f3d8d3c1f7607c1dd06e9c824d0dab98
-def generate_autosummary(app: Sphinx):
-    """
-    Automatically generates autosummary files for all modules in the project.
-    """
-    document_base_path = Path(app.srcdir) / DOCUMENTATION_DIR
-    if document_base_path.exists():
-        shutil.rmtree(document_base_path)  # Clear existing files
-    document_base_path.mkdir(parents=True, exist_ok=True)
-
-    root_package_path = Path(app.srcdir).parent / ROOT_DIR / SRC_DIR
-    if not root_package_path.exists():
-        raise FileNotFoundError(f"Package path does not exist: {root_package_path}")
-
-    for importer, modname, ispkg in pkgutil.walk_packages(
-        path=[str(root_package_path)], prefix=f"{ROOT_DIR}.{SRC_DIR}."
-    ):
-        output_file_path = document_base_path / f"{modname}.rst"
-        with open(output_file_path, "w") as f:
-            autosummary_generate.generate_autosummary_content(
-                modname, None, f, app.config, template_dir="_templates/autosummary"
-            )
-
-<<<<<<< HEAD
-
-def setup(app: Sphinx):
-    app.connect("builder-inited", generate_autosummary)
-
-
-=======
-def setup(app: Sphinx):
-    app.connect("builder-inited", generate_autosummary)
-
->>>>>>> 6ecf0623f3d8d3c1f7607c1dd06e9c824d0dab98
-setup_documentation_path()  # Ensure this is called at the beginning
+# Add your project source directory to sys.path
+sys.path.insert(0, os.path.abspath('../../temporalscope'))
 
 # -- Project information -----------------------------------------------------
 project = "TemporalScope"
@@ -87,6 +36,9 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.autosummary",
 ]
+
+# Generate autosummary files automatically
+autosummary_generate = True
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -105,3 +57,8 @@ html_theme_options = {
 }
 
 html_static_path = ["_static"]
+
+# -- Custom Setup Function ---------------------------------------------------
+def setup(app):
+    print("Sphinx documentation generation initiated...")
+    # You can add additional setup logic if needed

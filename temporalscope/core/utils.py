@@ -1,4 +1,4 @@
-"""temporalscope/core/utils.py
+""" TemporalScope/temporalscope/core/utils.py
 
 This module provides utility functions that can be used throughout the TemporalScope package.
 It includes methods for printing dividers, checking for nulls and NaNs, and validating the backend.
@@ -20,7 +20,7 @@ from typing import Union, cast
 import polars as pl
 import pandas as pd
 import modin.pandas as mpd
-from temporalscope.config import validate_backend
+from temporalscope.conf import validate_backend
 
 
 def print_divider(char: str = "=", length: int = 70) -> None:

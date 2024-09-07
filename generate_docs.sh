@@ -1,56 +1,66 @@
 #!/bin/bash
 
-echo "Generating documentation..."
+# TemporalScope/generate_docs.sh
+# This script automates the process of cleaning old documentation files and caches,
+# generating new stubs, and building Sphinx documentation for the TemporalScope project.
 
-# Check if the virtual environment is active
-if [[ "$VIRTUAL_ENV" != "" ]]; then
-    echo "Virtual environment already active."
+# Function to clear Python and MyPy caches
+clear_caches() {
+    echo "Clearing Python and MyPy caches..."
+    find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null
+    find . -name ".mypy_cache" -type d -exec rm -rf {} + 2>/dev/null
+    echo "Caches cleared."
+}
 
-    # Navigate to the docs directory
+# Function to clear old Sphinx build and autosummary directories
+clear_old_docs() {
+    echo "Clearing old Sphinx build and autosummary directories..."
+    rm -rf docs/_build docs/_autosummary docs/*.rst
+    echo "Old documentation files cleared."
+}
+
+# Function to generate new API documentation stubs
+generate_stubs() {
+    echo "Generating new API documentation stubs with sphinx-apidoc..."
+    sphinx-apidoc -o docs/ temporalscope/ 2>/dev/null
+    echo "New stubs generated."
+}
+
+# Function to build the HTML documentation with Sphinx (Verbose mode and log the output)
+build_docs() {
+    echo "Building HTML documentation with Sphinx (verbose mode)..."
     cd docs
+    sphinx-build -b html . _build/html -v | tee sphinx_build.log
+    cd ..
+    echo "HTML documentation built in docs/_build/html"
+}
 
-    # Clear the _build directory
-    echo "Clearing the _build directory..."
-    rm -rf _build
+# Function to check if the virtual environment is active
+check_virtualenv() {
+    if [[ "$VIRTUAL_ENV" != "" ]]; then
+        echo "Virtual environment already active."
+    else
+        echo "Please activate your virtual environment."
+        exit 1
+    fi
+}
 
-    # Run Sphinx to generate the HTML documentation
-    sphinx-build -b html . _build/html
+# Main function to run the entire documentation generation process
+main() {
+    check_virtualenv
+    clear_caches
+    clear_old_docs
+    generate_stubs
+    build_docs
 
-    # Notify the user where the documentation has been generated
-    echo "Documentation generated in docs/_build/html"
+    if [ -f "docs/_build/html/index.html" ]; then
+        echo "To view the documentation locally, open the following file in your browser:"
+        echo "$(pwd)/docs/_build/html/index.html"
+        echo "✨    TemporalScope documentation successfully generated!"
+    else
+        echo "Failed to build HTML documentation with Sphinx. Check the sphinx_build.log file for details."
+    fi
+}
 
-    # Print the command to view the documentation locally
-    echo "To view the documentation locally, open the following file in your browser:"
-    echo "$(pwd)/_build/html/index.html"
-
-    # Suggest using xdg-open to open the documentation automatically
-    echo "You can also open the documentation automatically using the following command:"
-    echo "xdg-open $(pwd)/_build/html/index.html"
-else
-    echo "Activating Poetry's virtual environment..."
-    # Activate Poetry's virtual environment and run the commands within the activated shell
-    poetry run bash <<EOF
-    echo "Virtual environment activated."
-
-    # Navigate to the docs directory
-    cd docs
-
-    # Clear the _build directory
-    echo "Clearing the _build directory..."
-    rm -rf _build
-
-    # Run Sphinx to generate the HTML documentation
-    sphinx-build -b html . _build/html
-
-    # Notify the user where the documentation has been generated
-    echo "Documentation generated in docs/_build/html"
-
-    # Print the command to view the documentation locally
-    echo "To view the documentation locally, open the following file in your browser:"
-    echo "$(pwd)/_build/html/index.html"
-
-    # Suggest using xdg-open to open the documentation automatically
-    echo "You can also open the documentation automatically using the following command:"
-    echo "xdg-open $(pwd)/_build/html/index.html"
-EOF
-fi
+# Run the main function
+main

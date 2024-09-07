@@ -23,7 +23,7 @@ import polars as pl
 from polars import Expr
 import pandas as pd
 import modin.pandas as mpd
-from temporalscope.config import (
+from temporalscope.conf import (
     get_default_backend_cfg,
     validate_input,
     validate_backend,

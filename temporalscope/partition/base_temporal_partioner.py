@@ -24,7 +24,7 @@ from typing import Union, Optional, List, Tuple, Any
 import pandas as pd
 import polars as pl
 import modin.pandas as mpd
-from temporalscope.config import validate_backend
+from temporalscope.conf import validate_backend
 
 
 class BaseTemporalPartitioner(ABC):

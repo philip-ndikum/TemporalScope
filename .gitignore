@@ -57,12 +57,13 @@ docs/.buildinfo
 *.sqlite
 *.db
 
-# Virtual environments
+# Virtual environments and env files
 .venv/
 env/
 ENV/
 env.bak/
 venv.bak/
+.env
 
 # IDE settings
 .idea/

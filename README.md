@@ -53,15 +53,27 @@
 
 ## **Installation**
 
-You can install TemporalScope from [PyPI](https://pypi.org/project/temporalscope/) with:
+**Note**: TemporalScope is currently in **beta**, so some installation methods may not work as expected on all platforms.
 
-1. **Basic Installation using pip**:
-
-   `pip install temporalscope`
-
-2. **Installation with Optional Dependencies**: If you want to use additional backends like Dask, Modin, CUDF, or Polars, you can install them as follows:
-
-   `pip install temporalscope[dask,modin,cudf,polars]`
+1. **Basic Installation using pip**: You can install the core package using pip:
+    ```bash
+    $ pip install temporalscope
+    ```
+2. **Installation with conda**: For conda users, install via conda-forge:
+    ```bash
+    $ conda install -c conda-forge temporalscope`
+    ```
+3. **System-level Dependencies**: To view generated documentation locally, you may need `xdg-open`:
+    ```bash 
+    $ sudo apt install xdg-utils`
+    ```
+4. **Git Clone and Setup**: We avoid requiring other system-level dependencies for security reasons. If you prefer the latest development version, clone the repository and use the provided setup script:
+    ```bash
+    $ git clone https://github.com/philip-ndikum/TemporalScope.git
+    $ cd TemporalScope
+    $ ./setup.sh
+    ```
+   This will configure the environment and install all necessary dependencies.
 
 
 ## **Usage**
@@ -126,26 +138,9 @@ for partition_name, predictions in results.items():
     print(predictions[:5])  # Display first 5 predictions
 ```
 
-## **Why use TemporalScope?**
-
-| **Feature**                     | **Description**                                                                                                                                       |
-|----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Enterprise-Grade**             | Adheres to Linux Foundation Open-Source Security standards, encouraging contributors to reference academic papers and use quality assurance scripts to maintain software reliability.  |
-| **Modularity**                   | Incorporates Pandas, Polars, Modin, SHAP, Boruta-SHAP, and partitioning algorithms from the literature, making the software flexible and expandable as research advances. |
-| **Explainability**               | Designed to spur further research into temporal-driven explainability, providing a framework that can evolve with contributions from the global AI community. |
-| **Boruta-SHAP Integration**      | Combines the Boruta feature selection method with SHAP for robust, interpretable feature importance across time.                                         |
-| **Time-Aware Feature Tracking**  | Tracks feature importance over time, accounting for changes in data distribution and offering insights into temporal shifts.                             |
-| **Scalability**                  | Built to efficiently handle large datasets, with scalability in mind for both academic and industrial applications.                                     |
-| **Extensible Framework**         | Easily integrates with custom feature importance methods and workflows, allowing users to extend the package as needed.                                |
-| **Detailed Visualizations**      | Provides tools for visualizing changes in feature importance over time, aiding in model interpretability and data analysis.                             |
-| **Robust Documentation**         | Offers comprehensive documentation with examples and tutorials, adhering to Linux Foundation development standards for high-quality open-source software. |
-
-
 ### **Industrial Academic Applications**
 
 **DISCLAIMER**: The following use cases are provided for academic and informational purposes only. TemporalScope is intended to support research and development in understanding temporal dynamics in feature importance. These examples are not intended as guidance for industrial applications without further validation and expert consultation. The use of TemporalScope in any industrial or production environment is at the user's own risk, and the developers disclaim any liability for such use. Please refer to the [License and Legal Notice](#license-and-legal-notice) for further details.
-
-### **Example Academic Use Cases**
 
 | **Sector**    | **Use Case**                                                                                  | **Impact**                                                                                         |
 |---------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
@@ -158,26 +153,11 @@ for partition_name, predictions in results.items():
 
 ## Development Roadmap & Changelog
 
-**TemporalScope** follows **Semantic Versioning (SemVer)**, a versioning system that conveys the scope of changes introduced in each new release. Each version is represented in the form **MAJOR.MINOR.PATCH**, where major releases introduce significant or breaking changes, minor releases add backward-compatible functionality, and patch releases are used for bug fixes or minor improvements. Below is the planned roadmap outlining feature development and milestones over the next 12–18 months. This roadmap is subject to change based on user feedback, emerging research, and community contributions.
-
-| **Version** | **Status**     | **Description**                                                                                                                                                                   |
-|-------------|----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **0.1.0**   | Pre-release    | The initial release version featuring basic end-to-end functionality. This version will be the first public release to both PyPI and Conda, offering the foundational capabilities of TemporalScope.  |
-| **0.2.0**   | Planned        | This version will include more comprehensive end-to-end examples and tutorials designed to assist users in integrating the software into practical use cases across various domains.   |
-| **0.3.0**   | Planned        | Introduction of advanced features, including the integration of the Clara LLM module for generating SHAP output, along with enhanced visualization tools for deeper temporal analysis.  |
-| **0.5.0**   | Planned        | Focused on achieving a stable release. This version will include extensive user testing, bug fixes, and performance optimizations after several months of use in diverse environments. |
-| **1.0.0**   | Stable         | The first fully stable release, with robust documentation, thorough testing, and any feedback-driven refinements. This version will be ready for broader production use and long-term support.  |
-
-**Contributor Guidelines**: All contributors are required to update the changelog to document any new features, bug fixes, or performance improvements. These updates must be reflected in both the version history and changelog, in accordance with the [Apache License 2.0](LICENSE) and Linux Foundation standards. Please ensure that all contributions are tested and well-documented to maintain the stability and reliability of the software.
-
+For detailed test, security, and deployment workflows as defined by OpenSSF Best Practices, please refer to [CONTRIBUTING.md](CONTRIBUTING.md). **TemporalScope** follows **Semantic Versioning (SemVer)**, a versioning system that conveys the scope of changes introduced in each new release. Each version is represented in the form **MAJOR.MINOR.PATCH**, where major releases introduce significant or breaking changes, minor releases add backward-compatible functionality, and patch releases are used for bug fixes or minor improvements. Below is the planned roadmap outlining feature development and milestones over the next 12–18 months. This roadmap is subject to change based on user feedback, emerging research, and community contributions.
 
 ## **Contributing**
 
-TemporalScope was conceived by [Philip Ndikum](https://github.com/philip-ndikum), Serge Ndikum and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users.
-
-We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
-
-We are also looking for contributors who are excited about taking on more significant roles in the development of TemporalScope. Those interested in leading future implementations or contributing in a more substantial capacity are welcome to get involved.
+TemporalScope was conceived independently by [Philip Ndikum](https://github.com/philip-ndikum), Serge Ndikum, and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users. We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
 
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
 
@@ -198,18 +178,16 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
 </table>
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
-
-
 ## Cite this Project
 
 If you use **TemporalScope** in your research, please consider citing it:
 ```
 {
   @software{ndikum2024temporalscope,
-  author = {Philip Ndikum},
+  author = {Philip Ndikum, Serge Ndikum, Kane Norman},
   title = {TemporalScope: Model-Agnostic Temporal Feature Importance Analysis},
   year = 2024,
-  version = {1.0.0},
+  version = {0.1.0},
   publisher = {GitHub},
   url = {https://github.com/philip-ndikum/TemporalScope}
 }
