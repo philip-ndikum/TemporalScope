@@ -27,6 +27,25 @@ jobs:
       - name: Run setup script
         run: ./setup.sh
 
+      # Install git-secrets
+      - name: Install git-secrets
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git-secrets
+
+      # Configure git-secrets
+      - name: Configure git-secrets
+        run: |
+          git secrets --install
+          git secrets --register-aws
+          git secrets --scan
+
+      # Copy the latest README.md into the 'temporalscope' directory
+      - name: Copy README.md to 'temporalscope'
+        run: cp README.md temporalscope/
+
+      # Run Black only on the 'temporalscope' source directory
       - name: Run Black for code formatting
         run: |
-          poetry run black .
+          poetry run black temporalscope
+
