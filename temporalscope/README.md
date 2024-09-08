@@ -30,11 +30,12 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version">
   <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
-  <img src="https://img.shields.io/badge/Contributions-Welcome-brightgreen" alt="Contributions Welcome">
   <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
   <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code Style: Black"></a>
   <a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit"></a>
+  <a href="https://www.bestpractices.dev/projects/9424"><img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices"></a>
 </p>
+
 
 
 **TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional *Clara LLM* modules (etymology from the word *Clarity*) are intended to serve as a model-validation tool to support explainability efforts (XAI).
@@ -146,11 +147,12 @@ for partition_name, predictions in results.items():
 | **Sector**    | **Use Case**                                                                                  | **Impact**                                                                                         |
 |---------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
 | **Finance**   | **Quantitative Investing:** Understanding how the importance of financial indicators, such as interest rates or stock volatility, changes across different market cycles.   | Enhances quantitative investment strategies by identifying which indicators are most predictive in various market conditions, thereby improving risk management and investment decisions. |
-| **Finance**   | **Credit Risk Modelling:** Analyzing how the contribution of variables like income, credit history, or employment status fluctuates over time in credit scoring models.   | Supports the development of more robust credit scoring models by highlighting how feature relevance changes, potentially leading to more accurate risk assessments. |
 | **Healthcare**| **Patient Outcome Prediction:** Tracking how various patient data features, such as age, vital signs, and medical history, contribute to health outcomes at different stages of treatment or disease progression. | Facilitates the creation of personalized treatment plans by identifying critical factors at specific stages, leading to improved patient outcomes and optimized healthcare resources. |
-| **Engineering**| **Predictive Maintenance for Machinery:** Examining how factors like temperature, vibration, and usage patterns affect machinery lifecycle over time.        | Reduces machinery downtime and maintenance costs by providing insights into when and why certain components are likely to fail, enabling more effective maintenance scheduling. |
 | **Energy**    | **Load Forecasting:** Analyzing how the importance of variables such as weather conditions, time of day, and historical consumption data evolves in predicting energy demand.   | Improves energy load forecasting by adapting to changing conditions, leading to more efficient energy distribution and reduced operational costs. |
 | **Retail**    | **Customer Behavior Analysis:** Understanding how customer preferences and purchasing behaviors change over time, influenced by factors such as seasonal trends, promotions, and economic conditions. | Enables retailers to optimize inventory management, marketing strategies, and pricing models by identifying the most influential factors driving sales in different periods. |
+
+For more detailed examples from sectors like engineering and other scientific applications, please refer to the [SCIENTIFIC_LITERATURE.md](SCIENTIFIC_LITERATURE.md).
+
 
 ## Development Roadmap & Changelog
 

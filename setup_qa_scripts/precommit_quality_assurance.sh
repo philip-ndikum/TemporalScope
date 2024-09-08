@@ -2,6 +2,9 @@
 
 # TemporalScope/precommit_quality_assurance.sh
 
+# Ensure the script runs from the root project directory (one level up from the script)
+cd "$(dirname "$0")/.."
+
 # Function to print centered text
 print_centered() {
     termwidth=$(tput cols)

@@ -16,12 +16,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 import os
 import sys
 from pathlib import Path
 
 # Add your project source directory to sys.path
-sys.path.insert(0, os.path.abspath('../../temporalscope'))
+sys.path.insert(0, os.path.abspath("../../temporalscope"))
 
 # -- Project information -----------------------------------------------------
 project = "TemporalScope"
@@ -57,6 +58,7 @@ html_theme_options = {
 }
 
 html_static_path = ["_static"]
+
 
 # -- Custom Setup Function ---------------------------------------------------
 def setup(app):

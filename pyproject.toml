@@ -1,3 +1,68 @@
+# ====================================
+# Hatch Configuration
+[tool.hatch.envs.default]
+dependencies = [
+    "shap>=0.46.0",
+    "borutashap>=1.0.17",
+    "pytest>=8.3.2",
+    "mkdocs-material>=9.5.31",
+    "scikit-learn>=1.5.1",
+    "sphinx>=8.0.2",
+    "pydata-sphinx-theme>=0.15.4",
+    "polars>=1.5.0",
+    "black[jupyter]>=24.8.0",
+    "statsmodels>=0.14.2",
+    "pyarrow>=17.0.0",
+    "lightgbm>=4.5.0",
+    "flax>=0.8.5",
+    "jax>=0.4.31",
+    "modin[all]>=0.31.0",
+    "bandit>=1.7.9",
+    "flake8>=7.1.1",
+    "mypy>=1.11.2",
+    "pandas-stubs>=2.2.2.240807",
+    "sphinx-autobuild>=2024.9.3",
+    "python-dotenv>=1.0.1",
+    "jupyterlab>=4.2.5",
+    "notebook>=7.2.2"
+]
+
+[tool.hatch.envs.test]
+dependencies = [
+    "pytest",
+    "pytest-cov"
+]
+
+[tool.hatch.envs.lint]
+dependencies = ["flake8", "bandit", "mypy"]
+
+[tool.hatch.envs.docs]
+dependencies = ["sphinx", "mkdocs-material"]
+
+
+# ====================================
+# Tools - MyPy, Flake8 & Bandit
+ 
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_untyped_defs = true
+exclude = "temporalscope/tests/"
+
+[tool.flake8]
+max-line-length = 160
+exclude = [".ipynb_checkpoints", "__pycache__", "*.pyc", ".git", ".venv"]
+ignore = ["E203", "W503"]
+
+[tool.bandit]
+exclude_dirs = ["temporalscope/tests/", "temporalscope/.ipynb_checkpoints/"]
+
+
+# ====================================
+# Poetry Configuration
+
 [tool.poetry]
 name = "temporalscope"
 version = "0.1.0"

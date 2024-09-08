@@ -1,4 +1,4 @@
-""" temporalscope/partitioning/partitioning_guidelines.py
+""" TemporalScope/temporalscope/partition/data_checks.py
 
 This module provides functions to validate dataset partitions against
 a set of heuristics derived from key literature in the field.
@@ -21,7 +21,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union, TypeVar, Any, Dict
+from typing import Union, TypeVar, Any, Dict, cast
 import warnings
 import pandas as pd
 import polars as pl
@@ -36,14 +36,14 @@ def check_sample_size(
     backend: str = "pl",
     min_samples: int = 3000,
     max_samples: int = 50000,
-    enable_warnings: bool = False
+    enable_warnings: bool = False,
 ) -> bool:
-    """ Check if the dataset meets the minimum and maximum sample size requirements.
-    
-    This function checks if the dataset contains an appropriate number of samples 
-    for training machine learning models. If the dataset has too few or too many samples, 
+    """Check if the dataset meets the minimum and maximum sample size requirements.
+
+    This function checks if the dataset contains an appropriate number of samples
+    for training machine learning models. If the dataset has too few or too many samples,
     warnings can be triggered depending on the `enable_warnings` flag.
-    
+
     :param df: The dataset to check.
     :type df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]
     :param backend: The backend used for processing ('pd', 'pl', 'mpd').
@@ -86,14 +86,14 @@ def check_feature_count(
     backend: str = "pl",
     min_features: int = 4,
     max_features: int = 500,
-    enable_warnings: bool = False
+    enable_warnings: bool = False,
 ) -> bool:
-    """ Check if the dataset meets the minimum and maximum feature count requirements.
-    
-    This function ensures the dataset has an appropriate number of features for modeling. 
-    If the feature count is too low or too high, warnings can be triggered depending on the 
+    """Check if the dataset meets the minimum and maximum feature count requirements.
+
+    This function ensures the dataset has an appropriate number of features for modeling.
+    If the feature count is too low or too high, warnings can be triggered depending on the
     `enable_warnings` flag.
-    
+
     :param df: The dataset to check.
     :type df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]
     :param backend: The backend used for processing ('pd', 'pl', 'mpd').
@@ -131,17 +131,15 @@ def check_feature_count(
     return True
 
 
-
-
 def check_feature_to_sample_ratio(
     df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame],
     backend: str = "pl",
     max_ratio: float = 0.1,
-    enable_warnings: bool = False
+    enable_warnings: bool = False,
 ) -> bool:
-    """ Check if the feature-to-sample ratio is within acceptable limits.
+    """Check if the feature-to-sample ratio is within acceptable limits.
 
-    This function verifies if the dataset's feature-to-sample ratio exceeds the maximum allowable ratio, 
+    This function verifies if the dataset's feature-to-sample ratio exceeds the maximum allowable ratio,
     which may increase the risk of overfitting. Warnings can be triggered depending on the `enable_warnings` flag.
 
     :param df: The dataset to check.
@@ -177,12 +175,12 @@ def check_categorical_feature_cardinality(
     df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame],
     backend: str = "pl",
     max_unique_values: int = 20,
-    enable_warnings: bool = False
+    enable_warnings: bool = False,
 ) -> bool:
-    """ Check that categorical features do not have too many unique values.
+    """Check that categorical features do not have too many unique values.
 
-    This function ensures that categorical features have an acceptable number of unique values. 
-    High-cardinality categorical features can complicate model training and increase the risk of overfitting. 
+    This function ensures that categorical features have an acceptable number of unique values.
+    High-cardinality categorical features can complicate model training and increase the risk of overfitting.
     Warnings can be triggered depending on the `enable_warnings` flag.
 
     :param df: The dataset to check.
@@ -195,13 +193,17 @@ def check_categorical_feature_cardinality(
     :type enable_warnings: bool
     :return: True if the categorical features meet the cardinality limits, otherwise False.
     :rtype: bool
+    :raises: ValueError if backend is not supported.
     """
     validate_backend(backend)
 
     if backend == "pl":
-        for col in df.columns:
-            if isinstance(df[col].dtype, (pl.Categorical, pl.Utf8)):
-                if df[col].n_unique() > max_unique_values:
+        # Explicitly cast to Polars DataFrame
+        polars_df = cast(pl.DataFrame, df)
+        for col in polars_df.columns:
+            # Check categorical or string columns
+            if polars_df[col].dtype in [pl.Categorical, pl.Utf8]:
+                if polars_df[col].n_unique() > max_unique_values:
                     if enable_warnings:
                         warnings.warn(
                             f"Categorical feature '{col}' has more than {max_unique_values} unique values. "
@@ -210,8 +212,13 @@ def check_categorical_feature_cardinality(
                     return False
 
     elif backend in ["pd", "mpd"]:
-        pandas_df = df
-        categorical_columns = pandas_df.select_dtypes(include=["category", "object"]).columns
+        # Explicitly cast to Pandas/Modin DataFrame
+        pandas_df = (
+            cast(pd.DataFrame, df) if backend == "pd" else cast(mpd.DataFrame, df)
+        )
+        categorical_columns = pandas_df.select_dtypes(
+            include=["category", "object"]
+        ).columns
         for col in categorical_columns:
             if pandas_df[col].nunique() > max_unique_values:
                 if enable_warnings:
@@ -224,16 +231,15 @@ def check_categorical_feature_cardinality(
     return True
 
 
-
 def check_numerical_feature_uniqueness(
     df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame],
     backend: str = "pl",
     min_unique_values: int = 10,
-    enable_warnings: bool = False
+    enable_warnings: bool = False,
 ) -> bool:
-    """ Check that numerical features have a sufficient number of unique values.
+    """Check that numerical features have a sufficient number of unique values.
 
-    This function ensures that numerical features contain a minimum number of unique values. 
+    This function ensures that numerical features contain a minimum number of unique values.
     Features with too few unique values may lack variability, reducing model expressiveness.
     Warnings can be triggered depending on the `enable_warnings` flag.
 
@@ -283,9 +289,9 @@ def check_numerical_feature_uniqueness(
 def check_binary_numerical_features(
     df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame],
     backend: str = "pl",
-    enable_warnings: bool = False
+    enable_warnings: bool = False,
 ) -> bool:
-    """ Check if any numerical features are binary and suggest converting them to categorical.
+    """Check if any numerical features are binary and suggest converting them to categorical.
 
     Binary numerical features (i.e., features with only two unique values) are often better represented as categorical features.
     This function detects such features and suggests conversion. Warnings can be triggered depending on the `enable_warnings` flag.
@@ -330,15 +336,13 @@ def check_binary_numerical_features(
     return True
 
 
-
-
 def check_class_balance(
     df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame],
     target_col: str,
     backend: str = "pl",
-    enable_warnings: bool = False
+    enable_warnings: bool = False,
 ) -> bool:
-    """ Check that classes in a classification dataset are balanced.
+    """Check that classes in a classification dataset are balanced.
 
     This function checks the class distribution in the target column of a classification dataset.
     If the ratio between the largest and smallest classes exceeds 1.5, the dataset is considered imbalanced.
@@ -354,25 +358,33 @@ def check_class_balance(
     :type enable_warnings: bool
     :return: True if classes are balanced (ratio <= 1.5), otherwise False.
     :rtype: bool
+    :raises: ValueError if backend is not supported.
     """
     validate_backend(backend)
 
     class_counts: Dict[Any, int] = {}
 
     if backend in ["pd", "mpd"]:
-        pandas_df = df
+        # Explicitly cast to Pandas/Modin DataFrame
+        pandas_df = (
+            cast(pd.DataFrame, df) if backend == "pd" else cast(mpd.DataFrame, df)
+        )
         value_counts = pandas_df[target_col].value_counts()
         class_counts = {k: int(v) for k, v in value_counts.items()}
 
     elif backend == "pl":
-        polars_df = df
+        # Explicitly cast to Polars DataFrame
+        polars_df = cast(pl.DataFrame, df)
         value_counts = polars_df[target_col].value_counts()
-        class_counts = {str(row[target_col]): int(row["count"]) for row in value_counts.to_dicts()}
+        class_counts = {
+            str(row[target_col]): int(row["count"]) for row in value_counts.to_dicts()
+        }
 
     if class_counts:
         count_values = list(class_counts.values())
         max_count = max(count_values)
         min_count = min(count_values)
+
         if max_count / min_count > 1.5:
             if enable_warnings:
                 warnings.warn(

@@ -4,6 +4,9 @@
 # This script automates the process of cleaning old documentation files and caches,
 # generating new stubs, and building Sphinx documentation for the TemporalScope project.
 
+# Ensure the script runs from the root project directory (one level up from the script)
+cd "$(dirname "$0")/.."
+
 # Function to clear Python and MyPy caches
 clear_caches() {
     echo "Clearing Python and MyPy caches..."
