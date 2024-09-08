@@ -18,20 +18,18 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-
-      - name: Make setup.sh executable
-        run: chmod +x ./setup.sh
-
-      - name: Run setup script
-        run: ./setup.sh
-
-      # Install git-secrets
-      - name: Install git-secrets
+      # Installing Hatch as the default
+      - name: Install Hatch (Assumed as default)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y git-secrets
+          pip install hatch
+
+      # Make the setup script executable at its new location
+      - name: Make setup.sh executable
+        run: chmod +x ./setup_qa_scripts/setup.sh
+
+      # Run the setup script from the new location
+      - name: Run setup script
+        run: ./setup_qa_scripts/setup.sh
 
       # Copy the latest README.md into the 'temporalscope' directory
       - name: Copy README.md to 'temporalscope'
@@ -40,4 +38,4 @@ jobs:
       # Run Black only on the 'temporalscope' source directory
       - name: Run Black for code formatting
         run: |
-          poetry run black temporalscope
+          hatch run black temporalscope
