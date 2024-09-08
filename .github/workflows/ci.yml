@@ -33,14 +33,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git-secrets
 
-      # Configure git-secrets without interactive terminal (disable tput and say)
-      - name: Configure git-secrets (non-interactive)
-        run: |
-          export TERM=dumb  # Disable terminal-based output
-          git secrets --install
-          git secrets --register-aws
-          git secrets --scan
-
       # Copy the latest README.md into the 'temporalscope' directory
       - name: Copy README.md to 'temporalscope'
         run: cp README.md temporalscope/
