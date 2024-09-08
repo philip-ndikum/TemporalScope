@@ -33,12 +33,12 @@
   <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
   <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code Style: Black"></a>
   <a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit"></a>
-  <a href="https://www.bestpractices.dev/projects/9424"><img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices"></a>
+  <!--  <a href="https://www.bestpractices.dev/projects/9424"><img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices"></a> -->
 </p>
 
 
 
-**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional *Clara LLM* modules (etymology from the word *Clarity*) are intended to serve as a model-validation tool to support explainability efforts (XAI).
+**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional *Clara LLM* modules (etymology from the word *Clarity*) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase so some installation methods may not work as expected on all platforms. Please check the `.github/CONTRIBUTIONS.md` for the full roadmap. 
 
 
 
@@ -160,7 +160,7 @@ For detailed test, security, and deployment workflows as defined by OpenSSF Best
 
 ## **Contributing**
 
-TemporalScope was conceived independently by [Philip Ndikum](https://github.com/philip-ndikum), Serge Ndikum, and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users. We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
+TemporalScope was conceived independently by [Philip Ndikum](https://github.com/philip-ndikum), [Serge Ndikum](https://github.com/serge-ndikum), and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users. We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
 
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
 
@@ -175,11 +175,13 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
   <tbody>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/125715876?v=4&s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/serge-ndikum"><img src="https://avatars.githubusercontent.com/u/180889799?v=4&s=100" width="100px;" alt="Serge Ndikum"/><br /><sub><b>Serge Ndikum</b></sub></a><br /><a href="https://github.com/serge-ndikum" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/kanenorman"><img src="https://avatars.githubusercontent.com/u/51185594?v=4&s=100" width="100px;" alt="Kane Norman"/><br /><sub><b>Kane Norman</b></sub></a><br /><a href="https://github.com/kanenorman" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
 <!-- ALL-CONTRIBUTORS-LIST:END -->
+
 
 ## Cite this Project
 
