@@ -2,13 +2,15 @@
 TemporalScope/temporalscope/partitioning/sliding_window.py
 
 This module defines the SlidingWindowPartitioner class, a specific implementation of the
-BaseTemporalPartitioner for creating contiguous, non-overlapping partitions using a sliding window mechanism.
+BaseTemporalPartitioner for creating contiguous, non-overlapping partitions using a
+sliding window mechanism.
 
 Core Functionality:
 -------------------
-The SlidingWindowPartitioner divides a dataset into non-overlapping partitions using a fixed window size and
-optional stride. The stride determines how far to move between the starting points of consecutive partitions, 
-which can introduce gaps between them. Each partition can be further split into train, test, and validation sets.
+The SlidingWindowPartitioner divides a dataset into non-overlapping partitions using a
+fixed window size and optional stride. The stride determines how far to move between the
+starting points of consecutive partitions, which can introduce gaps between them.
+Each partition can be further split into train, test, and validation sets.
 
 TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,43 +25,56 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Dict, Tuple, Optional
 from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.partition.base import BaseTemporalPartitioner
 
 
 class SlidingWindowPartitioner(BaseTemporalPartitioner):
-    """Sliding Window Partitioner for dividing time series data into contiguous, non-overlapping partitions.
+    """
+    Divide time series data into contiguous, non-overlapping partitions.
 
-    This class splits a dataset into partitions of a fixed window size. Users can define a stride to introduce gaps
-    between consecutive partitions. Each partition can be further divided into train, test, and validation sets
-    based on provided percentages.
+    This class splits a dataset into partitions of a fixed window size. Users can define
+    a stride to introduce gaps between consecutive partitions. Each partition can be
+    further divided into train, test, and validation sets based on provided percentages.
 
-    :param tf: The TimeFrame object containing the data to be partitioned.
-    :type tf: TimeFrame
-    :param window_size: The size of each partition (number of rows). If not provided, `num_partitions` is required.
-    :type window_size: Optional[int]
-    :param num_partitions: The number of partitions to divide the data into. If `window_size` is not provided, this parameter
-                           is used to split the data evenly.
-    :type num_partitions: Optional[int]
-    :param stride: The number of rows to skip between the start points of consecutive partitions.
-                   A stride larger than the window size creates gaps, while a stride equal to the window size results in no gaps.
-    :type stride: int
-    :param truncate: Whether to truncate the last partition if its size is smaller than the window size.
-    :type truncate: bool
-    :param train_pct: Percentage of data allocated for training within each partition.
-    :type train_pct: float
-    :param test_pct: Percentage of data allocated for testing within each partition.
-    :type test_pct: Optional[float]
-    :param val_pct: Percentage of data allocated for validation within each partition.
-    :type val_pct: Optional[float]
-    :param enable_warnings: Enable warnings for uneven partition sizes.
-    :type enable_warnings: bool
+    Parameters
+    ----------
+    tf
+        The TimeFrame object containing the data to be partitioned.
+    window_size
+        The size of each partition (number of rows). If not provided, `num_partitions`
+        is required.
+    num_partitions
+        The number of partitions to divide the data into. If `window_size` is not
+        provided, this parameter
+        is used to split the data evenly.
+    stride
+        The number of rows to skip between the start points of consecutive partitions.
+        A stride larger than the window size creates gaps, while a stride equal to the
+        window size results in no gaps.
+    truncate
+        Whether to truncate the last partition if its size is smaller than
+        the window size.
+    train_pct
+        Percentage of data allocated for training within each partition.
+    test_pct
+        Percentage of data allocated for testing within each partition.
+    val_pct
+        Percentage of data allocated for validation within each partition.
+    enable_warnings
+        Enable warnings for uneven partition sizes.
 
-    :raises ValueError: If neither `window_size` nor `num_partitions` is provided, or if train, test, and validation percentages do not sum to 1.0.
+    Raises
+    ------
+    ValueError
+        If neither `window_size` nor `num_partitions` is provided, or if train, test,
+        and validation percentages do not sum to 1.0.
 
-    Example Usage:
-    --------------
+    Example
+    -------
+    Create a sample dataset using Pandas and partition it
+    using `SlidingWindowPartitioner`.
+
     .. code-block:: python
 
         import pandas as pd
@@ -67,16 +82,26 @@ class SlidingWindowPartitioner(BaseTemporalPartitioner):
         from temporalscope.partition.sliding_window import SlidingWindowPartitioner
 
         # Create a sample dataset using Pandas
-        data = pd.DataFrame({
-            'time': pd.date_range(start='2021-01-01', periods=20, freq='D'),
-            'value': range(20)
-        })
+        data = pd.DataFrame(
+            {
+                "time": pd.date_range(start="2021-01-01", periods=20, freq="D"),
+                "value": range(20),
+            }
+        )
 
         # Create a TimeFrame object
-        tf = TimeFrame(data, time_col='time', target_col='value', backend='pd')
+        tf = TimeFrame(data, time_col="time", target_col="value", backend="pd")
 
         # Create a SlidingWindowPartitioner with window_size=5 and stride=5
-        partitioner = SlidingWindowPartitioner(tf=tf, window_size=5, stride=5, truncate=True, train_pct=0.6, test_pct=0.3, val_pct=0.1)
+        partitioner = SlidingWindowPartitioner(
+            tf=tf,
+            window_size=5,
+            stride=5,
+            truncate=True,
+            train_pct=0.6,
+            test_pct=0.3,
+            val_pct=0.1,
+        )
 
         # Retrieve the partition indices
         partitions = partitioner.get_partition_indices()
@@ -90,13 +115,13 @@ class SlidingWindowPartitioner(BaseTemporalPartitioner):
     def __init__(
         self,
         tf: TimeFrame,
-        window_size: Optional[int] = None,
-        num_partitions: Optional[int] = None,
+        window_size: int | None = None,
+        num_partitions: int | None = None,
         stride: int = 1,
         truncate: bool = True,
         train_pct: float = 0.7,
-        test_pct: Optional[float] = 0.2,
-        val_pct: Optional[float] = 0.1,
+        test_pct: float | None = 0.2,
+        val_pct: float | None = 0.1,
         enable_warnings: bool = False,
     ):
         """Initialize the SlidingWindowPartitioner with a TimeFrame."""
@@ -125,34 +150,43 @@ class SlidingWindowPartitioner(BaseTemporalPartitioner):
 
     def _calculate_window_size(self, num_rows: int) -> int:
         """
-        Calculate the window size based on either the number of partitions or a provided window size.
+        Calculate window size based on the number of partitions or provided window size.
 
-        If `self.num_partitions` is set, we calculate the window size by dividing the total number of rows by
-        the number of partitions, ensuring the window size is at least 1. If `self.window_size` is provided,
-        it will be used directly. Otherwise, we provide a fallback value.
+        If `self.num_partitions` is set, we calculate the window size by dividing the
+        total number of rows by the number of partitions, ensuring the window size is
+        at least 1. If `self.window_size` is provided, it will be used directly.
+        Otherwise, a fallback value will be provided.
 
-        :param num_rows: The total number of rows in the dataset.
-        :type num_rows: int
-        :return: The calculated window size.
-        :rtype: int
+        Parameters
+        ----------
+        num_rows
+            The total number of rows in the dataset.
+
+        Returns
+        -------
+        int
+            The calculated window size.
         """
-
-        # If the number of partitions is specified, calculate the window size based on it
+        # calculate window size based on number of partitions
         if self.num_partitions:
             # Ensure the window size is at least 1 (to avoid windows of size 0)
             return max(1, num_rows // self.num_partitions)
 
         # If no partitions are specified, return the predefined window size.
-        # If `self.window_size` is None, use a fallback (e.g., num_rows // 10 as default)
+        # If `self.window_size` is None, use fallback (e.g., num_rows // 10 as default)
         return (
             self.window_size if self.window_size is not None else max(1, num_rows // 10)
         )
 
-    def get_partition_indices(self) -> Dict[str, Dict[str, Tuple[int, int]]]:
-        """Generate partition indices based on the window size or number of partitions.
+    def get_partition_indices(self) -> dict[str, dict[str, tuple[int, int]]]:
+        """
+        Generate partition indices based on the window size or number of partitions.
 
-        :return: Dictionary of partitions with indices for 'full', 'train', 'test', and optionally 'validation'.
-        :rtype: Dict[str, Dict[str, Tuple[int, int]]]
+        Returns
+        -------
+        Dict[str, Dict[str, Tuple[int, int]]]
+            Dictionary of partitions with indices for 'full', 'train', 'test',
+            and optionally 'validation'.
         """
         num_rows = self.df.shape[0]
         window_size = self._calculate_window_size(num_rows)
@@ -188,4 +222,3 @@ class SlidingWindowPartitioner(BaseTemporalPartitioner):
     def data_checks(self) -> None:
         """Perform any necessary validation checks for the sliding window approach."""
         # Example: Ensure no overlap between partitions, etc.
-        pass

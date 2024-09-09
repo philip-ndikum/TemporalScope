@@ -1,8 +1,10 @@
-""" temporalscope/core/temporal_data_loader.py
+"""
+temporalscope/core/temporal_data_loader.py
 
-This module implements the TimeFrame class, designed to provide a flexible and scalable interface for handling
-time series data using multiple backends. It supports Polars as the default backend, Pandas as a secondary option
-for users who prefer the traditional data processing framework, and Modin for users needing scalable Pandas-like
+This module implements the TimeFrame class, designed to provide a flexible and scalable
+interface for handling time series data using multiple backends. It supports Polars as
+the default backend, Pandas as a secondary option for users who prefer the traditional
+data processing framework, and Modin for users needing scalable Pandas-like
 data processing with distributed computing.
 
 TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,83 +20,103 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union, Optional, cast
+from typing import cast
+
+import modin.pandas as mpd
+import pandas as pd
 import polars as pl
 from polars import Expr
-import pandas as pd
-import modin.pandas as mpd
+
 from temporalscope.conf import (
     get_default_backend_cfg,
-    validate_input,
     validate_backend,
+    validate_input,
 )
 
 
 class TimeFrame:
-    """Handles time series data with support for various backends like Polars, Pandas, and Modin.
+    """
+    Handles time series data with support for various backends.
 
-    This class provides functionalities to manage time series data with optional grouping,
-    available masks, and backend flexibility. It can handle large datasets efficiently.
-    The class is intended for Machine & Deep Learning time series forecasting not classical
-    time series forecasting. The implementation assumes one-step ahead but other classes
-    & modules can be utilized for partioning for pre-trained multi-step DL models that are
-    compatible with SHAP & related tools e.g. PyTorch or Tensorflow forecasting models.
+    This class provides functionalities to manage time series data with optional
+    grouping, available masks, and backend flexibility. It can handle large datasets
+    efficiently. The class is intended for Machine & Deep Learning time series
+    forecasting, not classical time series forecasting. The implementation assumes
+    one-step ahead but other classes & modules can be utilized for partitioning for
+    pre-trained multi-step DL models that are compatible with SHAP & related
+    tools e.g., PyTorch or TensorFlow forecasting models.
 
-    :param df: The input DataFrame.
-    :type df: Union[pl.DataFrame, pd.DataFrame, modin.pandas.DataFrame]
-    :param time_col: The column representing time in the DataFrame.
-    :type time_col: str
-    :param target_col: The column representing the target variable in the DataFrame.
-    :type target_col: str
-    :param id_col: Optional. The column representing the ID for grouping. Default is None.
-    :type id_col: Optional[str]
-    :param backend: The backend to use ('pl' for Polars, 'pd' for Pandas, or 'mpd' for Modin). Default is 'pl'.
-    :type backend: str
-    :param sort: Optional. Sort the data by time_col (and id_col if provided) in ascending order. Default is True.
-    :type sort: bool
+    Parameters
+    ----------
+    df : Union[pl.DataFrame, pd.DataFrame, modin.pandas.DataFrame]
+        The input DataFrame.
+    time_col : str
+        The column representing time in the DataFrame.
+    target_col : str
+        The column representing the target variable in the DataFrame.
+    id_col : Optional[str], optional
+        The column representing the ID for grouping, by default None.
+    backend : str, optional
+        The backend to use ('pl' for Polars, 'pd' for Pandas, or 'mpd' for Modin),
+        by default 'pl'.
+    sort : bool, optional
+        Sort the data by `time_col` (and `id_col` if provided) in ascending order,
+        by default True.
 
-    .. note::
+    Notes
+    -----
+    The default assumption for the `TimeFrame` class is that the dataset is cleaned and
+    prepared for one-step-ahead forecasting, where the `target_col` directly corresponds
+    to the label. The `id_col` is included for grouping and sorting purposes but is not
+    used in the default model-building process.
 
-       The default assumption for the `TimeFrame` class is that the dataset is cleaned and prepared for one-step-ahead
-       forecasting, where the `target_col` directly corresponds to the label. The `id_col` is included for grouping and
-       sorting purposes but is not used in the default model-building process.
+    Warnings
+    --------
+    Ensure that the `time_col` is properly formatted as a datetime type to avoid issues
+    with sorting and grouping.
 
-    .. warning::
-
-       Ensure that the `time_col` is properly formatted as a datetime type to avoid issues with sorting and grouping.
-
-    .. rubric:: Examples
+    Examples
+    --------
+    Example of creating a TimeFrame with Polars DataFrame:
 
     .. code-block:: python
 
-       # Example of creating a TimeFrame with Polars DataFrame
-       data = pl.DataFrame({
-           'time': pl.date_range(start='2021-01-01', periods=100, interval='1d'),
-           'value': range(100)
-       })
-       tf = TimeFrame(data, time_col='time', target_col='value')
+       data = pl.DataFrame(
+           {
+               "time": pl.date_range(start="2021-01-01", periods=100, interval="1d"),
+               "value": range(100),
+           }
+       )
+       tf = TimeFrame(data, time_col="time", target_col="value")
 
        # Accessing the data
        print(tf.get_data().head())
 
-       # Example of creating a TimeFrame with Modin DataFrame
+    Example of creating a TimeFrame with Modin DataFrame:
+
+    .. code-block:: python
+
        import modin.pandas as mpd
-       df = mpd.DataFrame({
-           'time': pd.date_range(start='2021-01-01', periods=100, freq='D'),
-           'value': range(100)
-       })
-       tf = TimeFrame(df, time_col='time', target_col='value', backend='mpd')
+
+       df = mpd.DataFrame(
+           {
+               "time": pd.date_range(start="2021-01-01", periods=100, freq="D"),
+               "value": range(100),
+           }
+       )
+       tf = TimeFrame(df, time_col="time", target_col="value", backend="mpd")
 
        # Accessing the data
        print(tf.get_data().head())
     """
 
+    # fmt:off
     def __init__(
         self,
-        df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame],
+        df: pl.DataFrame | pd.DataFrame | mpd.DataFrame,
         time_col: str,
         target_col: str,
-        id_col: Optional[str] = None,
+        id_col: str | None = None,
         backend: str = "pl",
         sort: bool = True,
     ):
@@ -124,7 +146,11 @@ class TimeFrame:
 
     @property
     def backend(self) -> str:
-        """Return the backend used ('pl' for Polars, 'pd' for Pandas, or 'mpd' for Modin)."""
+        """
+        Return the backend used
+
+        ('pl' for Polars, 'pd' for Pandas, or 'mpd' for Modin).
+        """
         return self._backend
 
     @property
@@ -138,7 +164,7 @@ class TimeFrame:
         return self._target_col
 
     @property
-    def id_col(self) -> Optional[str]:
+    def id_col(self) -> str | None:
         """Return the column name used for grouping or None if not set."""
         return self._id_col
 
@@ -155,10 +181,13 @@ class TimeFrame:
             raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
 
     def sort_data(self, ascending: bool = True) -> None:
-        """Sorts the DataFrame based on the backend.
+        """
+        Sort the DataFrame based on the backend.
 
-        :param ascending: Specifies whether to sort in ascending order.
-        :type ascending: bool
+        Parameters
+        ----------
+        ascending : bool
+            Specifies whether to sort in ascending order.
         """
         sort_key = [self.id_col, self.time_col] if self.id_col else [self.time_col]
 
@@ -172,16 +201,20 @@ class TimeFrame:
                     # Sort in descending order using tuples with Polars' SORT_DESCENDING
                     sort_key_desc = [(col, pl.SORT_DESCENDING) for col in sort_key]
                     self._df = self._df.sort(sort_key_desc)
-
+        # fmt:off
         elif self._backend in ["pd", "mpd"]:
             # For Pandas/Modin, ensure we have a DataFrame before sorting
             if isinstance(self._df, (pd.DataFrame, mpd.DataFrame)):
                 self._df = self._df.sort_values(by=sort_key, ascending=ascending)
 
     def check_duplicates(self) -> None:
-        """Check for duplicate time entries within groups, handling different data backends.
+        """
+        Check for duplicate time entries within groups.
 
-        :raises ValueError: If duplicate entries are found.
+        Raises
+        ------
+        ValueError
+            If duplicate entries are found.
         """
         if self._backend == "pl":
             # Polars specific check: Use boolean masks
@@ -191,10 +224,10 @@ class TimeFrame:
                 time_duplicated_expr: Expr = pl.col(self._time_col).is_duplicated()
                 # Combine expressions
                 combined_expr: Expr = id_duplicated_expr | time_duplicated_expr
-                duplicates = self._df.filter(combined_expr)  # type: ignore
+                duplicates = self._df.filter(combined_expr)
             else:
                 # Only check the time column for duplicates
-                duplicates = self._df.filter(pl.col(self._time_col).is_duplicated())  # type: ignore
+                duplicates = self._df.filter(pl.col(self._time_col).is_duplicated())
             # Check for duplicates by inspecting the number of rows
             if duplicates.height > 0:
                 raise ValueError("Duplicate time entries found within the same group.")
@@ -210,22 +243,36 @@ class TimeFrame:
             if duplicates.any():
                 raise ValueError("Duplicate time entries found within the same group.")
 
-    def get_data(self) -> Union[pl.DataFrame, pd.DataFrame]:
-        """Return the DataFrame in its current state.
+    def get_data(self) -> pl.DataFrame | pd.DataFrame:
+        """
+        Return the DataFrame in its current state.
 
-        :return: The DataFrame managed by the TimeFrame instance.
-        :rtype: Union[pl.DataFrame, pd.DataFrame]
+        Returns
+        -------
+        Union[pl.DataFrame, pd.DataFrame]
+            The DataFrame managed by the TimeFrame instance.
         """
         return self._df
 
-    def get_grouped_data(self) -> Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]:
-        """Return the grouped DataFrame if an ID column is provided.
-
-        :return: Grouped DataFrame by the ID column if it is set, otherwise returns the original DataFrame.
-        :rtype: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
-        :raises ValueError: If the ID column is not set or an unsupported backend is provided.
-        :raises TypeError: If the DataFrame type does not match the expected type for the specified backend.
+    def get_grouped_data(self) -> pl.DataFrame | pd.DataFrame | mpd.DataFrame:
         """
+        Return the grouped DataFrame if an ID column is provided.
+
+        Returns
+        -------
+        Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+            Grouped DataFrame by the ID column if it is set, otherwise returns the
+            original DataFrame.
+
+        Raises
+        ------
+        ValueError
+            If the ID column is not set or an unsupported backend is provided.
+        TypeError
+            If the DataFrame type does not match the expected type for the specified
+            backend.
+        """
+
         if not self.id_col:
             raise ValueError("ID column is not set; cannot group data.")
 

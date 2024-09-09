@@ -38,20 +38,20 @@
 
 
 
-**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional *Clara LLM* modules (etymology from the word *Clarity*) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase so some installation methods may not work as expected on all platforms. Please check the `.github/CONTRIBUTIONS.md` for the full roadmap. 
+**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional *Clara LLM* modules (etymology from the word *Clarity*) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase so some installation methods may not work as expected on all platforms. Please check the `.github/CONTRIBUTIONS.md` for the full roadmap.
 
 
 
 ### **Table of Contents**
 
-- [Installation](#installation)
-- [Usage](#usage)
-- [Why use TemporalScope?](#Why-use-TemporalScope?)
-- [Technical Methods](#technical-methods)
-- [Development Roadmap & Changelog](#development-roadmap--changelog)
-- [Contributing](#contributing)
-- [Citation](#cite-this-project)
-- [License, Limitations and Legal Notice](#license-limitations-and-legal-notice)
+- [**Installation**](#installation)
+- [**Usage**](#usage)
+  - [**Industrial Academic Applications**](#industrial-academic-applications)
+- [Development Roadmap \& Changelog](#development-roadmap--changelog)
+- [**Contributing**](#contributing)
+  - [**Contributors 💠**](#contributors-)
+- [Cite this Project](#cite-this-project)
+- [**License, Limitations, and Legal Notice**](#license-limitations-and-legal-notice)
 
 ## **Installation**
 
@@ -66,7 +66,7 @@
     $ conda install -c conda-forge temporalscope`
     ```
 3. **System-level Dependencies**: To view generated documentation locally, you may need `xdg-open`:
-    ```bash 
+    ```bash
     $ sudo apt install xdg-utils`
     ```
 4. **Git Clone and Setup**: We avoid requiring other system-level dependencies for security reasons. If you prefer the latest development version, clone the repository and use the provided setup script:
@@ -84,7 +84,7 @@ You can use TemporalScope with the following steps:
 
 1. **Import TemporalScope**: Start by importing the package.
 2. **Select Backend (Optional)**: TemporalScope defaults to using Pandas as the backend. However, you can specify other backends like Dask, Modin, or CuDF.
-3. **Load Data**: Load your time series data into the `TimeSeriesData` class, specifying the `time_col` and optionally the `id_col`. 
+3. **Load Data**: Load your time series data into the `TimeSeriesData` class, specifying the `time_col` and optionally the `id_col`.
 4. **Apply a Feature Importance Method**: TemporalScope defaults to using a Random Forest model from scikit-learn if no model is specified. You can either:
     - **A. Use a pre-trained model**: Pass a pre-trained model to the method.
     - **B. Train a Random Forest model within the method**: TemporalScope handles model training and application automatically.
@@ -97,7 +97,7 @@ import polars as pl
 import pandas as pd
 from statsmodels.datasets import macrodata
 from temporalscope.core.temporal_data_loader import TimeFrame
-from temporalscope.partioning.naive_partitioner import NaivePartitioner
+from temporalscope.partitioning.naive_partitioner import NaivePartitioner
 from temporalscope.core.temporal_model_trainer import TemporalModelTrainer
 
 # 1. Load the dataset using Pandas (or convert to Polars)
@@ -207,5 +207,3 @@ By using this package, you agree to comply with the terms and conditions set for
 **LEGAL NOTICE**: THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 THIS SOFTWARE IS INTENDED FOR ACADEMIC AND INFORMATIONAL PURPOSES ONLY. IT SHOULD NOT BE USED IN PRODUCTION ENVIRONMENTS OR FOR CRITICAL DECISION-MAKING WITHOUT PROPER VALIDATION. ANY USE OF THIS SOFTWARE IS AT THE USER'S OWN RISK.
-
-

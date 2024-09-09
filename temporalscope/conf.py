@@ -1,4 +1,5 @@
-""" TemporalScope/temporalscope/conf.py
+"""
+TemporalScope/temporalscope/conf.py
 
 Package-level configurations and utilities.
 
@@ -15,12 +16,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union, Dict, Optional
 import os
-from dotenv import load_dotenv
-import polars as pl
-import pandas as pd
+
 import modin.pandas as mpd
+import pandas as pd
+import polars as pl
+from dotenv import load_dotenv
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -31,23 +32,34 @@ TF_DEFAULT_CFG = {
 }
 
 
-def get_default_backend_cfg() -> Dict[str, Dict[str, str]]:
-    """Retrieve the application configuration settings.
+def get_default_backend_cfg() -> dict[str, dict[str, str]]:
+    """
+    Get the default backend configuration.
 
-    :return: A dictionary of configuration settings.
-    :rtype: Dict[str, Dict[str, str]]
+    Returns
+    -------
+    dict[str, dict[str, str]]
+        The default backend configuration.
     """
     return TF_DEFAULT_CFG.copy()
 
 
 def validate_backend(backend: str) -> None:
-    """Validate the backend against the supported backends in the configuration.
-
-    :param backend: The backend to validate ('pl' for Polars, 'pd' for Pandas, 'mpd' for Modin).
-    :type backend: str
-    :raises ValueError: If the backend is not supported.
     """
-    if backend not in TF_DEFAULT_CFG["BACKENDS"].keys():
+    Validate the backend against the supported backends in the configuration.
+
+    Parameters
+    ----------
+    backend : str
+        The backend to validate ('pl' for Polars, 'pd' for Pandas, 'mpd' for Modin).
+
+    Raises
+    ------
+    ValueError
+        If the backend is not supported.
+    """
+
+    if backend not in TF_DEFAULT_CFG["BACKENDS"]:
         raise ValueError(
             f"Unsupported backend '{backend}'. Supported backends are: "
             f"{', '.join(TF_DEFAULT_CFG['BACKENDS'].keys())}."
@@ -55,15 +67,23 @@ def validate_backend(backend: str) -> None:
 
 
 def validate_input(
-    df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], backend: str
+    df: pl.DataFrame | pd.DataFrame | mpd.DataFrame, backend: str
 ) -> None:
-    """Validates the input DataFrame to ensure it matches the expected type for the specified backend.
+    """
+    Validate the input DataFrame to ensure it matches the specified backend.
 
-    :param df: The DataFrame to validate.
-    :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
-    :param backend: The backend against which to validate the DataFrame's type ('pl' for Polars, 'pd' for Pandas, 'mpd' for Modin).
-    :type backend: str
-    :raises TypeError: If the DataFrame does not match the expected type for the backend.
+    Parameters
+    ----------
+    df : Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        The DataFrame to validate.
+    backend : str
+        The backend against which to validate the DataFrame's type
+        ('pl' for Polars, 'pd' for Pandas, 'mpd' for Modin).
+
+    Raises
+    ------
+    TypeError
+        If the DataFrame does not match the expected type for the backend.
     """
     if backend == "pl" and not isinstance(df, pl.DataFrame):
         raise TypeError("Expected a Polars DataFrame.")
@@ -73,11 +93,14 @@ def validate_input(
         raise TypeError("Expected a Modin DataFrame.")
 
 
-def get_api_keys() -> Dict[str, Optional[str]]:
-    """Retrieve API keys from environment variables.
+def get_api_keys() -> dict[str, str | None]:
+    """
+    Retrieve API keys from environment variables.
 
-    :return: A dictionary containing the API keys, or None if not found.
-    :rtype: Dict[str, Optional[str]]
+    Returns
+    -------
+    Dict[str, Optional[str]]
+        A dictionary containing the API keys, or None if not found.
     """
     api_keys = {
         "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),

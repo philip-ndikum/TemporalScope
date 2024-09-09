@@ -1,4 +1,5 @@
-""" temporalscope/tests/unit/test_temporal_data_loader.py
+"""
+temporalscope/tests/unit/test_temporal_data_loader.py
 
 TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,10 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import pytest
-import polars as pl
-import pandas as pd
 import modin.pandas as mpd
+import pandas as pd
+import polars as pl
+import pytest
+
 from temporalscope.core.temporal_data_loader import TimeFrame
 
 

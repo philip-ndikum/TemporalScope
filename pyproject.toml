@@ -1,111 +1,148 @@
-# ====================================
-# Hatch Configuration
-[tool.hatch.envs.default]
+[build-system]
+requires = ["hatchling>=1.8.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "temporalscope"
+dynamic = ["version"]
+description = "TemporalScope: Model-Agnostic Temporal Feature Importance Analysis."
+authors = [
+    { name = "Philip Ndikum", email = "philip-ndikum@users.noreply.github.com" },
+    { name = "Serge Ndikum" },
+    { name = "Kane Norman" },
+]
+license = "Apache License 2.0"
+readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
     "shap>=0.46.0",
     "borutashap>=1.0.17",
-    "pytest>=8.3.2",
-    "mkdocs-material>=9.5.31",
     "scikit-learn>=1.5.1",
-    "sphinx>=8.0.2",
-    "pydata-sphinx-theme>=0.15.4",
     "polars>=1.5.0",
-    "black[jupyter]>=24.8.0",
     "statsmodels>=0.14.2",
     "pyarrow>=17.0.0",
     "lightgbm>=4.5.0",
     "flax>=0.8.5",
     "jax>=0.4.31",
     "modin[all]>=0.31.0",
-    "bandit>=1.7.9",
-    "flake8>=7.1.1",
-    "mypy>=1.11.2",
-    "pandas-stubs>=2.2.2.240807",
-    "sphinx-autobuild>=2024.9.3",
     "python-dotenv>=1.0.1",
-    "jupyterlab>=4.2.5",
-    "notebook>=7.2.2"
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = [
+    "Shap",
+    "Borutashap",
+    "Feature-Importance",
+    "Temporal-Feature-Importance",
+    "Temporal-Feature-Analysis",
+    "XAI",
+    "ML",
+    "AI",
+    "Machine-Learning",
+    "Artificial-Intelligence",
+    "TemporalScope",
+    "Time-Series",
 ]
 
-[tool.hatch.envs.test]
-dependencies = [
-    "pytest",
-    "pytest-cov"
-]
-
-[tool.hatch.envs.lint]
-dependencies = ["flake8", "bandit", "mypy"]
+[tool.hatch.envs.default]
+dependencies = ["pre-commit", "ruff>=0.6.4", "jupyterlab", "notebook"]
 
 [tool.hatch.envs.docs]
-dependencies = ["sphinx", "mkdocs-material"]
+dependencies = ["mkdocs-material"]
 
+[tool.hatch.envs.test]
+dependencies = ["pytest", "pytest-cov"]
 
-# ====================================
-# Tools - MyPy, Flake8 & Bandit
- 
+[[tool.hatch.envs.test.matrix]]
+python = ["3.14", "3.13", "3.12", "3.11", "3.10"]
+
+[tool.ruff]
+extend-exclude = ["*.pyc"]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+    "C4",   # flake8-comprehensions
+    "C90",  # McCabe cyclomatic complexity
+    "E501", # Long lines
+    "EXE",  # flake8-executable
+    "F",    # Pyflakes
+    "INT",  # flake8-gettext
+    "PERF", # Perflint
+    "PL",   # Pylint
+    "Q",    # flake8-quotes
+    "SIM",  # flake8-simplify
+    "SLOT", # flake8-slots
+    "T10",  # flake8-debugger
+    "W",    # pycodestyle
+    "YTT",  # flake8-2020
+    "I",    # isort
+    # built-in shadowing
+    "A001", # builtin-variable-shadowing
+    "A002", # builtin-argument-shadowing
+    "A003", # builtin-attribute-shadowing
+    # docstring rules
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D209", # Closing triple quotes go to new line
+    "D205", # 1 blank line required between summary line and description
+    "D213", # summary lines must be positioned on the second physical line of the docstring
+    "D417", # undocumented-parameter
+    "D419", # undocumented-returns
+]
+ignore = [
+    "PERF203", # `try`-`except` within a loop incurs performance overhead
+    "PERF401", # Use a list comprehension to create a transformed list
+    "PLR1714", # repeated-equality-comparison
+    "PLR5501", # collapsible-else-if
+    "PLW2901", # redefined-loop-name
+    "SIM108",  # if-else-block-instead-of-if-exp
+    "PLR0913", # too many arguments
+    "SIM102",  # temporary
+    "C901",    # temporary
+]
+
+[tool.ruff.lint.per-file-ignores]
+"docs/conf.py" = ["A001", "D103"]
+
 [tool.mypy]
-python_version = "3.11"
 ignore_missing_imports = true
 warn_unused_ignores = true
 warn_return_any = true
 disallow_untyped_defs = true
-exclude = "temporalscope/tests/"
-
-[tool.flake8]
-max-line-length = 160
-exclude = [".ipynb_checkpoints", "__pycache__", "*.pyc", ".git", ".venv"]
-ignore = ["E203", "W503"]
+exclude = 'tests/*'
 
 [tool.bandit]
-exclude_dirs = ["temporalscope/tests/", "temporalscope/.ipynb_checkpoints/"]
+exclude_dirs = ["tests"]
 
+[tool.hatch.build.targets.sdist]
+include = ["/temporalscope", "/VERSION.txt"]
 
-# ====================================
-# Poetry Configuration
+[tool.hatch.build.targets.wheel]
+packages = ["temporalscope"]
 
-[tool.poetry]
-name = "temporalscope"
-version = "0.1.0"
-description = "TemporalScope: Model-Agnostic Temporal Feature Importance Analysis."
-authors = ["Philip Ndikum <philip-ndikum@users.noreply.github.com>"]
-license = "Apache License 2.0"
-readme = "README.md"
-packages = [{include = "temporalscope"}]
+[tool.hatch.version]
+path = "VERSION.txt"
+pattern = "(?P<version>.+)"
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4.0"
-shap = "^0.46.0"
-borutashap = "^1.0.17"
-pytest = "^8.3.2"
-mkdocs-material = "^9.5.31"
-scikit-learn = "^1.5.1"
-sphinx = "^8.0.2"
-pydata-sphinx-theme = "^0.15.4"
-polars = "^1.5.0"
-black = {extras = ["jupyter"], version = "^24.8.0"}
-statsmodels = "^0.14.2"
-pyarrow = "^17.0.0"
-lightgbm = "^4.5.0"
-flax = "^0.8.5"
-jax = "^0.4.31"
-modin = {extras = ["all"], version = "^0.31.0"}
-bandit = "^1.7.9"
-flake8 = "^7.1.1"
-mypy = "^1.11.2"
-pandas-stubs = "^2.2.2.240807"
-sphinx-autobuild = "^2024.9.3"
-python-dotenv = "^1.0.1"
-jupyterlab = "^4.2.5"
-notebook = "^7.2.2"
-
-[tool.poetry.group.dev.dependencies]
-jupyterlab = "^4.2.4"
-notebook = "^7.2.1"
-ipykernel = "^6.29.5"
-nbformat = "^5.10.4"
-nbconvert = "^7.16.4"
-sphinx = "^8.0.2"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[tool.hatch.envs.default.scripts]
+check = "ruff check {args}"
+fix = "ruff check --fix"
+format = "ruff format {args}"
+format-check = "ruff format --check {args}"
