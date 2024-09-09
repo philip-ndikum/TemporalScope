@@ -7,10 +7,10 @@ name = "temporalscope"
 dynamic = ["version"]
 description = "TemporalScope: Model-Agnostic Temporal Feature Importance Analysis."
 authors = [
-    { name = "Philip Ndikum" , email = "philip-ndikum@users.noreply.github.com" },
+    { name = "Philip Ndikum", email = "philip-ndikum@users.noreply.github.com" },
     { name = "Serge Ndikum" },
-    { name = "Kane Norman" }
-    ]
+    { name = "Kane Norman" },
+]
 license = "Apache License 2.0"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,33 +27,46 @@ dependencies = [
     "modin[all]>=0.31.0",
     "python-dotenv>=1.0.1",
 ]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = [
+    "Shap",
+    "Borutashap",
+    "Feature-Importance",
+    "Temporal-Feature-Importance",
+    "Temporal-Feature-Analysis",
+    "XAI",
+    "ML",
+    "AI",
+    "Machine-Learning",
+    "Artificial-Intelligence",
+    "TemporalScope",
+    "Time-Series",
+]
 
 [tool.hatch.envs.default]
-dependencies = [
-    "pre-commit",
-    "jupyterlab",
-    "notebook"
-]
+dependencies = ["pre-commit", "jupyterlab", "notebook"]
 
 [tool.hatch.envs.docs]
-dependencies = [
-    "mkdocs-material"
-]
+dependencies = ["mkdocs-material"]
 
 [tool.hatch.envs.test]
-dependencies = [
-    "pytest",
-    "pytest-cov"
-]
+dependencies = ["pytest", "pytest-cov"]
 
 [[tool.hatch.envs.test.matrix]]
-python = [
-    "3.14",
-    "3.13",
-    "3.12",
-    "3.11",
-    "3.10"
-]
+python = ["3.14", "3.13", "3.12", "3.11", "3.10"]
 
 [tool.ruff]
 extend-exclude = ["*.pyc"]
@@ -65,51 +78,48 @@ docstring-code-format = true
 
 [tool.ruff.lint]
 select = [
-  "C4",    # flake8-comprehensions
-  "C90",   # McCabe cyclomatic complexity
-  "E501",  # Long lines
-  "EXE",   # flake8-executable
-  "F",     # Pyflakes
-  "INT",   # flake8-gettext
-  "PERF",  # Perflint
-  "PL",    # Pylint
-  "Q",     # flake8-quotes
-  "SIM",   # flake8-simplify
-  "SLOT",  # flake8-slots
-  "T10",   # flake8-debugger
-  "W",     # pycodestyle
-  "YTT",   # flake8-2020
-  "I",     # isort
-  # built-in shadowing
-  "A001", # builtin-variable-shadowing
-  "A002", # builtin-argument-shadowing
-  "A003", # builtin-attribute-shadowing
-  # docstring rules
-  "D102", # Missing docstring in public method
-  "D103", # Missing docstring in public function
-  "D209", # Closing triple quotes go to new line
-  "D205", # 1 blank line required between summary line and description
-  "D213", # summary lines must be positioned on the second physical line of the docstring
-  "D417", # undocumented-parameter
-  "D419", # undocumented-returns
+    "C4",   # flake8-comprehensions
+    "C90",  # McCabe cyclomatic complexity
+    "E501", # Long lines
+    "EXE",  # flake8-executable
+    "F",    # Pyflakes
+    "INT",  # flake8-gettext
+    "PERF", # Perflint
+    "PL",   # Pylint
+    "Q",    # flake8-quotes
+    "SIM",  # flake8-simplify
+    "SLOT", # flake8-slots
+    "T10",  # flake8-debugger
+    "W",    # pycodestyle
+    "YTT",  # flake8-2020
+    "I",    # isort
+    # built-in shadowing
+    "A001", # builtin-variable-shadowing
+    "A002", # builtin-argument-shadowing
+    "A003", # builtin-attribute-shadowing
+    # docstring rules
+    "D102", # Missing docstring in public method
+    "D103", # Missing docstring in public function
+    "D209", # Closing triple quotes go to new line
+    "D205", # 1 blank line required between summary line and description
+    "D213", # summary lines must be positioned on the second physical line of the docstring
+    "D417", # undocumented-parameter
+    "D419", # undocumented-returns
 ]
 ignore = [
-  "PERF203", # `try`-`except` within a loop incurs performance overhead
-  "PERF401", # Use a list comprehension to create a transformed list
-  "PLR1714", # repeated-equality-comparison
-  "PLR5501", # collapsible-else-if
-  "PLW2901", # redefined-loop-name
-  "SIM108",  # if-else-block-instead-of-if-exp
-  "PLR0913", # too many arguments
-  "SIM102", # temporary
-  "C901"   # temporary
+    "PERF203", # `try`-`except` within a loop incurs performance overhead
+    "PERF401", # Use a list comprehension to create a transformed list
+    "PLR1714", # repeated-equality-comparison
+    "PLR5501", # collapsible-else-if
+    "PLW2901", # redefined-loop-name
+    "SIM108",  # if-else-block-instead-of-if-exp
+    "PLR0913", # too many arguments
+    "SIM102",  # temporary
+    "C901",    # temporary
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"docs/conf.py" = [
-    "A001",
-    "D103"
-]
+"docs/conf.py" = ["A001", "D103"]
 
 [tool.mypy]
 ignore_missing_imports = true
@@ -119,15 +129,10 @@ disallow_untyped_defs = true
 exclude = 'tests/*'
 
 [tool.bandit]
-exclude_dirs = [
-    "tests"
-]
+exclude_dirs = ["tests"]
 
 [tool.hatch.build.targets.sdist]
-include = [
-    "/temporalscope",
-    "/VERSION.txt"
-]
+include = ["/temporalscope", "/VERSION.txt"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["temporalscope"]
