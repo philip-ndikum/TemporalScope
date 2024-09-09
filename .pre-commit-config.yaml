@@ -1,0 +1,71 @@
+fail_fast: true
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-ast # checks Python syntax
+      - id: check-json # checks JSON syntax
+      - id: check-merge-conflict # checks for no merge conflict strings
+      - id: check-shebang-scripts-are-executable # checks all shell scripts have executable permissions
+      - id: check-toml # checks TOML syntax
+      - id: check-yaml # checks YAML syntax
+      - id: end-of-file-fixer # checks there is a newline at the end of the file
+      - id: mixed-line-ending # normalizes line endings
+      - id: no-commit-to-branch # prevents committing to main
+      - id: trailing-whitespace # trims trailing whitespace
+        args: [--markdown-linebreak-ext=md]
+
+
+  - repo: local
+    hooks:
+      - id: ruff-format-check
+        name: hatch-ruff-format
+        language: system
+        entry: hatch run format-check
+        pass_filenames: false
+        verbose: true
+      - id: ruff-lint-check
+        name: hatch-ruff-lint
+        language: system
+        entry: hatch run check
+        pass_filenames: false
+        verbose: true
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        additional_dependencies:
+          - tomli
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.1
+    hooks:
+      - id: actionlint-docker
+        args: ["-ignore", "SC2102"]
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: '1.7.9'
+    hooks:
+    - id: bandit
+      args: ["-c", "pyproject.toml"]
+      additional_dependencies: ["bandit[toml]"]
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.17.0
+    hooks:
+      - id: pyupgrade
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: 'v1.11.2'
+    hooks:
+      - id: mypy
+        language: system
+        pass_filenames: false
+        args: ['.']
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: "v0.10.0.1"
+    hooks:
+      - id: shellcheck

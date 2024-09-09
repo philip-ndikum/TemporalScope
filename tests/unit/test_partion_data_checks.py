@@ -1,4 +1,5 @@
-""" TemporalScope/temporalscope/tests/unit/test_partition_guidelines.py
+"""
+TemporalScope/temporalscope/tests/unit/test_partition_guidelines.py
 
 TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,18 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import pytest
-import pandas as pd
 import modin.pandas as mpd
+import pandas as pd
 import polars as pl
+import pytest
+
 from temporalscope.partition.data_checks import (
-    check_sample_size,
+    check_binary_numerical_features,
+    check_categorical_feature_cardinality,
+    check_class_balance,
     check_feature_count,
     check_feature_to_sample_ratio,
-    check_categorical_feature_cardinality,
     check_numerical_feature_uniqueness,
-    check_binary_numerical_features,
-    check_class_balance,
+    check_sample_size,
 )
 
 
@@ -32,16 +34,32 @@ from temporalscope.partition.data_checks import (
     "dataframe,backend,min_samples,max_samples,expected_result",
     [
         (pd.DataFrame({"feature1": range(100)}), "pd", 3000, 50000, False),
-        (pl.DataFrame({"feature1": pl.Series(range(100))}), "pl", 3000, 50000, False),
-        (mpd.DataFrame({"feature1": range(100000)}), "mpd", 3000, 50000, False),
+        (
+            pl.DataFrame({"feature1": pl.Series(range(100))}),
+            "pl",
+            3000,
+            50000,
+            False,
+        ),
+        (
+            mpd.DataFrame({"feature1": range(100000)}),
+            "mpd",
+            3000,
+            50000,
+            False,
+        ),
     ],
 )
 def test_check_sample_size(
     dataframe, backend, min_samples, max_samples, expected_result
 ):
+    """Test sample size check for various dataframes and backends."""
     assert (
         check_sample_size(
-            dataframe, backend=backend, min_samples=min_samples, max_samples=max_samples
+            dataframe,
+            backend=backend,
+            min_samples=min_samples,
+            max_samples=max_samples,
         )
         == expected_result
     )
@@ -105,6 +123,7 @@ def test_check_feature_count(dataframe, backend, min_features, expected_result):
     ],
 )
 def test_check_feature_to_sample_ratio(dataframe, backend, max_ratio, expected_result):
+    """Tests check_feature_to_sample_ratio for various dataframes and backends."""
     assert (
         check_feature_to_sample_ratio(dataframe, backend=backend, max_ratio=max_ratio)
         == expected_result
@@ -158,7 +177,7 @@ def test_check_feature_to_sample_ratio(dataframe, backend, max_ratio, expected_r
 def test_check_categorical_feature_cardinality(
     dataframe, backend, max_unique_values, expected_result
 ):
-    """Tests check_categorical_feature_cardinality for various dataframes and backends."""
+    """Tests check_categorical_feature_cardinality for various dataframe backends."""
     assert (
         check_categorical_feature_cardinality(
             dataframe, backend=backend, max_unique_values=max_unique_values
@@ -284,7 +303,10 @@ def test_check_binary_numerical_features(dataframe, backend, expected_result):
         ),
         (
             pl.DataFrame(
-                {"feature1": pl.Series(range(100)), "target": pl.Series([0, 1] * 50)}
+                {
+                    "feature1": pl.Series(range(100)),
+                    "target": pl.Series([0, 1] * 50),
+                }
             ),
             "target",
             "pl",
@@ -305,6 +327,7 @@ def test_check_binary_numerical_features(dataframe, backend, expected_result):
     ],
 )
 def test_check_class_balance(dataframe, target_col, backend, expected_result):
+    """Tests check_class_balance for various dataframes and backends."""
     result = check_class_balance(dataframe, target_col=target_col, backend=backend)
     assert (
         result == expected_result

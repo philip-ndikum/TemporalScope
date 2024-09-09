@@ -1,4 +1,5 @@
-""" temporalscope/tests/unit/test_core_conf.py
+"""
+temporalscope/tests/unit/test_core_conf.py
 
 TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,17 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import pytest
-import polars as pl
-import pandas as pd
+from unittest.mock import patch
+
 import modin.pandas as mpd
+import pandas as pd
+import polars as pl
+import pytest
+
 from temporalscope.conf import (
+    get_api_keys,
     get_default_backend_cfg,
     validate_backend,
     validate_input,
 )
-from unittest.mock import patch
-from temporalscope.conf import get_api_keys
 
 # Define mock API key constants to make it clear these are not real secrets
 MOCK_OPENAI_API_KEY = "mock_openai_key"
@@ -36,7 +39,10 @@ def test_get_api_keys():
     # Mock environment variables using the defined constants
     with patch.dict(
         "os.environ",
-        {"OPENAI_API_KEY": MOCK_OPENAI_API_KEY, "CLAUDE_API_KEY": MOCK_CLAUDE_API_KEY},
+        {
+            "OPENAI_API_KEY": MOCK_OPENAI_API_KEY,
+            "CLAUDE_API_KEY": MOCK_CLAUDE_API_KEY,
+        },
     ):
         api_keys = get_api_keys()
         assert api_keys["OPENAI_API_KEY"] == MOCK_OPENAI_API_KEY

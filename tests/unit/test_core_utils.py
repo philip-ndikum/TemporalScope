@@ -1,4 +1,5 @@
-""" TemporalScope/temporalscope/tests/unit/test_core_utils.py
+"""
+TemporalScope/temporalscope/tests/unit/test_core_utils.py
 
 TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,12 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import pytest
-import polars as pl
-import pandas as pd
-import modin.pandas as mpd
-from temporalscope.core.utils import print_divider, check_nulls, check_nans
 import warnings
+
+import modin.pandas as mpd
+import pandas as pd
+import polars as pl
+import pytest
+
+from temporalscope.core.utils import check_nans, check_nulls, print_divider
 
 warnings.filterwarnings("ignore", message=".*defaulting to pandas.*")
 
@@ -54,7 +57,8 @@ test_nans_data = [
     (
         "pl",
         pl.DataFrame(
-            {"FEATURE_1": [1, float("nan"), 3]}, schema={"FEATURE_1": pl.Float64}
+            {"FEATURE_1": [1, float("nan"), 3]},
+            schema={"FEATURE_1": pl.Float64},
         ),
         True,
     ),

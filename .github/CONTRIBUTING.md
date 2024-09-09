@@ -92,5 +92,4 @@ We strictly enforce code quality and style to ensure the stability and maintaina
 
 ## Reporting Issues & Requesting Features
 
-If you encounter any bugs or issues, please read our `SECURITY.md` for instructions on managing security issues. Alternatively, utilize the Github Discussions to raise issues or potential long term features. 
-
+If you encounter any bugs or issues, please read our `SECURITY.md` for instructions on managing security issues. Alternatively, utilize the Github Discussions to raise issues or potential long term features.
