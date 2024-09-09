@@ -21,16 +21,20 @@ repos:
     hooks:
       - id: ruff-format-check
         name: hatch-ruff-format
-        language: system
+        language: python
         entry: hatch run format-check
         pass_filenames: false
         verbose: true
+        additional_dependencies:
+          - hatch
       - id: ruff-lint-check
         name: hatch-ruff-lint
-        language: system
+        language: python
         entry: hatch run check
         pass_filenames: false
         verbose: true
+        additional_dependencies:
+          - hatch
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
