@@ -57,7 +57,7 @@ keywords = [
 ]
 
 [tool.hatch.envs.default]
-dependencies = ["pre-commit", "jupyterlab", "notebook"]
+dependencies = ["pre-commit", "ruff>=0.6.4", "jupyterlab", "notebook"]
 
 [tool.hatch.envs.docs]
 dependencies = ["mkdocs-material"]
@@ -136,9 +136,6 @@ include = ["/temporalscope", "/VERSION.txt"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["temporalscope"]
-
-[tool.hatch.envs.hatch-static-analysis]
-dependencies = ["ruff==0.6.4"]
 
 [tool.hatch.version]
 path = "VERSION.txt"
