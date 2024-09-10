@@ -1,31 +1,39 @@
-name: Test Pipeline
+name: Test
 
 on:
   push:
-    branches: [main, develop, feature/*]
+    branches:
+      - main
   pull_request:
-    branches: [main, develop, feature/*]
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+    unit-tests:
+        name: Unit / ${{ matrix.os }}
+        strategy:
+          fail-fast: false
+          matrix:
+            os:
+              - ubuntu-latest
+              - windows-latest
+              - macos-12
+        runs-on: ${{ matrix.os }}
+        steps:
+          - uses: actions/checkout@v4
 
-    steps:
-      - uses: actions/checkout@v3
+          - uses: actions/setup-python@v5
+            with:
+              python-version: "${{ env.PYTHON_VERSION }}"
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+          - name: Install Hatch
+            id: hatch
+            shell: bash
+            run: |
+              pip install hatch
 
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
-
-      - name: Make setup.sh executable
-        run: chmod +x ./setup.sh
-
-      - name: Run setup script
-        run: ./setup.sh
-
-      - name: Run tests
-        run: poetry run pytest
+          - name: Run
+            run: hatch run test:unit

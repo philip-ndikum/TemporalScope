@@ -11,7 +11,7 @@ authors = [
     { name = "Serge Ndikum" },
     { name = "Kane Norman" },
 ]
-license = "Apache License 2.0"
+license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -57,16 +57,22 @@ keywords = [
 ]
 
 [tool.hatch.envs.default]
-dependencies = ["pre-commit", "ruff>=0.6.4", "jupyterlab", "notebook"]
+dependencies = ["pre-commit", "ruff==0.6.4", "jupyterlab", "notebook"]
 
 [tool.hatch.envs.docs]
 dependencies = ["mkdocs-material"]
 
 [tool.hatch.envs.test]
-dependencies = ["pytest", "pytest-cov"]
+extra-dependencies = ["pytest", "pytest-cov"]
 
-[[tool.hatch.envs.test.matrix]]
-python = ["3.14", "3.13", "3.12", "3.11", "3.10"]
+[tool.hatch.envs.test.scripts]
+unit = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "not integration" {args:test}'
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--strict-markers"
+markers = ["unit: unit tests", "integration: integration tests"]
+log_cli = true
 
 [tool.ruff]
 extend-exclude = ["*.pyc"]
@@ -126,10 +132,10 @@ ignore_missing_imports = true
 warn_unused_ignores = true
 warn_return_any = true
 disallow_untyped_defs = true
-exclude = 'tests/*'
+exclude = 'test/*'
 
 [tool.bandit]
-exclude_dirs = ["tests"]
+exclude_dirs = ["test"]
 
 [tool.hatch.build.targets.sdist]
 include = ["/temporalscope", "/VERSION.txt"]
@@ -146,3 +152,7 @@ check = "ruff check {args}"
 fix = "ruff check --fix"
 format = "ruff format {args}"
 format-check = "ruff format --check {args}"
+
+
+[tool.hatch.metadata]
+allow-direct-references = true
