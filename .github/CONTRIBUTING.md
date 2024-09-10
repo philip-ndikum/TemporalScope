@@ -4,7 +4,8 @@ Thank you for your interest in contributing to TemporalScope! Contributions of a
 
 ## Contribution Guidelines
 
-By contributing to this project, you are agreeing to the following conditions:
+> [!IMPORTANT]
+> By contributing to this project, you are agreeing to the following conditions:
 
 1. **Adherence to the Apache License 2.0**:
    - All contributions must comply with the [Apache License 2.0](LICENSE).
@@ -21,19 +22,144 @@ By contributing to this project, you are agreeing to the following conditions:
 
 We are excited to have your contributions but ask that you follow these guidelines to ensure the project remains legally sound and academically rigorous.
 
-## How to Contribute
+# How to Contribute to TemporalScope
 
-1. Fork the repository.
-2. Create a new branch with a descriptive name (e.g., `feature/your-feature`).
-3. Make your changes.
-4. Ensure that all tests pass and that your code follows the project’s style guidelines.
-    - Use the `precommit_quality_assurance.sh` script to run tests and checks before submitting code. This script runs:
-        - **Black** for code formatting
-        - **Flake8** for linting
-        - **MyPy** for type checking
-        - **Bandit** for security issues
-        - **PyTest** for unit tests
-5. Submit a pull request to the main repository.
+We welcome contributions to TemporalScope! This guide will help you get started with the contribution process.
+
+## Fork the Repository
+
+1. Create your own [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) of the TemporalScope repository.
+2. Clone a local copy of your fork:
+
+   ```console
+   $ git clone git@github.com:YOUR-USERNAME/TemporalScope.git
+   ```
+
+   or
+
+   ```console
+   $ git clone https://github.com/YOUR-USERNAME/TemporalScope.git
+   ```
+
+## Setup Development Environment
+
+TemporalScope uses [Hatch](https://hatch.pypa.io/latest/), a Python project manager, for managing virtual environments, building the project, and publishing packages.
+
+1. Install Hatch by following the [installation instructions](https://hatch.pypa.io/latest/install/) for your operating system.
+2. Verify the installation:
+
+   ```console
+   $ cd TemporalScope
+   $ hatch version
+   0.1.0
+   ```
+
+## Install Pre-commit Hooks
+
+We use [pre-commit](https://pre-commit.com/) hooks to ensure code quality and consistency. Set up the git hook scripts:
+
+   ```console
+   $ pre-commit install
+   ```
+
+## Create a New Branch
+
+Create a new branch with a descriptive name for your changes:
+
+```console
+$ git switch -c <descriptive-branch-name>
+```
+
+## Make Your Changes
+
+1. Make the necessary code changes in your local repository.
+2. Write or update tests as needed.
+3. Update documentation if you're introducing new features or changing existing functionality.
+
+I'll revise the text to improve clarity, organization, and consistency. Here's the revised version:
+
+## Ensure Code Quality
+
+TemporalScope employs various tools to maintain consistent code style, quality, and static type checking. While the CI pipeline tests code quality, running these checks locally expedites the review cycle.
+
+Before submitting your changes, perform the following steps:
+
+1. Run the test suite and type checking:
+```console
+$ hatch run test:type
+```
+
+2. Check your code format:
+```console
+$ hatch run format-check
+```
+
+3. Format your code:
+```console
+$ hatch run format
+```
+
+4. Check your code style according to linting rules:
+```console
+$ hatch run check
+```
+
+5. Automatically fix some errors (when possible):
+```console
+$ hatch run fix
+```
+
+Note: Running these checks locally will help identify and resolve issues before submitting your changes, streamlining the review process.
+
+Here's the revised version of that section:
+
+## Commit Your Changes
+
+1. Stage your changes:
+   ```console
+   $ git add -p
+   ```
+   This command allows you to review and selectively stage parts of your changes.
+
+2. Commit your changes with a descriptive commit message. Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
+   ```console
+   $ git commit -m "<type>[optional scope]: <description>"
+   ```
+
+   Example commit messages:
+   - `feat: add user authentication`
+   - `fix(api): resolve data parsing error`
+   - `docs: update README with new configuration options`
+
+Note: If you've set up pre-commit hooks as recommended, they will automatically run various checks before finalizing your commit. This helps ensure code quality and consistency.
+
+## Submit a Pull Request
+
+1. Push your changes to your fork:
+
+   ```console
+   $ git push origin <your-branch-name>
+   ```
+
+2. Go to the [TemporalScope repository](https://github.com/philip-ndikum/TemporalScope) on GitHub.
+3. Click on "Pull requests" and then "New pull request".
+4. Choose your fork and the branch containing your changes.
+5. Fill out the pull request template with details about your changes.
+6. Submit the pull request.
+
+>[!TIP]
+> To ease the review process, please follow the instructions:
+> - For the title, use the [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
+> - For the body, follow the existing pull request template. Describe and document your changes.
+
+
+## After Submitting
+
+- Respond to any feedback or questions from reviewers.
+- Make additional changes if requested.
+- Once approved, your changes will be merged into the main repository.
+
+Thank you for contributing to TemporalScope!
 
 ## Test Policy
 
@@ -42,7 +168,7 @@ To maintain a high standard of code quality, security, and stability, TemporalSc
 - **PyTest** is the primary testing tool, and **all new features** must be accompanied by unit tests, and integration tests where applicable.
 - Tests should cover edge cases and boundary conditions to prevent unexpected issues during production use.
 - **Minimal Lines of Code (LOC)**: Contributions should focus on keeping the codebase lean by avoiding unnecessary complexity.
-- Before pushing code, run the `precommit_quality_assurance.sh` script to ensure that **Black**, **Flake8**, **MyPy**, **Bandit**, and **PyTest** pass successfully.
+- Before pushing code ensure that all pre-commit test pass successfully.
 
 ## Development Roadmap & Changelog
 
@@ -83,11 +209,10 @@ By following this workflow, we ensure a consistent and smooth release process ac
 ## Code Style
 
 We strictly enforce code quality and style to ensure the stability and maintainability of the project.
-
-- **Black** is used for consistent code formatting.
-- **PEP 8** guidelines are followed for Python code style.
-- **Sphinx-style docstrings** with type hints are required to conform to **MyPy** standards, enabling early error detection.
-- Write clear and concise commit messages.
+- **[Ruff](https://docs.astral.sh/ruff)** formatting and linting
+- **[PEP 8](https://peps.python.org/pep-0008/)** guidelines are followed for Python code style.
+- **[Sphinx-style docstrings](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html)** with type hints are required to conform to **MyPy** standards, enabling early error detection.
+- Write clear and concise commit messages. Adhere to [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
 - Include comments and docstrings where necessary to improve code readability.
 
 ## Reporting Issues & Requesting Features
