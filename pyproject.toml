@@ -57,7 +57,12 @@ keywords = [
 ]
 
 [tool.hatch.envs.default]
-dependencies = ["pre-commit", "ruff==0.6.4", "jupyterlab", "notebook"]
+dependencies = [
+    "pre-commit",
+    "ruff==0.6.4", # match ruff version in pre-commit-config.yaml to avoid conflicts
+    "jupyterlab",
+    "notebook"
+]
 
 [tool.hatch.envs.docs]
 dependencies = ["mkdocs-material"]
@@ -67,6 +72,7 @@ extra-dependencies = ["pytest", "pytest-cov"]
 
 [tool.hatch.envs.test.scripts]
 unit = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "not integration" {args:test}'
+integration = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "integration" {args:test}'
 
 [tool.pytest.ini_options]
 minversion = "6.0"

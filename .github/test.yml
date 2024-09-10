@@ -12,28 +12,30 @@ on:
       - ready_for_review
 
 jobs:
-    unit-tests:
-        name: Unit / ${{ matrix.os }}
-        strategy:
-          fail-fast: false
-          matrix:
-            os:
-              - ubuntu-latest
-              - windows-latest
-              - macos-12
-        runs-on: ${{ matrix.os }}
-        steps:
-          - uses: actions/checkout@v4
+  tests:
+    name: ${{ matrix.test-type }} / ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        test-type: ['unit', 'integration']
 
-          - uses: actions/setup-python@v5
-            with:
-              python-version: "${{ env.PYTHON_VERSION }}"
+    runs-on: ${{ matrix.os }}
 
-          - name: Install Hatch
-            id: hatch
-            shell: bash
-            run: |
-              pip install hatch
+    steps:
+      - uses: actions/checkout@v4
 
-          - name: Run
-            run: hatch run test:unit
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Hatch
+        id: hatch
+        shell: bash
+        run: |
+          pip install hatch
+
+      - name: Run ${{ matrix.test-type }} tests
+        run: hatch run test:${{ matrix.test-type }}
