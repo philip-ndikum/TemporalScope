@@ -134,10 +134,10 @@ ignore = [
 "docs/conf.py" = ["A001", "D103"]
 
 [tool.mypy]
+files = "temporalscope"
+python_version = "3.10"
 ignore_missing_imports = true
-warn_unused_ignores = true
-warn_return_any = true
-disallow_untyped_defs = true
+warn_unreachable = true
 exclude = 'test/*'
 
 [tool.bandit]

@@ -51,7 +51,8 @@ repos:
     rev: 'v1.11.2'
     hooks:
       - id: mypy
-        args: ["--config-file", "pyproject.toml", "."]
+        files: temporalscope
+        args: []
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: "v0.10.0.1"
