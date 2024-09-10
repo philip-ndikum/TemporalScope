@@ -16,27 +16,11 @@ repos:
       - id: trailing-whitespace # trims trailing whitespace
         args: [--markdown-linebreak-ext=md]
 
-
-  - repo: local
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.4
     hooks:
-      - id: ruff-format-check
-        name: hatch-ruff-format
-        language: system
-        install: |
-          python3 -m venv venv
-          venv/bin/pip install hatch
-        entry: hatch run format-check
-        pass_filenames: false
-        verbose: true
-      - id: ruff-lint-check
-        name: hatch-ruff-lint
-        language: system
-        install: |
-          python3 -m venv venv
-          venv/bin/pip install hatch
-        entry: hatch run check
-        pass_filenames: false
-        verbose: true
+      - id: ruff
+      - id: ruff-format
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
@@ -67,9 +51,8 @@ repos:
     rev: 'v1.11.2'
     hooks:
       - id: mypy
-        language: system
-        pass_filenames: false
-        args: ['.']
+        files: temporalscope
+        args: []
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: "v0.10.0.1"
