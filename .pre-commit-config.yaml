@@ -51,9 +51,7 @@ repos:
     rev: 'v1.11.2'
     hooks:
       - id: mypy
-        language: system
-        pass_filenames: false
-        args: ['.']
+        args: ["--config-file", "pyproject.toml", "."]
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: "v0.10.0.1"
