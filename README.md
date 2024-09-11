@@ -28,7 +28,7 @@
 
 ---
 
-| Category | Badges |
+|  |  |
 | --- | --- |
 | Compatibility | ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue) ![Linux Compatible](https://img.shields.io/badge/OS-Linux-blue) |
 | License | ![License](https://img.shields.io/badge/License-Apache%202.0-green) |
