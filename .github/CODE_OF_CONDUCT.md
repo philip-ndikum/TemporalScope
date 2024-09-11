@@ -17,6 +17,7 @@ As contributors and maintainers of this project, we commit to fostering a profes
    - All contributors must ensure that their work is independent and does not conflict with any other legal agreements they are bound to (such as non-compete clauses or employment agreements).
 4. **Inclusive and Respectful Collaboration**:
    - Treat all contributors with respect and professionalism.
+   - Zero tolerance policy for discrimination, hateful speech, or inappropriate conduct.
    - Be open to constructive feedback and discussions.
    - Acknowledge contributions from all team members.
 
