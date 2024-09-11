@@ -147,11 +147,11 @@ exclude = 'test/*'
 [tool.bandit]
 exclude_dirs = ["test"]
 
-[tool.hatch.build.targets.sdist]
-include = ["/temporalscope", "/VERSION.txt"]
-
 [tool.hatch.build.targets.wheel]
-packages = ["temporalscope"]
+packages = ["src/temporalscope"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/VERSION.txt"]
 
 [tool.hatch.version]
 path = "VERSION.txt"
