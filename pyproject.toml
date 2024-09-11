@@ -75,10 +75,14 @@ unit = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "not integ
 integration = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "integration" {args:test}'
 
 [tool.pytest.ini_options]
-minversion = "6.0"
-addopts = "--strict-markers"
-markers = ["unit: unit tests", "integration: integration tests"]
+testpaths = ["tests", "integration"]
+addopts = "-v -ra -q"
 log_cli = true
+log_cli_level = "INFO"
+log_format = "%(asctime)s %(levelname)s %(message)s"
+log_date_format = "%Y-%m-%d %H:%M:%S"
+minversion = "6.0"
+filterwarnings = "ignore"
 
 [tool.ruff]
 extend-exclude = ["*.pyc"]
