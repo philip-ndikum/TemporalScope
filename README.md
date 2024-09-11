@@ -34,7 +34,8 @@
 | License | ![License](https://img.shields.io/badge/License-Apache%202.0-green) |
 | Code Quality | [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/) ![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)|
 | Build Tools | [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://hatch.pypa.io/latest/) |
-| CI/CD | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg)](https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main) |
+| CI/CD | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg)](https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main) [![codecov](https://codecov.io/gh/{{REPOSITORY}}/branch/main/graph/badge.svg)](https://codecov.io/gh/{{REPOSITORY}})
+|
 | Security | [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9424/badge)](https://www.bestpractices.dev/projects/9424) [![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)|
 
 ---

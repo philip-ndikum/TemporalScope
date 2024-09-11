@@ -1,4 +1,4 @@
-name: Test
+name: Run Tests
 
 on:
   push:
@@ -39,3 +39,10 @@ jobs:
 
       - name: Run ${{ matrix.test-type }} tests
         run: hatch run test:${{ matrix.test-type }}
+
+      # Upload coverage to cloudcov.io.
+      - name: Upload coverage to cloudcov.io
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' && matrix.test-type == 'unit' # Ensure this is only done once.
+        uses: codecov/codecov-action@v4.2.0
+        env:
+          CLOUDCOV_TOKEN: ${{ secrets.CLOUDCOV_TOKEN }}
