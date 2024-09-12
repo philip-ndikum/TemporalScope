@@ -13,13 +13,12 @@ on:
 
 jobs:
   tests:
-    name: ${{ matrix.test-type }} / ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    name: Tests / ${{ matrix.os }} / Python ${{ matrix.python-version }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.10', '3.11', '3.12']
-        test-type: ['unit', 'integration']
+        python-version: ["3.10", "3.11", "3.12"]
 
     runs-on: ${{ matrix.os }}
 
@@ -37,12 +36,16 @@ jobs:
         run: |
           pip install hatch
 
-      - name: Run ${{ matrix.test-type }} tests
-        run: hatch run test:${{ matrix.test-type }}
+      - name: Run unit tests
+        run: hatch run test:unit
 
-      # Upload coverage to cloudcov.io.
-      - name: Upload coverage to cloudcov.io
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' && matrix.test-type == 'unit' # Ensure this is only done once.
+      - name: Run integration tests
+        run: hatch run test:integration
+
+      # Upload coverage to codecov.io
+      # Ensure that the coverage is only uploaded once (if statement)
+      - name: Upload coverage to codecov.io
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         uses: codecov/codecov-action@v4.2.0
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
