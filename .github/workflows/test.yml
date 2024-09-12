@@ -45,4 +45,4 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11' && matrix.test-type == 'unit' # Ensure this is only done once.
         uses: codecov/codecov-action@v4.2.0
         env:
-          CLOUDCOV_TOKEN: ${{ secrets.CLOUDCOV_TOKEN }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
