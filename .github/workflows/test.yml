@@ -40,7 +40,7 @@ jobs:
         run: hatch run test:unit
 
       - name: Run integration tests
-        run: hatch run test:integration
+        run: hatch run test:integration --suppress-no-test-exit-code # Suppress the exit code of the integration tests until integration tests are added
 
       # Upload coverage to codecov.io
       # Ensure that the coverage is only uploaded once (if statement)
