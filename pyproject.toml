@@ -57,13 +57,26 @@ keywords = [
 [tool.hatch.envs.default]
 dependencies = [
     "pre-commit",
-    "ruff==0.6.4", # match ruff version in pre-commit-config.yaml to avoid conflicts
+    "ruff==0.6.4",        # match ruff version in pre-commit-config.yaml to avoid conflicts
     "jupyterlab",
-    "notebook"
+    "notebook",
+    "commitizen==3.29.0",
 ]
 
 [tool.hatch.envs.docs]
-dependencies = ["mkdocs-material"]
+dependencies = [
+    "pydata-sphinx-theme",
+    "myst-parser",
+    "sphinx >=4.0",
+    "sphinx-copybutton",
+    "sphinx-autodoc-typehints",
+    "sphinx-autodoc-annotation",
+    'sphinx-autoapi',
+]
+
+[tool.hatch.envs.docs.scripts]
+build = "sphinx-build -Wb html . _build"
+serve = "python -m http.server --directory _build"
 
 [tool.hatch.envs.test]
 extra-dependencies = ["pytest", "pytest-cov", "pytest-custom_exit_code"]
@@ -86,6 +99,7 @@ filterwarnings = "ignore"
 extend-exclude = ["*.pyc"]
 target-version = "py310"
 line-length = 88
+
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -112,13 +126,7 @@ select = [
     "A002", # builtin-argument-shadowing
     "A003", # builtin-attribute-shadowing
     # docstring rules
-    "D102", # Missing docstring in public method
-    "D103", # Missing docstring in public function
-    "D209", # Closing triple quotes go to new line
-    "D205", # 1 blank line required between summary line and description
-    "D213", # summary lines must be positioned on the second physical line of the docstring
-    "D417", # undocumented-parameter
-    "D419", # undocumented-returns
+    "D", # flake8-docstrings
 ]
 ignore = [
     "PERF203", # `try`-`except` within a loop incurs performance overhead
@@ -130,6 +138,11 @@ ignore = [
     "PLR0913", # too many arguments
     "SIM102",  # temporary
     "C901",    # temporary
+    "D100",    # Missing docstring in public module
+    "D104",    # Missing docstring in public package
+    "D211",    # No blank lines allowed before class docstring
+    "D213",    # Multi-line docstring summary should start at the second line
+    "D203",    # 1 blank line required before class docstring
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -161,6 +174,11 @@ fix = "ruff check --fix"
 format = "ruff format {args}"
 format-check = "ruff format --check {args}"
 
+[tool.commitizen]
+version = "0.1.0"
+update_changelog_on_bump = true
+tag_format = "v$version"
+version_files = ["pyproject.toml:version", "VERSION.txt"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

@@ -27,6 +27,7 @@
 </p>
 
 ---
+<!-- SPHINX-START -->
 
 |  |  |
 | --- | --- |
@@ -34,12 +35,13 @@
 | License | ![License](https://img.shields.io/badge/License-Apache%202.0-green) |
 | Code Quality | [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/) ![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)|
 | Build Tools | [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://hatch.pypa.io/latest/) |
-| CI/CD | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg)](https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main) [![codecov](https://codecov.io/gh/{{REPOSITORY}}/branch/main/graph/badge.svg)](https://codecov.io/gh/{{REPOSITORY}})|
+| CI/CD | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg)](https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main) [![codecov](https://codecov.io/gh/philip-ndikum/TemporalScope/branch/main/graph/badge.svg)](https://codecov.io/gh/philip-ndikum/TemporalScope)|
 | Security | [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9424/badge)](https://www.bestpractices.dev/projects/9424) [![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)|
 
 ---
-**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional _Clara LLM_ modules (etymology from the word _Clarity_) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase so some installation methods may not work as expected on all platforms. Please check the `CONTRIBUTIONS.md` for the full roadmap.
+**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional *Clara LLM* modules (etymology from the word _Clarity_) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase so some installation methods may not work as expected on all platforms. Please check the `CONTRIBUTIONS.md` for the full roadmap.
 
+<!-- SPHINX-END -->
 ---
 ### **Table of Contents**
 

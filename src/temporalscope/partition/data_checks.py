@@ -1,28 +1,18 @@
-"""
-TemporalScope/temporalscope/partition/data_checks.py
+"""Validates dataset partitions using heuristics from key literature.
 
-This module provides functions to validate dataset partitions against
-a set of heuristics derived from key literature in the field.
+.. seealso::
 
-Academic references:
-..[1] Shwartz-Ziv, R. and Armon, A., 2022. Tabular data: Deep learning is not
-    all you need. Information Fusion, 81, pp.84-90.
-2. Grinsztajn, L., Oyallon, E. and Varoquaux, G., 2022. Why do tree-based models still
-outperform deep learning on typical tabular data?
-3. Gorishniy, Y., Rubachev, I., Khrulkov, V. and Babenko, A., 2021.
-Revisiting deep learning models for tabular data.
+   .. Shwartz-Ziv, R. and Armon, A. (2022).
+      Tabular data: Deep learning is not all you need.
+      *Information Fusion*, 81, 84-90.
 
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+   .. Grinsztajn, L., Oyallon, E. and Varoquaux, G. (2022).
+      Why do tree-based models still outperform deep learning on typical tabular data?
+      arXiv preprint arXiv:2207.08815.
 
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+   .. Gorishniy, Y., Rubachev, I., Khrulkov, V. and Babenko, A. (2021).
+      Revisiting deep learning models for tabular data.
+      In *Advances in Neural Information Processing Systems* (pp. 18932-18943).
 """
 
 import warnings
@@ -45,30 +35,31 @@ def check_sample_size(
     max_samples: int = 50000,
     enable_warnings: bool = False,
 ) -> bool:
-    """
-    Check if the dataset meets the minimum and maximum sample size requirements.
+    """Check if the dataset meets the minimum and maximum sample size requirements.
 
     This function checks if the dataset contains an appropriate number of samples
     for training machine learning models. If the dataset has too few or
     too many samples, warnings can be triggered depending on the `enable_warnings` flag.
 
-    Parameters
-    ----------
-    df
-        The dataset to check.
-    backend
-        The backend used for processing ('pd', 'pl', 'mpd').
-    min_samples
-        Minimum number of samples required.
-    max_samples
-        Maximum number of samples allowed.
-    enable_warnings
-        Flag to enable warnings, defaults to False.
+    :param df: The dataset to check.
+    :type df: pd.DataFrame or pl.DataFrame or mpd.DataFrame
 
-    Returns
-    -------
-    bool
-        True if the dataset meets the sample size requirements, otherwise False.
+    :param backend: The backend used for processing ('pd', 'pl', 'mpd'),
+                    defaults to "pl"
+    :type backend: str
+
+    :param min_samples: Minimum number of samples required, defaults to 3000
+    :type min_samples: int
+
+    :param max_samples: Maximum number of samples allowed, defaults to 50000
+    :type max_samples: int
+
+    :param enable_warnings: Flag to enable warnings, defaults to False
+    :type enable_warnings: bool
+
+    :return: True if the dataset meets the sample size requirements, otherwise False
+
+    :rtype: bool
     """
     validate_backend(backend)
 
@@ -104,30 +95,31 @@ def check_feature_count(
     max_features: int = 500,
     enable_warnings: bool = False,
 ) -> bool:
-    """
-    Check if the dataset meets the minimum and maximum feature count requirements.
+    """Check if the dataset meets the minimum and maximum feature count requirements.
 
     This function ensures the dataset has an appropriate number of features
     for modeling. If the feature count is too low or too high, warnings can be
     triggered depending on the `enable_warnings` flag.
 
-    Parameters
-    ----------
-    df
-        The dataset to check.
-    backend
-        The backend used for processing ('pd', 'pl', 'mpd').
-    min_features
-        Minimum number of features required.
-    max_features
-        Maximum number of features allowed.
-    enable_warnings
-        Flag to enable warnings, defaults to False.
+    :param df: The dataset to check.
+    :type df: pd.DataFrame or pl.DataFrame or mpd.DataFrame
 
-    Returns
-    -------
-    bool
-        True if the dataset meets the feature count requirements, otherwise False.
+    :param backend: The backend used for processing ('pd', 'pl', 'mpd'),
+                    defaults to "pl"
+    :type backend: str
+
+    :param min_features: Minimum number of features required, defaults to 4
+    :type min_features: int
+
+    :param max_features: Maximum number of features allowed, defaults to 500
+    :type max_features: int
+
+    :param enable_warnings: Flag to enable warnings, defaults to False
+    :type enable_warnings: bool
+
+    :return: True if the dataset meets the feature count requirements, otherwise False
+
+    :rtype: bool
     """
     validate_backend(backend)
 
@@ -160,28 +152,28 @@ def check_feature_to_sample_ratio(
     max_ratio: float = 0.1,
     enable_warnings: bool = False,
 ) -> bool:
-    """
-    Check if the feature-to-sample ratio is within acceptable limits.
+    """Check if the feature-to-sample ratio is within acceptable limits.
 
     This function verifies if the dataset's feature-to-sample ratio exceeds the maximum
     allowable ratio, which may increase the risk of overfitting.
     Warnings can be triggered depending on the `enable_warnings` flag.
 
-    Parameters
-    ----------
-    df
-        The dataset to check. backend
-    backend
-        The backend used for processing ('pd', 'pl', 'mpd').
-    max_ratio
-        Maximum allowable feature-to-sample ratio.
-    enable_warnings
-        Flag to enable warnings, defaults to False.
+    :param df: The dataset to check.
+    :type df: pd.DataFrame or pl.DataFrame or mpd.DataFrame
 
-    Returns
-    -------
-    bool
-        True if the feature-to-sample ratio is within limits, otherwise False.
+    :param backend: The backend used for processing ('pd', 'pl', 'mpd'),
+                    defaults to "pl"
+    :type backend: str
+
+    :param max_ratio: Maximum allowable feature-to-sample ratio, defaults to 0.1
+    :type max_ratio: float
+
+    :param enable_warnings: Flag to enable warnings, defaults to False
+    :type enable_warnings: bool
+
+    :return: True if the feature-to-sample ratio is within limits, otherwise False
+
+    :rtype: bool
     """
     validate_backend(backend)
 
@@ -208,34 +200,32 @@ def check_categorical_feature_cardinality(
     max_unique_values: int = 20,
     enable_warnings: bool = False,
 ) -> bool:
-    """
-    Check that categorical features do not have too many unique values.
+    """Check that categorical features do not have too many unique values.
 
     This function ensures that categorical features have an acceptable number
     of unique values. High-cardinality categorical features can complicate model
     training and increase the risk of overfitting. Warnings can be triggered depending
     on the `enable_warnings` flag.
 
-    Parameters
-    ----------
-    df
-        The dataset to check.
-    backend
-        The backend used for processing ('pd', 'pl', 'mpd').
-    max_unique_values
-        Maximum number of unique values allowed for categorical features.
-    enable_warnings
-        Flag to enable warnings, defaults to False.
+    :param df: The dataset to check.
+    :type df: pd.DataFrame or pl.DataFrame or mpd.DataFrame
 
-    Returns
-    -------
-    bool
-        True if the categorical features meet the cardinality limits, otherwise False.
+    :param backend: The backend used for processing ('pd', 'pl', 'mpd'),
+                    defaults to "pl"
+    :type backend: str
 
-    Raises
-    ------
-    ValueError
-        If backend is not supported.
+    :param max_unique_values: Maximum number of unique values allowed for categorical
+                              features,defaults to 20
+    :type max_unique_values: int
+
+    :param enable_warnings: Flag to enable warnings, defaults to False
+    :type enable_warnings: bool
+
+    :return: True if the categorical features meet the cardinality limits,
+             otherwise False
+
+    :rtype: bool
+    :raises ValueError: If backend is not supported.
     """
     validate_backend(backend)
 
@@ -282,30 +272,30 @@ def check_numerical_feature_uniqueness(
     min_unique_values: int = 10,
     enable_warnings: bool = False,
 ) -> bool:
-    """
-    Check that numerical features have a sufficient number of unique values.
+    """Check that numerical features have a sufficient number of unique values.
 
     This function ensures that numerical features contain a minimum number of
     unique values. Features with too few unique values may lack variability,
     reducing model expressiveness. Warnings can be triggered depending on the
     `enable_warnings` flag.
 
-    Parameters
-    ----------
-    df
-        The dataset to check.
-    backend
-        The backend used for processing ('pd', 'pl', 'mpd').
-    min_unique_values
-        Minimum number of unique values required for numerical features.
-    enable_warnings
-        Flag to enable warnings, defaults to False.
+    :param df: The dataset to check.
+    :type df: pd.DataFrame or pl.DataFrame or mpd.DataFrame
 
-    Returns
-    -------
-    bool
-        True if all numerical features have at least `min_unique_values` unique values,
-        otherwise False.
+    :param backend: The backend used for processing ('pd', 'pl', 'mpd'),
+                    defaults to "pl"
+    :type backend: str
+
+    :param min_unique_values: Minimum number of unique values required for numerical
+                              features, defaults to 10
+    :type min_unique_values: int
+
+    :param enable_warnings: Flag to enable warnings, defaults to False
+    :type enable_warnings: bool
+
+    :return: True if all numerical features have at least `min_unique_values` unique
+             values, otherwise False
+    :rtype: bool
     """
     validate_backend(backend)
 
@@ -354,27 +344,25 @@ def check_binary_numerical_features(
     backend: str = "pl",
     enable_warnings: bool = False,
 ) -> bool:
-    """
-    Check for binary numerical features and suggest conversion to categorical.
+    """Check for binary numerical features and suggest conversion to categorical.
 
     Binary numerical features (i.e., features with only two unique values) are often
     better represented as categorical features. This function detects such
     features and suggests conversion. Warnings can be triggered depending on
     the `enable_warnings` flag.
 
-    Parameters
-    ----------
-    df
-        The dataset to check.
-    backend
-        The backend used for processing ('pd', 'pl', 'mpd').
-    enable_warnings
-        Flag to enable warnings, defaults to False.
+    :param df: The dataset to check.
+    :type df: pd.DataFrame or pl.DataFrame or mpd.DataFrame
 
-    Returns
-    -------
-    bool
-        True if no binary numerical features are found, otherwise False.
+    :param backend: The backend used for processing ('pd', 'pl', 'mpd'),
+                    defaults to "pl"
+    :type backend: str
+
+    :param enable_warnings: Flag to enable warnings, defaults to False
+    :type enable_warnings: bool
+
+    :return: True if no binary numerical features are found, otherwise False
+    :rtype: bool
     """
     validate_backend(backend)
 
@@ -422,34 +410,30 @@ def check_class_balance(
     backend: str = "pl",
     enable_warnings: bool = False,
 ) -> bool:
-    """
-    Check that classes in a classification dataset are balanced.
+    """Check that classes in a classification dataset are balanced.
 
     This function checks the class distribution in the target column of a classification
     dataset. If the ratio between the largest and smallest classes exceeds 1.5,
     the dataset is considered imbalanced. Warnings can be triggered depending on the
     `enable_warnings` flag.
 
-    Parameters
-    ----------
-    df
-        The dataset to check.
-    target_col
-        The column containing the target labels.
-    backend
-        The backend used for processing ('pd', 'pl', 'mpd').
-    enable_warnings
-        Flag to enable warnings, defaults to False.
+    :param df: The dataset to check.
+    :type df: pd.DataFrame or pl.DataFrame or mpd.DataFrame
 
-    Returns
-    -------
-    bool
-        True if classes are balanced (ratio <= 1.5), otherwise False.
+    :param target_col: The column containing the target labels.
+    :type target_col: str
 
-    Raises
-    ------
-    ValueError
-        If backend is not supported.
+    :param backend: The backend used for processing ('pd', 'pl', 'mpd'),
+                    defaults to "pl"
+    :type backend: str
+
+    :param enable_warnings: Flag to enable warnings, defaults to False
+    :type enable_warnings: bool
+
+    :return: True if classes are balanced (ratio <= 1.5), otherwise False
+    :rtype: bool
+
+    :raises ValueError: If backend is not supported.
     """
     validate_backend(backend)
 

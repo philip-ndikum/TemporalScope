@@ -1,21 +1,8 @@
-"""
-TemporalScope/temporalscope/core/utils.py
+"""Utility functions for the TemporalScope package.
 
-This module provides utility functions that can be used throughout the TemporalScope
-package.It includes methods for printing dividers, checking for nulls and NaNs, and
-validating the backend.
-
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+This module provides various utility functions that can be used throughout the
+TemporalScope package. It includes methods for printing dividers, checking for
+null and NaN values in DataFrames, and validating the backend.
 """
 
 from typing import cast
@@ -28,13 +15,12 @@ from temporalscope.conf import validate_backend
 
 
 def print_divider(char: str = "=", length: int = 70) -> None:
-    """Prints a divider line made of a specified character and length."""
+    """Print a divider line made of a specified character and length."""
     print(char * length)
 
 
 def check_nulls(df: pl.DataFrame | pd.DataFrame | mpd.DataFrame, backend: str) -> bool:
-    """
-    Check for null values in the DataFrame using the specified backend.
+    """Check for null values in the DataFrame using the specified backend.
 
     :param df: The DataFrame to check for null values.
     :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
@@ -62,26 +48,16 @@ def check_nulls(df: pl.DataFrame | pd.DataFrame | mpd.DataFrame, backend: str) -
 
 
 def check_nans(df: pl.DataFrame | pd.DataFrame | mpd.DataFrame, backend: str) -> bool:
-    """
-    Check for NaN values in the DataFrame using the specified backend.
+    """Check for NaN values in the DataFrame using the specified backend.
 
-    Parameters
-    ----------
-    df : Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
-        The DataFrame to check for NaN values.
-    backend : str
-        The backend used for the DataFrame.
-        ('pl' for Polars, 'pd' for Pandas, 'mpd' for Modin).
-
-    Returns
-    -------
-    bool
-        True if there are NaN values, False otherwise.
-
-    Raises
-    ------
-    ValueError
-        If the backend is not supported.
+    :param df: The DataFrame to check for NaN values.
+    :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+    :param backend: The backend used for the DataFrame
+                    ('pl' for Polars, 'pd' for Pandas, 'mpd' for Modin).
+    :type backend: str
+    :return: True if there are NaN values, False otherwise.
+    :rtype: bool
+    :raises ValueError: If the backend is not supported.
     """
     validate_backend(backend)
 

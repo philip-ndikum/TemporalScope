@@ -13,6 +13,7 @@ repos:
       - id: end-of-file-fixer # checks there is a newline at the end of the file
       - id: mixed-line-ending # normalizes line endings
       - id: no-commit-to-branch # prevents committing to main
+      - id: check-docstring-first # checks that docstrings come before code
       - id: trailing-whitespace # trims trailing whitespace
         args: [--markdown-linebreak-ext=md]
 
@@ -57,3 +58,15 @@ repos:
     rev: "v0.10.0.1"
     hooks:
       - id: shellcheck
+
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.16.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.29.0
+    hooks:
+      - id: commitizen
+      - id: commitizen-branch
+        stages: [push]

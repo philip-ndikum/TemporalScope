@@ -90,7 +90,7 @@ TemporalScope uses [Hatch](https://hatch.pypa.io/latest/), a Python project mana
 We use [pre-commit](https://pre-commit.com/) hooks to ensure code quality and consistency. Set up the git hook scripts:
 
 ```console
-$ pre-commit install
+$ pre-commit install --hook-type commit-msg --hook-type pre-push
 ```
 
 ## Create a New Branch
@@ -156,7 +156,6 @@ Here's the revised version of that section:
    $ git add [args]
    ```
 
-   This command allows you to review and selectively stage parts of your changes.
 
 2. Commit your changes with a descriptive commit message. Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
 
@@ -169,6 +168,15 @@ Here's the revised version of that section:
    - `feat: add user authentication`
    - `fix(api): resolve data parsing error`
    - `docs: update README with new configuration options`
+
+
+   Alternatively, [Commitizen](https://commitizen-tools.github.io/commitizen/) is a handy tool for crafting commit messages that follow the Conventional Commit format. Simply run the command:
+
+   ```bash
+   $ cz commit
+   ```
+
+   and follow the interactive prompts. Commitizen will generate a commit message that complies with the required standards.
 
 > [!NOTE]
 > If you've set up pre-commit hooks as recommended, they will automatically run various checks before finalizing your commit. This helps ensure code quality and consistency.
@@ -200,6 +208,22 @@ Here's the revised version of that section:
 - Once approved, your changes will be merged into the main repository.
 
 Thank you for contributing to TemporalScope!
+
+## Documentation
+TemporalScope utilizes [Sphinx](https://www.sphinx-doc.org/en/master/) for its documentation.
+
+To build the docs locally run the following command
+```console
+$ cd docs
+$ hatch run docs:build
+```
+To view the docs locally run the following command
+```console
+$ cd docs
+$ hatch run docs:serve
+```
+
+API documentation is automatically generated using the [sphinx-autoapi](https://sphinx-autoapi.readthedocs.io/en/latest/) extension. It extracts and builds the documentation directly from the code’s docstrings, which are written in reStructuredText (reST) format.
 
 ## Test Policy
 
