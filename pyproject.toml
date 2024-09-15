@@ -54,6 +54,10 @@ keywords = [
     "Time-Series",
 ]
 
+[project.urls]
+"Source code" = "https://github.com/philip-ndikum/TemporalScope"
+Documentation = "https://temporalscope.readthedocs.io/en/latest/"
+
 [tool.hatch.envs.default]
 dependencies = [
     "pre-commit",
@@ -75,7 +79,8 @@ dependencies = [
 ]
 
 [tool.hatch.envs.docs.scripts]
-build = "sphinx-build -Wb html . _build"
+build = "sphinx-build -WTb html . _build"
+readthedocs = "sphinx-build -WTb html . $READTHEDOCS_OUTPUT/html"
 serve = "python -m http.server --directory _build"
 
 [tool.hatch.envs.test]
