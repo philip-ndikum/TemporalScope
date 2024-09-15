@@ -1,0 +1,30 @@
+header:
+  license:
+    spdx-id: Apache-2.0
+    copyright-owner: Apache Software Foundation
+
+  paths-ignore:
+    - 'dist'
+    - '**/*.md'
+    - 'LICENSE'
+    - 'VERSION'
+    - 'assets'
+    - 'tutorial_notebooks'
+    - '.license_rec.yaml'
+    - ".github"
+    - '.gitignore'
+    - '**/*.rst'
+    - '**/*.png'
+    - '**/*.toml'
+    - '**/*.txt'
+    - '**/*.yaml'
+    - '**/*.yml'
+    - '**/*.sh'
+    - '.gitkeep'
+    - '.env.example'
+
+  comment: on-failure
+
+dependency:
+  files:
+    - pyproject.toml
