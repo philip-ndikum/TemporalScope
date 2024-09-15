@@ -1,0 +1,42 @@
+name: License and Dependency Check
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  fix_license:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Fix License Header
+        uses: apache/skywalking-eyes/header@v0.6.0
+        with:
+          mode: fix
+
+      - name: Apply Changes
+        uses: EndBug/add-and-commit@v9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          author_name: License Bot
+          author_email: license_bot@github.com
+          message: 'chore: automatic application of license header'
+
+  check_dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check Dependencies' License
+        uses: apache/skywalking-eyes/dependency@v0.6.0
