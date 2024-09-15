@@ -7,4 +7,4 @@ build:
     - pip install hatch
     - hatch shell docs
     - cd docs
-    - hatch run readthedocs
+    - hatch run docs:readthedocs
