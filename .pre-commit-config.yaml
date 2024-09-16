@@ -18,7 +18,7 @@ repos:
         args: [--markdown-linebreak-ext=md]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.4
+    rev: v0.6.5
     hooks:
       - id: ruff
       - id: ruff-format
@@ -60,7 +60,7 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.16.1
+    rev: v8.19.2
     hooks:
       - id: gitleaks
 
