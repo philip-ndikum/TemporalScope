@@ -1,5 +1,9 @@
 fail_fast: true
 
+ci:
+  autofix_commit_msg: "chore(pre-commit): autofix run"
+  autoupdate_commit_msg: "chore(pre-commit): autoupdate hooks"
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
