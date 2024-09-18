@@ -65,6 +65,11 @@ dependencies = [
     "jupyterlab",
     "notebook",
     "commitizen==3.29.0",
+    "mypy",               # Include dependencies for QA scripts
+    "bandit",             # Include dependencies for QA scripts
+    "black",              # Include dependencies for QA scripts
+    "pytest",             # Include pytest for running tests
+    "pytest-cov"          # Include pytest-cov for coverage if needed
 ]
 
 [tool.hatch.envs.docs]
@@ -154,7 +159,7 @@ ignore = [
 "docs/conf.py" = ["A001", "D103"]
 
 [tool.mypy]
-files = "temporalscope"
+files = "src/temporalscope"  
 python_version = "3.10"
 ignore_missing_imports = true
 warn_unreachable = true
@@ -178,6 +183,19 @@ check = "ruff check {args}"
 fix = "ruff check --fix"
 format = "ruff format {args}"
 format-check = "ruff format --check {args}"
+# Automated developer Q&A script 
+quality-assurance = """
+pytest &&
+black src/temporalscope &&
+ruff check src/temporalscope --output-format=full --show-files --show-fixes &&
+mypy src/temporalscope --ignore-missing-imports --show-error-codes --warn-unreachable &&
+bandit -r src/temporalscope
+"""
+generate-kernel = """
+python -m ipykernel install --user --name temporalscope-kernel --display-name "TemporalScope"
+echo "Jupyter kernel 'TemporalScope' created. You can now use it in Jupyter notebooks."
+"""
+
 
 [tool.commitizen]
 version = "0.1.0"
