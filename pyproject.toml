@@ -61,10 +61,10 @@ Documentation = "https://temporalscope.readthedocs.io/en/latest/"
 [tool.hatch.envs.default]
 dependencies = [
     "pre-commit",
-    "ruff==0.6.4",        # match ruff version in pre-commit-config.yaml to avoid conflicts
+    "ruff",
     "jupyterlab",
     "notebook",
-    "commitizen==3.29.0",
+    "commitizen",
 ]
 
 [tool.hatch.envs.docs]
