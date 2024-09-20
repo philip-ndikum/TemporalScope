@@ -29,14 +29,46 @@
 ---
 <!-- SPHINX-START -->
 
-|  |  |
-| --- | --- |
-| Compatibility | ![Python Version](https://img.shields.io/badge/python-3.10%2B-blue) ![Linux Compatible](https://img.shields.io/badge/OS-Linux-blue) |
-| License | ![License](https://img.shields.io/badge/License-Apache%202.0-green) |
-| Code Quality | [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/) ![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)|
-| Build Tools | [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://hatch.pypa.io/latest/) |
-| CI/CD | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg)](https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main) [![codecov](https://codecov.io/gh/philip-ndikum/TemporalScope/branch/main/graph/badge.svg)](https://codecov.io/gh/philip-ndikum/TemporalScope)|
-| Security | [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9424/badge)](https://www.bestpractices.dev/projects/9424) [![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)|
+<div align="center">
+  <table>
+    <thead>
+      <tr>
+        <th>Compatibility</th>
+        <th>License</th>
+        <th>Code Quality</th>
+        <th>Build Tools</th>
+        <th>CI/CD</th>
+        <th>Security</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version"><br>
+          <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
+        </td>
+        <td>
+          <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
+        </td>
+        <td>
+          <a href="https://docs.astral.sh/ruff/"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a><br>
+          <img src="https://www.mypy-lang.org/static/mypy_badge.svg" alt="Checked with mypy">
+        </td>
+        <td>
+          <a href="https://hatch.pypa.io/latest/"><img src="https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg" alt="Hatch project"></a>
+        </td>
+        <td>
+          <a href="https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main"><img src="https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg" alt="pre-commit.ci status"></a><br>
+          <a href="https://codecov.io/gh/philip-ndikum/TemporalScope"><img src="https://codecov.io/gh/philip-ndikum/TemporalScope/branch/main/graph/badge.svg" alt="codecov"></a>
+        </td>
+        <td>
+          <a href="https://www.bestpractices.dev/projects/9424"><img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices"></a><br>
+          <a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit"></a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 ---
 **TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional *Clara LLM* modules (etymology from the word _Clarity_) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase so some installation methods may not work as expected on all platforms. Please check the `CONTRIBUTIONS.md` for the full roadmap.

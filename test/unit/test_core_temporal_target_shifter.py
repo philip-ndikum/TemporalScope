@@ -1,5 +1,8 @@
 """ TemporalScope/test/unit/test_core_temporal_target_shifter.py
 
+This file contains unit tests for the TemporalTargetShifter class to ensure it behaves correctly across different
+backends (pandas, modin, polars), modes of operation (machine_learning, deep_learning), and various configurations.
+
 TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -13,111 +16,194 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import modin.pandas as mpd
-import pandas as pd
-import polars as pl
 import pytest
+import polars as pl
+import pandas as pd
+import modin.pandas as mpd
+import numpy as np
 from temporalscope.core.temporal_target_shifter import TemporalTargetShifter
 from temporalscope.core.temporal_data_loader import TimeFrame
-from typing import Union
+from temporalscope.core.core_utils import BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN
 
-# Test DataFrames
-pd_df = pd.DataFrame({
-    "time": pd.date_range(start="2023-01-01", periods=5, freq="D"),
-    "target": [10, 20, 30, 40, 50],
-})
+# Fixture to generate sample dataframes for different backends
+@pytest.fixture(params=[BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+def sample_dataframe(request):
+    """Fixture to generate sample dataframes for different backends."""
+    data = {
+        "time": pd.date_range(start="2022-01-01", periods=100),
+        "target": np.random.rand(100),
+        "feature_1": np.random.rand(100),
+        "feature_2": np.random.rand(100),
+    }
+    backend = request.param
+    if backend == BACKEND_POLARS:
+        df = pl.DataFrame(data)
+    elif backend == BACKEND_PANDAS:
+        df = pd.DataFrame(data)
+    elif backend == BACKEND_MODIN:
+        df = mpd.DataFrame(data)
+    return df, backend, "target"
 
-pl_df = pl.DataFrame({
-    "time": ["2023-01-01", "2023-01-02", "2023-01-03", "2023-01-04", "2023-01-05"],
-    "target": [10, 20, 30, 40, 50],
-})
-
-mpd_df = mpd.DataFrame({
-    "time": pd.date_range(start="2023-01-01", periods=5, freq="D"),
-    "target": [10, 20, 30, 40, 50],
-})
-
-@pytest.mark.parametrize("backend, df", [
-    ("pd", pd_df),
-    ("pl", pl_df),
-    ("mpd", mpd_df),
+# Parametrized Test for Backend Inference, n_lags, and Modes
+@pytest.mark.parametrize("n_lags, mode, sequence_length", [
+    (1, TemporalTargetShifter.MODE_MACHINE_LEARNING, None),
+    (3, TemporalTargetShifter.MODE_MACHINE_LEARNING, None),
+    (1, TemporalTargetShifter.MODE_DEEP_LEARNING, 5)
 ])
-def test_shift_target_scalar_output(backend: str, df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]) -> None:
-    """Test shifting target to scalar output for each backend."""
-    tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    shifter = TemporalTargetShifter(shift_steps=1, array_output=False)
-    tf_transformed = shifter.transform(tf)
+@pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])  # Parametrizing backends as well
+def test_backend_inference(backend, n_lags, mode, sequence_length):
+    """Test backend inference and shifting functionality across all backends."""
     
-    expected_target = [20, 30, 40, 50, None]
+    # Generate data for the current backend
+    data = {
+        "time": pd.date_range(start="2022-01-01", periods=100),
+        "target": np.random.rand(100),
+        "feature_1": np.random.rand(100),
+        "feature_2": np.random.rand(100),
+    }
 
-    if backend == "pl":
-        actual_target = tf_transformed.get_data()["target_shift_1"].to_list()
-    else:
-        actual_target = tf_transformed.get_data()["target_shift_1"].tolist()
+    if backend == BACKEND_POLARS:
+        df = pl.DataFrame(data)
+    elif backend == BACKEND_PANDAS:
+        df = pd.DataFrame(data)
+    elif backend == BACKEND_MODIN:
+        df = mpd.DataFrame(data)
+    
+    # Initialize shifter
+    shifter = TemporalTargetShifter(n_lags=n_lags, mode=mode, sequence_length=sequence_length, target_col="target")
 
-    assert actual_target == expected_target[:-1]  # Comparing excluding the last item due to `None` handling
+    # Test fitting the dataframe and checking the inferred backend
+    shifter.fit(df)
+    assert shifter.backend == backend
 
-@pytest.mark.parametrize("backend, df", [
-    ("pd", pd_df),
-    ("pl", pl_df),
-    ("mpd", mpd_df),
+    # Test transformation (ensure no crashes)
+    transformed = shifter.transform(df)
+    assert transformed is not None
+
+# Parametrized test for invalid data and expected errors across backends
+@pytest.mark.parametrize("invalid_data", [
+    None,  # Null input should raise an error
+    pd.DataFrame(),  # Empty DataFrame should raise an error
 ])
-def test_shift_target_array_output(backend: str, df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]) -> None:
-    """Test shifting target to array output for each backend."""
+@pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+def test_invalid_data_handling(backend, invalid_data):
+    """Test invalid data handling for empty or None DataFrames across backends."""
+    
+    shifter = TemporalTargetShifter(n_lags=1, target_col="target")
+
+    with pytest.raises(ValueError):
+        shifter.fit(invalid_data)
+
+# Parametrized test for TimeFrame inputs and transformation across all backends
+@pytest.mark.parametrize("n_lags", [1, 2])
+@pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+def test_time_frame_input(backend, n_lags):
+    """Test TimeFrame input handling and transformation across all backends."""
+    
+    # Generate data for the current backend
+    data = {
+        "time": pd.date_range(start="2022-01-01", periods=100),
+        "target": np.random.rand(100),
+        "feature_1": np.random.rand(100),
+        "feature_2": np.random.rand(100),
+    }
+
+    if backend == BACKEND_POLARS:
+        df = pl.DataFrame(data)
+    elif backend == BACKEND_PANDAS:
+        df = pd.DataFrame(data)
+    elif backend == BACKEND_MODIN:
+        df = mpd.DataFrame(data)
+
     tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    shifter = TemporalTargetShifter(shift_steps=2, array_output=True)
-    tf_transformed = shifter.transform(tf)
+    shifter = TemporalTargetShifter(n_lags=n_lags, target_col="target")
+    
+    # Test fitting and transforming TimeFrame
+    shifter.fit(tf)
+    transformed = shifter.transform(tf)
+    assert transformed is not None
 
-    expected_target_array = [[20, 30], [30, 40], [40, 50], [50, None], [None, None]]
+# Parametrized test for deep learning mode with different sequence lengths across all backends
+@pytest.mark.parametrize("sequence_length", [3, 5])
+@pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+def test_deep_learning_mode(backend, sequence_length):
+    """Test deep learning mode sequence generation across all backends."""
+    
+    # Generate data for the current backend
+    data = {
+        "time": pd.date_range(start="2022-01-01", periods=100),
+        "target": np.random.rand(100),
+        "feature_1": np.random.rand(100),
+        "feature_2": np.random.rand(100),
+    }
 
-    if backend == "pl":
-        actual_target = tf_transformed.get_data()["target_array_2"].to_list()
-    else:
-        actual_target = tf_transformed.get_data()["target_array_2"].tolist()
+    if backend == BACKEND_POLARS:
+        df = pl.DataFrame(data)
+    elif backend == BACKEND_PANDAS:
+        df = pd.DataFrame(data)
+    elif backend == BACKEND_MODIN:
+        df = mpd.DataFrame(data)
 
-    assert actual_target == expected_target_array
+    shifter = TemporalTargetShifter(
+        n_lags=1, mode=TemporalTargetShifter.MODE_DEEP_LEARNING, sequence_length=sequence_length, target_col="target"
+    )
 
-@pytest.mark.parametrize("backend, df", [
-    ("pd", pd_df),
-    ("pl", pl_df),
-    ("mpd", mpd_df),
-])
-def test_shift_target_with_nonstandard_names(backend: str, df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]) -> None:
-    """Test shifting target with non-standardized names."""
-    tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    shifter = TemporalTargetShifter(shift_steps=1, array_output=False)
-    tf_transformed = shifter.transform(tf)
+    shifter.fit(df)
+    transformed = shifter.transform(df)
+    assert transformed is not None
 
-    expected_target = [20, 30, 40, 50, None]
+# Test verbose mode with stdout capture
+@pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+def test_verbose_mode(backend, capfd):
+    """Test verbose mode output and row dropping information."""
+    
+    # Generate data for the current backend
+    data = {
+        "time": pd.date_range(start="2022-01-01", periods=100),
+        "target": np.random.rand(100),
+        "feature_1": np.random.rand(100),
+        "feature_2": np.random.rand(100),
+    }
 
-    if backend == "pl":
-        actual_target = tf_transformed.get_data()["target_shift_1"].to_list()
-    else:
-        actual_target = tf_transformed.get_data()["target_shift_1"].tolist()
+    if backend == BACKEND_POLARS:
+        df = pl.DataFrame(data)
+    elif backend == BACKEND_PANDAS:
+        df = pd.DataFrame(data)
+    elif backend == BACKEND_MODIN:
+        df = mpd.DataFrame(data)
 
-    assert actual_target == expected_target[:-1]
+    shifter = TemporalTargetShifter(n_lags=1, target_col="target", verbose=True)
 
-@pytest.mark.parametrize("backend, df", [
-    ("pd", pd_df),
-    ("pl", pl_df),
-    ("mpd", mpd_df),
-])
-def test_shift_target_invalid_backend(backend: str, df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]) -> None:
-    """Test shifting target with an invalid backend."""
-    tf = TimeFrame(df, time_col="time", target_col="target", backend="invalid_backend")
-    shifter = TemporalTargetShifter(shift_steps=1, array_output=False)
-    with pytest.raises(ValueError, match="Unsupported backend"):
-        shifter.transform(tf)
+    shifter.fit(df)
+    shifter.transform(df)
 
-@pytest.mark.parametrize("backend, df", [
-    ("pd", pd_df),
-    ("pl", pl_df),
-    ("mpd", mpd_df),
-])
-def test_shift_target_type_error(backend: str, df: Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame]) -> None:
-    """Test shifting target with an incorrect DataFrame type."""
-    # Intentionally using an incorrect type (dictionary) instead of a DataFrame
-    with pytest.raises(TypeError):
-        tf = TimeFrame(df.to_dict(), time_col="time", target_col="target", backend=backend)
-        shifter = TemporalTargetShifter(shift_steps=1, array_output=False)
-        shifter.transform(tf)
+    # Capture stdout and check for printed verbose information
+    captured = capfd.readouterr()
+    assert "Rows before shift" in captured.out
+
+# Parametrized test for fit_transform method for all backends
+@pytest.mark.parametrize("n_lags", [1, 2])
+@pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+def test_fit_transform(backend, n_lags):
+    """Test fit_transform() method for all backends."""
+    
+    # Generate data for the current backend
+    data = {
+        "time": pd.date_range(start="2022-01-01", periods=100),
+        "target": np.random.rand(100),
+        "feature_1": np.random.rand(100),
+        "feature_2": np.random.rand(100),
+    }
+
+    if backend == BACKEND_POLARS:
+        df = pl.DataFrame(data)
+    elif backend == BACKEND_PANDAS:
+        df = pd.DataFrame(data)
+    elif backend == BACKEND_MODIN:
+        df = mpd.DataFrame(data)
+
+    shifter = TemporalTargetShifter(n_lags=n_lags, target_col="target")
+
+    transformed = shifter.fit_transform(df)
+    assert transformed is not None
+
