@@ -17,6 +17,9 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history to ensure we're on a branch
+          ref: ${{ github.head_ref }}  # Ensure the branch is checked out
 
       - name: Fix License Header
         uses: apache/skywalking-eyes/header@v0.6.0
@@ -31,6 +34,7 @@ jobs:
           author_name: License Bot
           author_email: license_bot@github.com
           message: 'chore: automatic application of license header'
+          push: true  # Ensure the changes are pushed back to the branch
 
   check_dependencies:
     runs-on: ubuntu-latest

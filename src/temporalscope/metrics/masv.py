@@ -14,15 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 """Mean Absolute SHAP (MASV) analysis for temporal feature importance.
 
-This module implements the Mean Absolute SHAP (MASV) analysis, which evaluates
-temporal feature importance across different operational phases of a system.
+This module implements the Mean Absolute SHAP (MASV) analysis, which evaluates temporal feature importance across
+different operational phases of a system.
 
-The MASV metric provides insights into how feature importance varies over time
-or across different operational phases, helping to identify key factors
-influencing system behavior at different stages.
+The MASV metric provides insights into how feature importance varies over time or across different operational phases,
+helping to identify key factors influencing system behavior at different stages.
 """
 
 from collections.abc import Callable
@@ -34,9 +32,7 @@ from shap import Explainer
 from temporalscope.partition.base import BaseTemporalPartitioner
 
 
-def calculate_masv(
-    model: Callable, data: pd.DataFrame, partitioner: BaseTemporalPartitioner
-) -> dict[str, list[float]]:
+def calculate_masv(model: Callable, data: pd.DataFrame, partitioner: BaseTemporalPartitioner) -> dict[str, list[float]]:
     r"""Calculate Mean Absolute SHAP Values (MASV).
 
     Calculate MASV for temporal feature importance across partitions.
@@ -85,9 +81,7 @@ def calculate_masv(
     # Iterate over each partition
     for partition_data in partitions.values():
         # Extract the training data for the current partition
-        phase_data = partition_data[
-            "train"
-        ]  # Assuming we're calculating MASV on the 'train' partition
+        phase_data = partition_data["train"]  # Assuming we're calculating MASV on the 'train' partition
 
         # Calculate SHAP values for the partition data
         shap_values = explainer(phase_data)

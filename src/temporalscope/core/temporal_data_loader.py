@@ -15,96 +15,92 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Flexible and scalable interface for handling time series data.
+"""TemporalScope/src/temporalscope/core/temporal_data_loader.py.
 
-This module implements the TimeFrame class, which provides support for:
-- Polars as the default backend
-- Pandas as a secondary option for traditional data processing
-- Modin for scalable Pandas-like data processing with distributed computing
+This module provides a flexible data loader for time series forecasting, allowing users to define their own
+preprocessing, loss functions, and explainability workflows. The core assumption is that features are organized
+in a context window prior to the target column, making the system compatible with SHAP and other explainability methods.
+Given the variance in pre-processing techniques, meta-learning & loss-functions TemporalScope explicitly does not
+impose constraints on the end-user in the engineering design.
 
-The TimeFrame class offers a unified interface for working with time series data
-across these different backends, allowing users to choose the most appropriate
-backend for their specific use case and performance requirements.
+.. seealso::
+
+    1. Van Ness, M., Shen, H., Wang, H., Jin, X., Maddix, D.C., & Gopalswamy, K. (2023). Cross-Frequency Time Series Meta-Forecasting. arXiv preprint arXiv:2302.02077.
+    2. Woo, G., Liu, C., Kumar, A., Xiong, C., Savarese, S., & Sahoo, D. (2024). Unified training of universal time series forecasting transformers. arXiv preprint arXiv:2402.02592.
+    3. Trirat, P., Shin, Y., Kang, J., Nam, Y., Na, J., Bae, M., Kim, J., Kim, B., & Lee, J.-G. (2024). Universal time-series representation learning: A survey. arXiv preprint arXiv:2401.03717.
+
+TemporalScope is Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+except in compliance with the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
+for the specific language governing permissions and limitations under the License.
 """
 
-from typing import cast
+from typing import Optional, Union
 
 import modin.pandas as mpd
 import pandas as pd
 import polars as pl
-from polars import Expr
 
-from temporalscope.conf import (
+from temporalscope.core.core_utils import (
+    BACKEND_MODIN,
+    BACKEND_PANDAS,
+    BACKEND_POLARS,
+    SupportedBackendDataFrame,
     get_default_backend_cfg,
+    validate_and_convert_input,
     validate_backend,
     validate_input,
 )
 
 
 class TimeFrame:
-    """Handle time series data for supported backends.
+    """Central class for the TemporalScope package.
 
-    This class provides functionalities to manage time series data with optional
-    grouping, available masks, and backend flexibility. It can handle large datasets
-    efficiently. The class is intended for Machine & Deep Learning time series
-    forecasting, not classical time series forecasting. The implementation assumes
-    one-step ahead but other classes & modules can be utilized for partitioning for
-    pre-trained multi-step DL models that are compatible with SHAP & related
-    tools e.g., PyTorch or TensorFlow forecasting models.
+    Designed to manage time series data across various backends such as
+    Polars, Pandas, and Modin. This class enables modular and flexible workflows for machine learning, deep learning,
+    and time series explainability (XAI) methods like temporal SHAP.
 
-    :param df: The input DataFrame.
-    :type df: Union[pl.DataFrame, pd.DataFrame, modin.pandas.DataFrame]
-    :param time_col: The column representing time in the DataFrame.
-    :type time_col: str
-    :param target_col: The column representing the target variable in the DataFrame.
-    :type target_col: str
-    :param id_col: The column representing the ID for grouping, defaults to None.
-    :type id_col: Optional[str], optional
-    :param backend: The backend to use ('pl' for Polars, 'pd' for Pandas, or 'mpd'
-                    for Modin), defaults to 'pl'.
-    :type backend: str, optional
-    :param sort: Sort the data by `time_col` (and `id_col` if provided) in ascending
-                 order, defaults to True.
-    :type sort: bool, optional
+    The `TimeFrame` class supports workflows where the target variable can be either 1D scalar data,
+    typical in classical machine learning, or 3D tensor data, more common in deep learning contexts.
+    It is an essential component for temporal data analysis, including but not limited to explainability pipelines
+    like Temporal SHAP and concept drift analysis.
 
-    :note: The default assumption for the `TimeFrame` class is that the dataset is
-           cleaned and prepared for one-step-ahead forecasting, where the `target_col`
-           directly corresponds to the label. The `id_col` is included for grouping and
-           sorting purposes but is not used in the default model-building process.
+    Designed to be the core data handler in a variety of temporal analysis scenarios, the `TimeFrame` class
+    integrates seamlessly with other TemporalScope modules and can be extended for more advanced use cases.
 
-    :warning: Ensure that the `time_col` is properly formatted as a datetime type to
-              avoid issues with sorting and grouping.
+    Assumptions:
+    --------------
+    - This package does not impose constraints on grouping or handling duplicates.
+    - We assume users will build universal models and handle preprocessing (e.g., grouping, deduplication) with
+      TemporalScope modules or external methods.
+    - The only requirement is that features are arranged in a context window prior to the target column.
 
-    :example:
-
-    Example of creating a TimeFrame with Polars DataFrame:
+    Example Usage:
+    --------------
 
     .. code-block:: python
 
-       data = pl.DataFrame(
-           {
-               "time": pl.date_range(start="2021-01-01", periods=100, interval="1d"),
-               "value": range(100),
-           }
-       )
-       tf = TimeFrame(data, time_col="time", target_col="value")
+       # Example of creating a TimeFrame with a Polars DataFrame
+       data = pl.DataFrame({
+           'time': pl.date_range(start='2021-01-01', periods=100, interval='1d'),
+           'value': range(100)
+       })
+       tf = TimeFrame(data, time_col='time', target_col='value')
 
        # Accessing the data
        print(tf.get_data().head())
 
-    Example of creating a TimeFrame with Modin DataFrame:
-
-    .. code-block:: python
-
+       # Example of creating a TimeFrame with a Modin DataFrame
        import modin.pandas as mpd
-
-       df = mpd.DataFrame(
-           {
-               "time": pd.date_range(start="2021-01-01", periods=100, freq="D"),
-               "value": range(100),
-           }
-       )
-       tf = TimeFrame(df, time_col="time", target_col="value", backend="mpd")
+       df = mpd.DataFrame({
+           'time': pd.date_range(start='2021-01-01', periods=100, freq='D'),
+           'value': range(100)
+       })
+       tf = TimeFrame(df, time_col='time', target_col='value', backend=BACKEND_MODIN)
 
        # Accessing the data
        print(tf.get_data().head())
@@ -112,85 +108,58 @@ class TimeFrame:
 
     def __init__(
         self,
-        df: pl.DataFrame | pd.DataFrame | mpd.DataFrame,
+        df: SupportedBackendDataFrame,
         time_col: str,
         target_col: str,
-        id_col: str | None = None,
-        backend: str = "pl",
+        backend: Optional[str] = None,
         sort: bool = True,
     ):
         """Initialize a TimeFrame object.
 
-        :param df: The input DataFrame containing time series data.
-        :type df: Union[pl.DataFrame, pd.DataFrame, modin.pandas.DataFrame]
+        :param df: The input DataFrame.
+        :type df: SupportedBackendDataFrame
         :param time_col: The name of the column representing time in the DataFrame.
         :type time_col: str
-        :param target_col: The name of the column representing the target variable in
-                           the DataFrame.
+        :param target_col: The name of the column representing the target variable in the DataFrame.
         :type target_col: str
-        :param id_col: The name of the column representing the ID for grouping.
-                       If None, no grouping is performed.
-        :type id_col: Optional[str]
-        :param backend: The backend to use for data processing. Options are:
-                        - "pl": Polars (default)
-                        - "pd": Pandas
-                        - "mpd": Modin
-        :type backend: str
-        :param sort: Whether to sort the data by `time_col` (and `id_col` if provided)
-                     in ascending order.
+        :param backend: The backend to use. If not provided, it will be inferred from the DataFrame type.
+                        Supported backends are:
+                        - `BACKEND_POLARS` ('pl') for Polars
+                        - `BACKEND_PANDAS` ('pd') for Pandas
+                        - `BACKEND_MODIN` ('mpd') for Modin
+                        Default is to infer from the DataFrame.
+        :type backend: Optional[str]
+        :param sort: Optional. If True, sort the data by `time_col` in ascending order. Default is True.
         :type sort: bool
-
-        :raises ValueError: If required columns are missing or if there are duplicate
-                            time entries within groups.
-        :raises TypeError: If the input DataFrame type doesn't match the expected type
-                           for the specified backend.
-
-        :note: This method sets up the TimeFrame object by validating inputs, preparing
-               data, and performing initial sorting if required.
-
-        :example:
-
-        >>> import polars as pl
-        >>> data = pl.DataFrame(
-        ...     {
-        ...         "time": pl.date_range(
-        ...             start="2021-01-01", periods=100, interval="1d"
-        ...         ),
-        ...         "value": range(100),
-        ...     }
-        ... )
-        >>> tf = TimeFrame(data, time_col="time", target_col="value")
+        :raises ValueError:
+            - If `time_col` or `target_col` is not a non-empty string.
+            - If required columns are missing in the DataFrame.
+            - If the inferred or specified backend is not supported.
+        :raises TypeError:
+            - If the DataFrame type does not match the specified backend.
         """
+        if not isinstance(time_col, str) or not time_col:
+            raise ValueError("time_col must be a non-empty string.")
+        if not isinstance(target_col, str) or not target_col:
+            raise ValueError("target_col must be a non-empty string.")
+
+        # Infer the backend if not explicitly provided
+        self._backend = backend or self._infer_backend(df)
+        validate_backend(self._backend)
+
         self._cfg = get_default_backend_cfg()
-        self._backend = backend
-        self._df = df
         self._time_col = time_col
         self._target_col = target_col
-        self._id_col = id_col
         self._sort = sort
 
-        # Setup TimeFrame including renaming, sorting, and validations
-        self.setup_timeframe()
-
-    def setup_timeframe(self) -> None:
-        """Set up the TimeFrame object by validating and preparing data as required."""
-        # Validate the columns are present and correct after potential renaming
-        self.validate_columns()
-
-        # Now sort data, assuming all columns are correct and exist
-        if self._sort:
-            self.sort_data(ascending=True)
-
-        # Final validations after setup
-        validate_backend(self._backend)
-        validate_input(self._df, self._backend)
+        # Convert, validate, and set up the DataFrame
+        self.df = self._setup_timeframe(df)
 
     @property
     def backend(self) -> str:
         """Return the backend used.
 
-        :return: The backend used ('pl' for Polars, 'pd' for Pandas,
-                 or 'mpd' for Modin).
+        :return: The backend identifier (e.g., 'pl', 'pd', 'mpd').
         :rtype: str
         """
         return self._backend
@@ -199,7 +168,7 @@ class TimeFrame:
     def time_col(self) -> str:
         """Return the column name representing time.
 
-        :return: The column name representing time.
+        :return: The name of the time column.
         :rtype: str
         """
         return self._time_col
@@ -208,129 +177,159 @@ class TimeFrame:
     def target_col(self) -> str:
         """Return the column name representing the target variable.
 
-        :return: The column name representing the target variable.
+        :return: The name of the target column.
         :rtype: str
         """
         return self._target_col
 
-    @property
-    def id_col(self) -> str | None:
-        """Return the column name used for grouping or None if not set.
+    def _infer_backend(self, df: SupportedBackendDataFrame) -> str:
+        """Infer the backend from the DataFrame type.
 
-        :return: The column name used for grouping or None if not set.
-        :rtype: str | None
+        :param df: The input DataFrame.
+        :type df: SupportedBackendDataFrame
+        :return: The inferred backend ('pl', 'pd', or 'mpd').
+        :rtype: str
+        :raises ValueError: If the DataFrame type is unsupported.
         """
-        return self._id_col
+        if isinstance(df, pl.DataFrame):
+            return BACKEND_POLARS
+        elif isinstance(df, pd.DataFrame):
+            return BACKEND_PANDAS
+        elif isinstance(df, mpd.DataFrame):
+            return BACKEND_MODIN
+        else:
+            raise ValueError(f"Unsupported DataFrame type: {type(df)}")
 
-    def validate_columns(self) -> None:
-        """Validate the presence and types of required columns in the DataFrame.
+    def _validate_columns(self, df: SupportedBackendDataFrame) -> None:
+        """Validate the presence of required columns in the DataFrame.
 
+        :param df: The DataFrame to validate.
+        :type df: SupportedBackendDataFrame
         :raises ValueError: If required columns are missing.
         """
-        # Check for the presence of required columns, ignoring None values
-        required_columns = [self.time_col, self._target_col] + (
-            [self.id_col] if self.id_col else []
-        )
-        missing_columns = [
-            col for col in required_columns if col and col not in self._df.columns
-        ]
+        required_columns = [self._time_col, self._target_col]
+        missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
 
-    def sort_data(self, ascending: bool = True) -> None:
-        """Sort the DataFrame based on the backend.
+    def _sort_data(
+        self,
+        df: SupportedBackendDataFrame,
+        ascending: bool = True,
+    ) -> SupportedBackendDataFrame:
+        """Internal method to sort the DataFrame based on the backend.
 
-        :param ascending: Specifies whether to sort in ascending order.
+        :param df: The DataFrame to sort.
+        :type df: SupportedBackendDataFrame
+        :param ascending: If True, sort in ascending order; if False, sort in descending order.
         :type ascending: bool
+        :return: The sorted DataFrame.
+        :rtype: SupportedBackendDataFrame
+        :raises TypeError: If the DataFrame type does not match the backend.
+        :raises ValueError: If the backend is unsupported.
         """
-        sort_key = [self.id_col, self.time_col] if self.id_col else [self.time_col]
+        # Validate the DataFrame type
+        validate_input(df, self._backend)
 
-        if self._backend == "pl":
-            # For Polars, sort the DataFrame
-            if isinstance(self._df, pl.DataFrame):
-                if ascending:
-                    # Sort in ascending order
-                    self._df = self._df.sort(sort_key)
-                else:
-                    # Sort in descending order using tuples with Polars' SORT_DESCENDING
-                    sort_key_desc = [(col, pl.SORT_DESCENDING) for col in sort_key]
-                    self._df = self._df.sort(sort_key_desc)
-        elif self._backend in ["pd", "mpd"]:
-            # For Pandas/Modin, ensure we have a DataFrame before sorting
-            if isinstance(self._df, (pd.DataFrame, mpd.DataFrame)):
-                self._df = self._df.sort_values(by=sort_key, ascending=ascending)
+        sort_key = [self._time_col]
 
-    def check_duplicates(self) -> None:
-        """Check for duplicate time entries within groups.
+        # Mapping of backends to their sort functions
+        sort_functions = {
+            BACKEND_POLARS: lambda df: df.sort(by=sort_key, descending=not ascending),
+            BACKEND_PANDAS: lambda df: df.sort_values(by=sort_key, ascending=ascending),
+            BACKEND_MODIN: lambda df: df.sort_values(by=sort_key, ascending=ascending),
+        }
 
-        :raises ValueError: If duplicate entries are found.
+        try:
+            return sort_functions[self._backend](df)
+        except KeyError:
+            raise ValueError(f"Unsupported backend: {self._backend}")
+
+    def _setup_timeframe(self, df: SupportedBackendDataFrame) -> SupportedBackendDataFrame:
+        """Sets up the TimeFrame object by converting, validating, and preparing data as required.
+
+        :param df: The input DataFrame to be processed.
+        :type df: SupportedBackendDataFrame
+        :return: The processed DataFrame.
+        :rtype: SupportedBackendDataFrame
+        :raises ValueError:
+            - If required columns are missing.
+            - If the specified backend is not supported.
+        :raises TypeError: If the DataFrame type does not match the backend.
         """
-        if self._backend == "pl":
-            # Polars specific check: Use boolean masks
-            if self._id_col:
-                # Create unique expressions for id and time columns
-                id_duplicated_expr: Expr = pl.col(self._id_col).is_duplicated()
-                time_duplicated_expr: Expr = pl.col(self._time_col).is_duplicated()
-                # Combine expressions
-                combined_expr: Expr = id_duplicated_expr | time_duplicated_expr
-                duplicates = self._df.filter(combined_expr)
-            else:
-                # Only check the time column for duplicates
-                duplicates = self._df.filter(pl.col(self._time_col).is_duplicated())
-            # Check for duplicates by inspecting the number of rows
-            if duplicates.height > 0:
-                raise ValueError("Duplicate time entries found within the same group.")
-        elif self._backend in ["pd", "mpd"]:
-            # Cast to Pandas DataFrame for Pandas/Modin specific check
-            pandas_df = cast(pd.DataFrame, self._df)
-            duplicates = pandas_df.duplicated(
-                subset=(
-                    [self._id_col, self._time_col] if self._id_col else [self._time_col]
-                )
-            )
+        # Convert and validate the input DataFrame
+        df = validate_and_convert_input(df, self._backend)
 
-            if duplicates.any():
-                raise ValueError("Duplicate time entries found within the same group.")
+        # Validate the presence of required columns
+        self._validate_columns(df)
 
-    def get_data(self) -> pl.DataFrame | pd.DataFrame:
+        # Sort data if required
+        if self._sort:
+            df = self._sort_data(df)
+
+        return df
+
+    def sort_data(self, ascending: bool = True) -> None:
+        """Public method to sort the DataFrame by the time column.
+
+        :param ascending: If True, sort in ascending order; if False, sort in descending order.
+        :type ascending: bool
+        :raises TypeError: If the DataFrame type does not match the backend.
+        :raises ValueError: If the backend is unsupported.
+        """
+        self.df = self._sort_data(self.df, ascending=ascending)
+
+    def get_data(self) -> SupportedBackendDataFrame:
         """Return the DataFrame in its current state.
 
-        :return: The DataFrame in its current state.
-        :rtype: pl.DataFrame | pd.DataFrame
+        :return: The DataFrame managed by the TimeFrame instance.
+        :rtype: SupportedBackendDataFrame
         """
-        return self._df
+        return self.df
 
-    def get_grouped_data(self) -> pl.DataFrame | pd.DataFrame | mpd.DataFrame:
-        """Group the DataFrame by the ID column.
+    def update_data(self, new_df: SupportedBackendDataFrame) -> None:
+        """Updates the internal DataFrame with the provided new DataFrame.
 
-        :return: The grouped DataFrame.
-        :rtype: pl.DataFrame | pd.DataFrame | mpd.DataFrame
-        :raises ValueError: If ID column is not set or if the backend is unsupported.
-        :raises TypeError: If the DataFrame type doesn't match the expected type for the
-                           backend.
+        :param new_df: The new DataFrame to replace the existing one.
+        :type new_df: SupportedBackendDataFrame
+        :raises TypeError: If the new DataFrame type does not match the backend.
+        :raises ValueError: If required columns are missing in the new DataFrame.
         """
-        if not self.id_col:
-            raise ValueError("ID column is not set; cannot group data.")
+        # Validate and convert the new DataFrame
+        new_df = validate_and_convert_input(new_df, self._backend)
+        # Validate required columns
+        self._validate_columns(new_df)
+        self.df = new_df
 
-        if self._backend == "pl":
-            # Polars specific group_by with aggregation
-            if isinstance(self._df, pl.DataFrame):
-                return self._df.group_by(self.id_col).agg(
-                    pl.all()
-                )  # Polars uses `group_by`
-            else:
-                raise TypeError(f"Expected Polars DataFrame but got {type(self._df)}.")
-        elif self._backend == "pd":
-            # Pandas specific groupby
-            if isinstance(self._df, pd.DataFrame):
-                return self._df.groupby(self.id_col).apply(lambda x: x)
-            else:
-                raise TypeError(f"Expected Pandas DataFrame but got {type(self._df)}.")
-        elif self._backend == "mpd":
-            # Modin uses the same API as Pandas for this operation
-            if isinstance(self._df, mpd.DataFrame):
-                return self._df.groupby(self.id_col).apply(lambda x: x)
-            else:
-                raise TypeError(f"Expected Modin DataFrame but got {type(self._df)}.")
+    def update_target_col(self, new_target_col: Union[pl.Series, pd.Series, mpd.Series]) -> None:
+        """Updates the target column in the internal DataFrame with the provided new target column.
+
+        :param new_target_col: The new target column to replace the existing one.
+        :type new_target_col: Union[pl.Series, pd.Series, mpd.Series]
+        :raises TypeError: If the target column type does not match the backend.
+        :raises ValueError: If the length of the new target column does not match the DataFrame.
+        """
+        # Validate the target column type
+        if self._backend == BACKEND_POLARS:
+            if not isinstance(new_target_col, pl.Series):
+                raise TypeError("Expected a Polars Series for the Polars backend.")
+        elif self._backend == BACKEND_PANDAS:
+            if not isinstance(new_target_col, pd.Series):
+                raise TypeError("Expected a Pandas Series for the Pandas backend.")
+        elif self._backend == BACKEND_MODIN:
+            if not isinstance(new_target_col, mpd.Series):
+                raise TypeError("Expected a Modin Series for the Modin backend.")
         else:
             raise ValueError(f"Unsupported backend: {self._backend}")
+
+        # Check if the new target column length matches the DataFrame length
+        if len(new_target_col) != len(self.df):
+            raise ValueError("The new target column must have the same number of rows as the DataFrame.")
+
+        # Update the target column based on the backend
+        if self._backend == BACKEND_POLARS:
+            self.df = self.df.with_columns([new_target_col.alias(self._target_col)])
+        elif self._backend == BACKEND_PANDAS:
+            self.df[self._target_col] = new_target_col.to_numpy()  # Convert to NumPy for Pandas
+        elif self._backend == BACKEND_MODIN:
+            self.df[self._target_col] = new_target_col.to_numpy()  # Use .to_numpy() for Modin

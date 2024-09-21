@@ -25,7 +25,12 @@ repos:
     rev: v0.6.5
     hooks:
       - id: ruff
+        # Exclude tests and tutorials
+        exclude: "^(test/|tutorial_notebooks/)"
+        # No args needed, uses pyproject.toml settings
       - id: ruff-format
+        args: ["--line-length=120"]
+        # No need for --ignore options here, as ruff-format is for applying automatic fixes.
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
@@ -33,6 +38,8 @@ repos:
       - id: codespell
         additional_dependencies:
           - tomli
+        args: ["--ignore-words-list=Nam"]
+
 
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.1

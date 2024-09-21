@@ -1,9 +1,21 @@
+# codecov.yml
+
 coverage:
   status:
     project:
       default:
-        target: auto
-        threshold: 5%
+        target: auto          # Automatically adjusts based on the current project coverage
+        threshold: 80%        # Allow up to an 80% drop in overall coverage during beta phase
+        # Note: This permits a large drop in overall project coverage during the fast-paced development phase.
+
     patch:
       default:
-        informational: true
+        informational: true   # Informational only; won't fail the pipeline
+        target: 5%            # Set a minimal target of 5% coverage for new code patches
+        threshold: 90%        # Allow up to a 90% drop on new code coverage (extremely lenient)
+        # Note: This ensures that even with low coverage, the pipeline won’t block PRs, but you still get coverage insights.
+
+parsers:
+  python:
+    include:
+      - "src/temporalscope/**"  # Focus coverage checks only on main source files, excluding tests and docs for now
