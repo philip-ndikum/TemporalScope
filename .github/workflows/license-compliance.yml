@@ -44,4 +44,3 @@ jobs:
 
       - name: Check Dependencies' License
         uses: apache/skywalking-eyes/dependency@v0.6.0
-
