@@ -1,12 +1,12 @@
-""" TemporalScope/src/temporalscope/partition/base_protocol.py
+"""TemporalScope/src/temporalscope/partition/base_protocol.py.
 
-This module defines the TemporalPartitionerProtocol, a protocol for all 
+This module defines the TemporalPartitionerProtocol, a protocol for all
 temporal partitioning methods. Each partitioning method must implement
 the required methods to comply with this protocol.
 
 Core Functionality:
 -------------------
-1. fit: Must generate the partition indices (row ranges) for the 
+1. fit: Must generate the partition indices (row ranges) for the
    partitions ('train', 'test', 'validation', etc.) in a memory-efficient manner.
    Implementations should leverage lazy-loading techniques to ensure that
    large datasets are handled efficiently, minimizing memory usage.
@@ -15,7 +15,7 @@ Core Functionality:
    maintaining the efficiency gained from lazy-loading in the fit stage.
 3. check_data: Optional method to perform data validation checks.
 
-Each implementing class must provide its own logic for partitioning the data and 
+Each implementing class must provide its own logic for partitioning the data and
 any necessary validation, while adhering to the design principles of lazy-loading
 and memory efficiency.
 
@@ -32,10 +32,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Protocol, Dict, Tuple, Union, Iterator
+from typing import Dict, Iterator, Protocol, Tuple, Union
+
+import modin.pandas as mpd
 import pandas as pd
 import polars as pl
-import modin.pandas as mpd
+
 from temporalscope.core.temporal_data_loader import TimeFrame
 
 
@@ -115,9 +117,7 @@ class TemporalPartitionerProtocol(Protocol):
         self,
     ) -> Union[
         Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]],
-        Iterator[
-            Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]]
-        ],
+        Iterator[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]]],
     ]:
         """Return the data for each partition.
 
@@ -161,8 +161,7 @@ class TemporalPartitionerProtocol(Protocol):
     def check_data(self) -> None:
         """Perform data validation checks.
 
-        Implementing classes must provide their own data validation logic, such as ensuring
-        sample size is sufficient, checking for window overlaps, or validating the
-        feature count.
+        Implementing classes must provide their own data validation logic, such as ensuring sample size is sufficient,
+        checking for window overlaps, or validating the feature count.
         """
         pass

@@ -1,9 +1,9 @@
-""" TemporalScope/src/temporalscope/core/temporal_data_loader.py
+"""TemporalScope/src/temporalscope/core/temporal_data_loader.py.
 
-This module provides a flexible data loader for time series forecasting, allowing users to define their own 
-preprocessing, loss functions, and explainability workflows. The core assumption is that features are organized 
+This module provides a flexible data loader for time series forecasting, allowing users to define their own
+preprocessing, loss functions, and explainability workflows. The core assumption is that features are organized
 in a context window prior to the target column, making the system compatible with SHAP and other explainability methods.
-Given the variance in pre-processing techniques, meta-learning & loss-functions TemporalScope explicitly does not 
+Given the variance in pre-processing techniques, meta-learning & loss-functions TemporalScope explicitly does not
 impose constraints on the end-user in the engineering design.
 
 .. seealso::
@@ -12,36 +12,40 @@ impose constraints on the end-user in the engineering design.
     2. Woo, G., Liu, C., Kumar, A., Xiong, C., Savarese, S., & Sahoo, D. (2024). Unified training of universal time series forecasting transformers. arXiv preprint arXiv:2402.02592.
     3. Trirat, P., Shin, Y., Kang, J., Nam, Y., Na, J., Bae, M., Kim, J., Kim, B., & Lee, J.-G. (2024). Universal time-series representation learning: A survey. arXiv preprint arXiv:2401.03717.
 
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file 
+TemporalScope is Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
 except in compliance with the License. You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed 
-on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 for the specific language governing permissions and limitations under the License.
 """
 
-from typing import Union, Optional
-import polars as pl
-import pandas as pd
+from typing import Optional, Union
+
 import modin.pandas as mpd
+import pandas as pd
+import polars as pl
+
 from temporalscope.core.core_utils import (
+    BACKEND_MODIN,
+    BACKEND_PANDAS,
+    BACKEND_POLARS,
+    SupportedBackendDataFrame,
+    get_default_backend_cfg,
+    validate_and_convert_input,
     validate_backend,
     validate_input,
-    validate_and_convert_input,
-    get_default_backend_cfg,
-    BACKEND_POLARS,
-    BACKEND_PANDAS,
-    BACKEND_MODIN,
 )
 
 
 class TimeFrame:
-    """Central class for the TemporalScope package, designed to manage time series data
-    across various backends such as Polars, Pandas, and Modin. This class enables
-    modular and flexible workflows for machine learning, deep learning, and time
-    series explainability (XAI) methods like temporal SHAP.
+    """Central class for the TemporalScope package.
+
+    Designed to manage time series data across various backends such as
+    Polars, Pandas, and Modin. This class enables modular and flexible workflows for machine learning, deep learning,
+    and time series explainability (XAI) methods like temporal SHAP.
 
     The `TimeFrame` class supports workflows where the target variable can be either 1D scalar data,
     typical in classical machine learning, or 3D tensor data, more common in deep learning contexts.
@@ -87,7 +91,7 @@ class TimeFrame:
 
     def __init__(
         self,
-        df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame],
+        df: SupportedBackendDataFrame,
         time_col: str,
         target_col: str,
         backend: Optional[str] = None,
@@ -96,7 +100,7 @@ class TimeFrame:
         """Initialize a TimeFrame object.
 
         :param df: The input DataFrame.
-        :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :type df: SupportedBackendDataFrame
         :param time_col: The name of the column representing time in the DataFrame.
         :type time_col: str
         :param target_col: The name of the column representing the target variable in the DataFrame.
@@ -161,13 +165,11 @@ class TimeFrame:
         """
         return self._target_col
 
-    def _infer_backend(
-        self, df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
-    ) -> str:
+    def _infer_backend(self, df: SupportedBackendDataFrame) -> str:
         """Infer the backend from the DataFrame type.
 
         :param df: The input DataFrame.
-        :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :type df: SupportedBackendDataFrame
         :return: The inferred backend ('pl', 'pd', or 'mpd').
         :rtype: str
         :raises ValueError: If the DataFrame type is unsupported.
@@ -181,13 +183,11 @@ class TimeFrame:
         else:
             raise ValueError(f"Unsupported DataFrame type: {type(df)}")
 
-    def _validate_columns(
-        self, df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
-    ) -> None:
+    def _validate_columns(self, df: SupportedBackendDataFrame) -> None:
         """Validate the presence of required columns in the DataFrame.
 
         :param df: The DataFrame to validate.
-        :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :type df: SupportedBackendDataFrame
         :raises ValueError: If required columns are missing.
         """
         required_columns = [self._time_col, self._target_col]
@@ -197,17 +197,17 @@ class TimeFrame:
 
     def _sort_data(
         self,
-        df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame],
+        df: SupportedBackendDataFrame,
         ascending: bool = True,
-    ) -> Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]:
+    ) -> SupportedBackendDataFrame:
         """Internal method to sort the DataFrame based on the backend.
 
         :param df: The DataFrame to sort.
-        :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :type df: SupportedBackendDataFrame
         :param ascending: If True, sort in ascending order; if False, sort in descending order.
         :type ascending: bool
         :return: The sorted DataFrame.
-        :rtype: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :rtype: SupportedBackendDataFrame
         :raises TypeError: If the DataFrame type does not match the backend.
         :raises ValueError: If the backend is unsupported.
         """
@@ -228,15 +228,13 @@ class TimeFrame:
         except KeyError:
             raise ValueError(f"Unsupported backend: {self._backend}")
 
-    def _setup_timeframe(
-        self, df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
-    ) -> Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]:
+    def _setup_timeframe(self, df: SupportedBackendDataFrame) -> SupportedBackendDataFrame:
         """Sets up the TimeFrame object by converting, validating, and preparing data as required.
 
         :param df: The input DataFrame to be processed.
-        :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :type df: SupportedBackendDataFrame
         :return: The processed DataFrame.
-        :rtype: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :rtype: SupportedBackendDataFrame
         :raises ValueError:
             - If required columns are missing.
             - If the specified backend is not supported.
@@ -264,21 +262,19 @@ class TimeFrame:
         """
         self.df = self._sort_data(self.df, ascending=ascending)
 
-    def get_data(self) -> Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]:
+    def get_data(self) -> SupportedBackendDataFrame:
         """Return the DataFrame in its current state.
 
         :return: The DataFrame managed by the TimeFrame instance.
-        :rtype: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :rtype: SupportedBackendDataFrame
         """
         return self.df
 
-    def update_data(
-        self, new_df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
-    ) -> None:
+    def update_data(self, new_df: SupportedBackendDataFrame) -> None:
         """Updates the internal DataFrame with the provided new DataFrame.
 
         :param new_df: The new DataFrame to replace the existing one.
-        :type new_df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+        :type new_df: SupportedBackendDataFrame
         :raises TypeError: If the new DataFrame type does not match the backend.
         :raises ValueError: If required columns are missing in the new DataFrame.
         """
@@ -288,9 +284,7 @@ class TimeFrame:
         self._validate_columns(new_df)
         self.df = new_df
 
-    def update_target_col(
-        self, new_target_col: Union[pl.Series, pd.Series, mpd.Series]
-    ) -> None:
+    def update_target_col(self, new_target_col: Union[pl.Series, pd.Series, mpd.Series]) -> None:
         """Updates the target column in the internal DataFrame with the provided new target column.
 
         :param new_target_col: The new target column to replace the existing one.
@@ -313,19 +307,12 @@ class TimeFrame:
 
         # Check if the new target column length matches the DataFrame length
         if len(new_target_col) != len(self.df):
-            raise ValueError(
-                "The new target column must have the same number of rows as the DataFrame."
-            )
+            raise ValueError("The new target column must have the same number of rows as the DataFrame.")
 
         # Update the target column based on the backend
         if self._backend == BACKEND_POLARS:
-            # Polars uses the alias method for column renaming
             self.df = self.df.with_columns([new_target_col.alias(self._target_col)])
         elif self._backend == BACKEND_PANDAS:
-            # Pandas series has .values
-            assert isinstance(new_target_col, pd.Series)  # For mypy
-            self.df[self._target_col] = new_target_col.values
+            self.df[self._target_col] = new_target_col.to_numpy()  # Convert to NumPy for Pandas
         elif self._backend == BACKEND_MODIN:
-            # Modin series has .to_numpy
-            assert isinstance(new_target_col, mpd.Series)  # For mypy
-            self.df[self._target_col] = new_target_col.to_numpy()
+            self.df[self._target_col] = new_target_col.to_numpy()  # Use .to_numpy() for Modin

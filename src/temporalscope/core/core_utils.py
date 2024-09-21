@@ -1,13 +1,11 @@
-""" TemporalScope/src/temporalscope/core/core_utils.py
+"""TemporalScope/src/temporalscope/core/core_utils.py.
 
-This module provides utility functions that can be used throughout the TemporalScope package.
-It includes methods for printing dividers, checking for nulls and NaNs, and validating the backend.
+This module provides utility functions that can be used throughout the TemporalScope package. It includes methods for
+printing dividers, checking for nulls and NaNs, and validating the backend.
 
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
+TemporalScope is Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
+compliance with the License. You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from typing import Union, cast, Dict, Optional, NoReturn
 import os
-from dotenv import load_dotenv
-import polars as pl
-import pandas as pd
+from typing import Dict, NoReturn, Optional, Union, cast
+
 import modin.pandas as mpd
+import pandas as pd
+import polars as pl
+from dotenv import load_dotenv
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -44,6 +43,7 @@ TF_DEFAULT_CFG = {
 
 # Define a type alias for DataFrames that support Pandas, Modin, and Polars backends
 SupportedBackendDataFrame = Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]
+
 
 def get_default_backend_cfg() -> Dict[str, Dict[str, str]]:
     """Retrieve the application configuration settings.
@@ -78,13 +78,11 @@ def raise_invalid_backend(backend: str) -> NoReturn:
     raise ValueError(f"Unsupported backend: {backend}")
 
 
-def validate_input(
-    df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], backend: str
-) -> None:
+def validate_input(df: SupportedBackendDataFrame, backend: str) -> None:
     """Validate that the DataFrame matches the expected type for the specified backend.
 
     :param df: The DataFrame to validate.
-    :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+    :type df: SupportedBackendDataFrame
     :param backend: The backend against which to validate the DataFrame's type ('pl', 'pd', 'mpd').
     :type backend: str
     :raises TypeError: If the DataFrame does not match the expected type for the backend.
@@ -97,48 +95,47 @@ def validate_input(
         raise TypeError("Expected a Modin DataFrame.")
 
 
-def validate_and_convert_input(
-    df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], backend: str
-) -> Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]:
+def validate_and_convert_input(df: SupportedBackendDataFrame, backend: str) -> SupportedBackendDataFrame:
     """Validates and converts the input DataFrame to the specified backend type.
 
     :param df: The input DataFrame to validate and convert.
-    :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+    :type df: SupportedBackendDataFrame
     :param backend: The desired backend type ('pl', 'pd', or 'mpd').
     :type backend: str
     :return: The DataFrame converted to the specified backend type.
-    :rtype: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+    :rtype: SupportedBackendDataFrame
     :raises TypeError: If the input DataFrame type doesn't match the specified backend or conversion fails.
     :raises ValueError: If the backend is not supported.
     """
     validate_backend(backend)  # Validates if backend is supported
 
-    if backend == BACKEND_POLARS:
-        if isinstance(df, pl.DataFrame):
-            return df
-        elif isinstance(df, pd.DataFrame):
-            return pl.from_pandas(df)  # Convert Pandas to Polars
-        elif isinstance(df, mpd.DataFrame):
-            return pl.from_pandas(df._to_pandas())  # Modin to Pandas to Polars
-    elif backend == BACKEND_PANDAS:
-        if isinstance(df, pd.DataFrame):
-            return df
-        elif isinstance(df, pl.DataFrame):
-            return df.to_pandas()  # Convert Polars to Pandas
-        elif isinstance(df, mpd.DataFrame):
-            return df._to_pandas()  # Convert Modin to Pandas
-    elif backend == BACKEND_MODIN:
-        if isinstance(df, mpd.DataFrame):
-            return df
-        elif isinstance(df, pd.DataFrame):
-            return mpd.DataFrame(df)  # Convert Pandas to Modin
-        elif isinstance(df, pl.DataFrame):
-            return mpd.DataFrame(df.to_pandas())  # Polars to Pandas to Modin
+    # Mapping for backends and conversion functions
+    backend_conversion_map = {
+        BACKEND_POLARS: {
+            pl.DataFrame: lambda x: x,
+            pd.DataFrame: pl.from_pandas,
+            mpd.DataFrame: lambda x: pl.from_pandas(x._to_pandas()),
+        },
+        BACKEND_PANDAS: {
+            pd.DataFrame: lambda x: x,
+            pl.DataFrame: lambda x: x.to_pandas(),
+            mpd.DataFrame: lambda x: x._to_pandas(),
+        },
+        BACKEND_MODIN: {
+            mpd.DataFrame: lambda x: x,
+            pd.DataFrame: lambda x: mpd.DataFrame(x),
+            pl.DataFrame: lambda x: mpd.DataFrame(x.to_pandas()),
+        },
+    }
 
-    # If none of the types match, raise a TypeError
-    raise TypeError(
-        f"Input DataFrame type {type(df)} does not match the specified backend '{backend}'"
-    )
+    if backend not in backend_conversion_map:
+        raise ValueError(f"Unsupported backend: {backend}")
+
+    for dataframe_type, conversion_func in backend_conversion_map[backend].items():
+        if isinstance(df, dataframe_type):
+            return conversion_func(df)
+
+    raise TypeError(f"Input DataFrame type {type(df)} does not match the specified backend '{backend}'")
 
 
 def get_api_keys() -> Dict[str, Optional[str]]:
@@ -171,13 +168,11 @@ def print_divider(char: str = "=", length: int = 70) -> None:
     print(char * length)
 
 
-def check_nulls(
-    df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], backend: str
-) -> bool:
+def check_nulls(df: SupportedBackendDataFrame, backend: str) -> bool:
     """Check for null values in the DataFrame using the specified backend.
 
     :param df: The DataFrame to check for null values.
-    :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+    :type df: SupportedBackendDataFrame
     :param backend: The backend used for the DataFrame ('pl', 'pd', 'mpd').
     :type backend: str
     :return: True if there are null values, False otherwise.
@@ -198,13 +193,11 @@ def check_nulls(
         raise_invalid_backend(backend)
 
 
-def check_nans(
-    df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], backend: str
-) -> bool:
+def check_nans(df: SupportedBackendDataFrame, backend: str) -> bool:
     """Check for NaN values in the DataFrame using the specified backend.
 
     :param df: The DataFrame to check for NaN values.
-    :type df: Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame]
+    :type df: SupportedBackendDataFrame
     :param backend: The backend used for the DataFrame ('pl', 'pd', 'mpd').
     :type backend: str
     :return: True if there are NaN values, False otherwise.
