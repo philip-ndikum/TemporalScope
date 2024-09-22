@@ -15,17 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""TemporalScope/test/unit/test_core_temporal_data_loader.py
-
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
-
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-"""
-
 from datetime import date, timedelta
 from typing import Dict, List, Union
 
@@ -137,9 +126,10 @@ def test_update_data(sample_dataframe):
     :param sample_dataframe: Fixture providing the DataFrame and backend.
     :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
     """
+    SAMPLE_SIZE = 50
     df, backend = sample_dataframe
     tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    new_data = create_sample_data(num_samples=50)
+    new_data = create_sample_data(num_samples=SAMPLE_SIZE)
     if backend == BACKEND_POLARS:
         new_data["time"] = pl.Series(new_data["time"])
         new_df = pl.DataFrame(new_data)
@@ -148,7 +138,7 @@ def test_update_data(sample_dataframe):
     elif backend == BACKEND_MODIN:
         new_df = mpd.DataFrame(new_data)
     tf.update_data(new_df)
-    assert len(tf.get_data()) == 50
+    assert len(tf.get_data()) == SAMPLE_SIZE
 
 
 def test_update_target_col(sample_dataframe):
@@ -259,7 +249,6 @@ def test_update_target_col_invalid_length(sample_dataframe):
         tf.update_target_col(new_target_col)
 
     assert "The new target column must have the same number of rows as the DataFrame." in str(excinfo.value)
-
 
 
 def test_update_target_col_invalid_type(sample_dataframe):

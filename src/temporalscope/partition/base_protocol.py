@@ -35,18 +35,6 @@ Core Functionality:
 Each implementing class must provide its own logic for partitioning the data and
 any necessary validation, while adhering to the design principles of lazy-loading
 and memory efficiency.
-
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 """
 
 from typing import Dict, Iterator, Protocol, Tuple, Union
@@ -114,18 +102,8 @@ class TemporalPartitionerProtocol(Protocol):
             .. code-block:: python
 
                 {
-                    "partition_1": {
-                        "full": (0, 10),
-                        "train": (0, 8),
-                        "test": (8, 10),
-                        "validation": None
-                    },
-                    "partition_2": {
-                        "full": (5, 15),
-                        "train": (5, 13),
-                        "test": (13, 15),
-                        "validation": None
-                    }
+                    "partition_1": {"full": (0, 10), "train": (0, 8), "test": (8, 10), "validation": None},
+                    "partition_2": {"full": (5, 15), "train": (5, 13), "test": (13, 15), "validation": None},
                 }
         """
         pass
@@ -163,14 +141,14 @@ class TemporalPartitionerProtocol(Protocol):
                         "full": DataFrame(...),
                         "train": DataFrame(...),
                         "test": DataFrame(...),
-                        "validation": None
+                        "validation": None,
                     },
                     "partition_2": {
                         "full": DataFrame(...),
                         "train": DataFrame(...),
                         "test": DataFrame(...),
-                        "validation": None
-                    }
+                        "validation": None,
+                    },
                 }
         """
         pass
