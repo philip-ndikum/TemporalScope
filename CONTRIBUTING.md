@@ -1,3 +1,25 @@
+## Table of Contents
+- [Contributing to TemporalScope](#contributing-to-temporalscope)
+  - [Contribution Guidelines](#contribution-guidelines)
+- [How to Contribute to TemporalScope](#how-to-contribute-to-temporalscope)
+- [Issue Tracking](#issue-tracking)
+- [Contributing Code](#contributing-code)
+  - [Fork the Repository](#fork-the-repository)
+  - [Setup Development Environment](#setup-development-environment)
+  - [Install Pre-commit Hooks](#install-pre-commit-hooks)
+  - [Create a New Branch](#create-a-new-branch)
+  - [Make Your Changes](#make-your-changes)
+  - [Ensure Code Quality](#ensure-code-quality)
+  - [Commit Your Changes](#commit-your-changes)
+  - [Submit a Pull Request](#submit-a-pull-request)
+  - [After Submitting](#after-submitting)
+  - [Documentation](#documentation)
+  - [Test Policy](#test-policy)
+  - [Development Roadmap \& Changelog](#development-roadmap--changelog)
+  - [Workflow for Releasing New Versions](#workflow-for-releasing-new-versions)
+  - [Code Style](#code-style)
+  - [Reporting Issues \& Requesting Features](#reporting-issues--requesting-features)
+
 # Contributing to TemporalScope
 
 Thank you for your interest in contributing to TemporalScope! Contributions of all kinds are welcome and appreciated.
@@ -113,10 +135,13 @@ TemporalScope employs various tools to maintain consistent code style, quality, 
 
 Before submitting your changes, perform the following steps:
 
-1. Run the test suite and type checking:
+1. Run the test suite:
 
 ```console
-$ hatch run test:type
+$ hatch run test:unit
+```
+```console
+$ hatch run test:integration
 ```
 
 2. Check your code format:
