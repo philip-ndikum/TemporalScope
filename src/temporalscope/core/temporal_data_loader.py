@@ -28,18 +28,9 @@ impose constraints on the end-user in the engineering design.
     1. Van Ness, M., Shen, H., Wang, H., Jin, X., Maddix, D.C., & Gopalswamy, K. (2023). Cross-Frequency Time Series Meta-Forecasting. arXiv preprint arXiv:2302.02077.
     2. Woo, G., Liu, C., Kumar, A., Xiong, C., Savarese, S., & Sahoo, D. (2024). Unified training of universal time series forecasting transformers. arXiv preprint arXiv:2402.02592.
     3. Trirat, P., Shin, Y., Kang, J., Nam, Y., Na, J., Bae, M., Kim, J., Kim, B., & Lee, J.-G. (2024). Universal time-series representation learning: A survey. arXiv preprint arXiv:2401.03717.
-
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
-except in compliance with the License. You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
-on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
-for the specific language governing permissions and limitations under the License.
 """
 
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
 import modin.pandas as mpd
 import pandas as pd
@@ -56,6 +47,12 @@ from temporalscope.core.core_utils import (
     validate_input,
 )
 
+# Use forward reference for TimeFrame
+if TYPE_CHECKING:
+    from temporalscope.core.temporal_data_loader import TimeFrame
+
+# Define alias with forward reference
+TimeFrameCompatibleData = Union['TimeFrame', SupportedBackendDataFrame]  # Use string to refer to TimeFrame
 
 class TimeFrame:
     """Central class for the TemporalScope package.
@@ -154,7 +151,6 @@ class TimeFrame:
 
         # Convert, validate, and set up the DataFrame
         self.df = self._setup_timeframe(df)
-
     @property
     def backend(self) -> str:
         """Return the backend used.

@@ -26,18 +26,6 @@ It is designed to work with the TimeFrame class, supporting multiple backends.
     1. Torres, J.F., Hadjout, D., Sebaa, A., Martínez-Álvarez, F., & Troncoso, A. (2021). Deep learning for time series forecasting: a survey. Big Data, 9(1), 3-21. https://doi.org/10.1089/big.2020.0159
     2. Lim, B., & Zohren, S. (2021). Time-series forecasting with deep learning: a survey. Philosophical Transactions of the Royal Society A, 379(2194), 20200209. https://doi.org/10.1098/rsta.2020.0209
     3. Tang, Y., Song, Z., Zhu, Y., Yuan, H., Hou, M., Ji, J., Tang, C., & Li, J. (2022). A survey on machine learning models for financial time series forecasting. Neurocomputing, 512, 363-380. https://doi.org/10.1016/j.neucom.2022.09.078
-
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 """
 
 import warnings
@@ -51,10 +39,13 @@ from temporalscope.core.core_utils import (
     BACKEND_MODIN,
     BACKEND_PANDAS,
     BACKEND_POLARS,
+    MODE_MACHINE_LEARNING,
+    MODE_DEEP_LEARNING,
     SupportedBackendDataFrame,
     validate_backend,
 )
 from temporalscope.core.temporal_data_loader import TimeFrame
+from temporalscope.core.temporal_data_loader import TimeFrameCompatibleData
 
 
 class TemporalTargetShifter:
@@ -132,9 +123,6 @@ class TemporalTargetShifter:
 
     """
 
-    MODE_MACHINE_LEARNING = "machine_learning"
-    MODE_DEEP_LEARNING = "deep_learning"
-
     def __init__(
         self,
         n_lags: int = 1,
@@ -154,26 +142,41 @@ class TemporalTargetShifter:
         :param drop_target: Whether to drop the original target column after shifting. Default is True.
         :param verbose: Whether to print detailed information about transformations.
         :raises ValueError: If the target column is not provided or if an invalid mode is selected.
+
+        Note:
+        The data_format is set to None during initialization and will be inferred in the fit() method based on
+        the type of input data (TimeFrame or SupportedBackendDataFrame).
         """
+        # Validate the mode (should be machine learning or deep learning)
         if mode not in [self.MODE_MACHINE_LEARNING, self.MODE_DEEP_LEARNING]:
             raise ValueError(f"`mode` must be '{self.MODE_MACHINE_LEARNING}' or '{self.MODE_DEEP_LEARNING}'.")
 
+        # Ensure the target column is provided
         if target_col is None:
             raise ValueError("`target_col` must be explicitly provided for TemporalTargetShifter.")
 
+        # Validate n_lags (should be greater than 0)
         if n_lags <= 0:
             raise ValueError("`n_lags` must be greater than 0.")
 
+        # Handle deep learning mode, ensure sequence length is set
+        if mode == self.MODE_DEEP_LEARNING and sequence_length is None:
+            raise ValueError("`sequence_length` must be provided when mode is 'deep_learning'.")
+
+        # Assign instance attributes
         self.n_lags = n_lags
         self.mode = mode
         self.sequence_length = sequence_length
         self.target_col = target_col
         self.drop_target = drop_target
         self.verbose = verbose
-        self.backend: Optional[str] = None  # Backend will be set during fit
 
-        if self.mode == self.MODE_DEEP_LEARNING and not self.sequence_length:
-            raise ValueError("`sequence_length` must be provided when mode is 'deep_learning'.")
+        # The data format will be inferred later during fit()
+        self.data_format = None  # Data format will be inferred during fit()
+
+        # Print a verbose message if required
+        if verbose:
+            print(f"Initialized TemporalTargetShifter with mode={mode}, n_lags={n_lags}, target_col={target_col}")
 
     def _infer_backend(self, df: SupportedBackendDataFrame) -> str:
         """Infer the backend from the DataFrame type.
@@ -184,11 +187,11 @@ class TemporalTargetShifter:
         :raises ValueError: If the DataFrame type is unsupported.
         """
         if isinstance(df, pl.DataFrame):
-            return BACKEND_POLARS
+            return "pl"
         elif isinstance(df, pd.DataFrame):
-            return BACKEND_PANDAS
+            return "pd"
         elif isinstance(df, mpd.DataFrame):
-            return BACKEND_MODIN
+            return "mpd"
         else:
             raise ValueError(f"Unsupported DataFrame type: {type(df)}")
 
@@ -203,24 +206,26 @@ class TemporalTargetShifter:
             self.backend = self._infer_backend(df)
         validate_backend(self.backend)
 
-    def _validate_data(self, tf: SupportedBackendDataFrame) -> None:
-        """Validate the TimeFrame or partitioned data for consistency.
+    def _validate_data(self, tf: TimeFrameCompatibleData) -> None:
+        """Validate the TimeFrame or DataFrame input for consistency.
 
-        :param tf: The `TimeFrame` object or a DataFrame (`pandas`, `modin`, or `polars`) that contains the time series data.
-        :type tf: SupportedBackendDataFrame
-        :raises ValueError: If the data is invalid or empty.
+        This method ensures that the input data is valid and non-empty, regardless of whether it is a TimeFrame or a raw DataFrame.
+
+        :param tf: The `TimeFrame` object or a raw DataFrame (Pandas, Modin, or Polars) to be validated.
+        :type tf: TimeFrameCompatibleData
+        :raises ValueError: If the input data is empty or invalid.
         """
         if isinstance(tf, TimeFrame):
             df = tf.get_data()
         else:
             df = tf
 
-        # Check if the DataFrame is empty based on the backend
-        if isinstance(df, (pd.DataFrame, mpd.DataFrame)):  # Merge the `isinstance` calls for `pd` and `mpd`
+        # Check if the DataFrame is empty
+        if isinstance(df, (pd.DataFrame, mpd.DataFrame)):
             if df is None or df.empty:
                 raise ValueError("Input DataFrame is empty.")
         elif isinstance(df, pl.DataFrame):
-            if df is None or df.is_empty():
+            if df.is_empty():
                 raise ValueError("Input DataFrame is empty.")
         else:
             raise ValueError("Unsupported DataFrame type.")
@@ -357,16 +362,17 @@ class TemporalTargetShifter:
             rows_dropped = rows_before - rows_after
             print(f"Rows before shift: {rows_before}; Rows after shift: {rows_after}; Rows dropped: {rows_dropped}")
 
-    def fit(self, tf: SupportedBackendDataFrame) -> "TemporalTargetShifter":
-        """Validate and prepare the target data for transformation based on the specified backend.
+    def fit(self, tf: TimeFrameCompatibleData) -> "TemporalTargetShifter":
+        """Validate and prepare the target data for transformation based on the inferred data format (backend).
 
-        The `fit` method initializes the backend and validates the input data, ensuring the target column is consistent with the input data.
-        It does not alter the data but sets up the necessary configuration for later transformations.
+        The `fit` method initializes the data format (whether it's a `TimeFrame` or a raw DataFrame) and validates the input data.
+        It ensures the target column is consistent with the input data and sets the backend (`data_format`), which will be used
+        in subsequent transformations.
 
-        :param tf: The `TimeFrame` object, or a DataFrame (`pandas`, `modin`, or `polars`) that contains the time series data.
-                   The DataFrame must have a target column defined or the `target_col` attribute set during initialization.
-        :type tf: SupportedBackendDataFrame, optional
-        :raises ValueError: If the target column is not provided, the data is invalid, or the backend is unsupported.
+        :param tf: The `TimeFrame` object or a raw DataFrame (`pandas`, `modin`, or `polars`) that contains the time series data.
+                   The data should contain a target column that will be shifted.
+        :type tf: TimeFrameCompatibleData
+        :raises ValueError: If the target column is not provided, the data is invalid, or the backend format is unsupported.
         :raises Warning: If the target column provided in `TemporalTargetShifter` differs from the one in the `TimeFrame`.
         :return: The fitted `TemporalTargetShifter` instance, ready for transforming the data.
         :rtype: TemporalTargetShifter
@@ -375,76 +381,129 @@ class TemporalTargetShifter:
         --------------
         .. code-block:: python
 
+            from temporalscope.core.temporal_target_shifter import TemporalTargetShifter
+            from temporalscope.core.temporal_data_loader import TimeFrame
+            import pandas as pd
+            import numpy as np
+
+            # Create a sample Pandas DataFrame
+            data = {
+                'time': pd.date_range(start='2022-01-01', periods=100),
+                'target': np.random.rand(100),
+                'feature_1': np.random.rand(100)
+            }
+            df = pd.DataFrame(data)
+
+            # Create a TimeFrame object
+            tf = TimeFrame(df, time_col="time", target_col="target", backend="pd")
+
+            # Create a TemporalTargetShifter instance
             shifter = TemporalTargetShifter(n_lags=2, target_col="target")
-            shifter.fit(time_frame)
+
+            # Fit the shifter to the TimeFrame
+            shifter.fit(tf)
         """
+        # Validate the input data (whether it's TimeFrame or DataFrame)
         self._validate_data(tf)
 
+        # If input is a TimeFrame, set the backend using the @property method and manage the target column
         if isinstance(tf, TimeFrame):
-            # Set backend and handle target column for TimeFrame input
-            self.backend = tf.backend
+            self.data_format = tf.backend  # Using the @property to access the backend
             if not self.target_col:
-                self.target_col = tf._target_col
+                self.target_col = tf._target_col  # If target_col not set in the shifter, use TimeFrame's target_col
             elif self.target_col != tf._target_col:
                 warnings.warn(
-                    f"The `target_col` in TemporalTargetShifter ('{self.target_col}') "
-                    f"differs from the TimeFrame's target_col ('{tf._target_col}').",
+                    f"The `target_col` in TemporalTargetShifter ('{self.target_col}') differs from the TimeFrame's "
+                    f"target_col ('{tf._target_col}').",
                     UserWarning,
                 )
+        # If input is a raw DataFrame (pandas, modin, or polars), infer the backend
         elif tf is not None:
-            # Infer backend for non-TimeFrame input
-            self.backend = self._infer_backend(tf)
+            self.data_format = self._infer_backend(tf)
         else:
             raise ValueError("Input data is None.")
 
+        # Return the instance after fitting
         return self
 
-    def transform(self, tf: SupportedBackendDataFrame) -> SupportedBackendDataFrame:
+    def transform(self, tf: TimeFrameCompatibleData) -> SupportedBackendDataFrame:
         """Transform the input time series data by shifting the target variable according to the specified number of lags.
 
-        The `transform` method shifts the target variable in the input data according to the `n_lags` or `sequence_length` set during initialization.
-        This method works directly on either a `TimeFrame` or a raw DataFrame (Pandas, Modin, or Polars), applying the appropriate backend-specific transformation.
+        The `transform` method shifts the target variable in the input data according to the `n_lags` or `sequence_length`
+        set during initialization. This method works directly on either a `TimeFrame` or a raw DataFrame (Pandas, Modin,
+        or Polars), applying the appropriate backend-specific transformation.
 
-        :param tf: The `TimeFrame` object or a DataFrame (Pandas, Modin, or Polars) that contains the time series data to be transformed.
-                   The data should contain a target column that will be shifted.
-        :type tf: SupportedBackendDataFrame, optional
+        :param tf: The `TimeFrame` object or a DataFrame (Pandas, Modin, or Polars) that contains the time series data
+                   to be transformed. The data should contain a target column that will be shifted.
+        :type tf: TimeFrameCompatibleData
         :raises ValueError: If the input data is invalid, unsupported, or lacks columns.
         :raises ValueError: If the backend is unsupported or data validation fails.
-        :return: A transformed DataFrame or `TimeFrame` with the target variable shifted by the specified lags or sequence length.
-                 If a `TimeFrame` is provided, the returned object will be a `TimeFrame`. Otherwise, a DataFrame will be returned.
+        :return: A transformed DataFrame or `TimeFrame` with the target variable shifted by the specified lags or sequence
+                 length. If a `TimeFrame` is provided, the returned object will be a `TimeFrame`. Otherwise, a DataFrame
+                 will be returned.
         :rtype: SupportedBackendDataFrame
 
         Example Usage:
         --------------
         .. code-block:: python
 
+            from temporalscope.core.temporal_target_shifter import TemporalTargetShifter
+            from temporalscope.core.temporal_data_loader import TimeFrame
+            import pandas as pd
+
+            # Create a sample Pandas DataFrame
+            data = {
+                'time': pd.date_range(start='2022-01-01', periods=100),
+                'target': np.random.rand(100),
+                'feature_1': np.random.rand(100)
+            }
+            df = pd.DataFrame(data)
+
+            # Create a TimeFrame object
+            tf = TimeFrame(df, time_col="time", target_col="target", backend="pd")
+
+            # Initialize TemporalTargetShifter
             shifter = TemporalTargetShifter(n_lags=2, target_col="target")
-            transformed_data = shifter.transform(time_frame)
+
+            # Fit the shifter and transform the data
+            shifter.fit(tf)
+            transformed_data = shifter.transform(tf)
         """
+        # Handle TimeFrame input: sort data and retrieve the DataFrame
         if isinstance(tf, TimeFrame):
-            tf.sort_data()  # Ensure the data is sorted before shifting
+            tf.sort_data()  # Ensure data is sorted before shifting
             df = tf.get_data()
+
+            # If target_col isn't set in the shifter, retrieve it from TimeFrame
             if not self.target_col:
                 self.target_col = tf._target_col
-            self.backend = tf.backend
+
+            # Assign the backend from TimeFrame
+            self.data_format = tf.backend
+
+        # Handle raw DataFrame input
         elif tf is not None:
             df = tf
+
+            # Infer the target column from the input if not already set
             if not self.target_col:
                 if hasattr(df, "columns"):
                     self.target_col = df.columns[-1]
                 else:
                     raise ValueError("The input DataFrame does not have columns.")
+
+            # Set or infer the backend for the DataFrame
             self._set_backend(df)
         else:
             raise ValueError("Input data is None.")
 
-        # Delegate the transformation to backend-specific methods
-        if self.backend == BACKEND_PANDAS or self.backend == BACKEND_MODIN:
+        # Delegate transformation to backend-specific methods
+        if self.data_format == BACKEND_PANDAS or self.data_format == BACKEND_MODIN:
             transformed_df = self._transform_pandas_modin(df)
-        elif self.backend == BACKEND_POLARS:
+        elif self.data_format == BACKEND_POLARS:
             transformed_df = self._transform_polars(df)
         else:
-            raise ValueError(f"Unsupported backend: {self.backend}")
+            raise ValueError(f"Unsupported backend: {self.data_format}")
 
         # If the input was a TimeFrame, return a transformed TimeFrame
         if isinstance(tf, TimeFrame):
@@ -456,12 +515,12 @@ class TemporalTargetShifter:
                     if self.mode == self.MODE_MACHINE_LEARNING
                     else f"{self.target_col}_sequence"
                 ),
-                backend=self.backend,
+                backend=self.data_format,
             )
 
         return transformed_df
 
-    def fit_transform(self, tf: SupportedBackendDataFrame) -> SupportedBackendDataFrame:
+    def fit_transform(self, tf: TimeFrameCompatibleData) -> SupportedBackendDataFrame:
         """Fit and transform the input data in a single step.
 
         This method combines the functionality of the `fit` and `transform` methods. It first validates and prepares the input data (fitting),
@@ -469,7 +528,7 @@ class TemporalTargetShifter:
 
         :param tf: The `TimeFrame` object or a DataFrame (`pandas`, `modin`, or `polars`) to be transformed.
                    The data should contain a target column that will be shifted according to the `n_lags` or `sequence_length`.
-        :type tf: SupportedBackendDataFrame, optional
+        :type tf: TimeFrameCompatibleData
         :raises ValueError: If the input data is invalid or the backend is unsupported.
         :raises ValueError: If the target column is not set, or is incompatible with the data.
         :return: A transformed DataFrame or TimeFrame with the target variable shifted by the specified lags or sequence length.
@@ -479,13 +538,34 @@ class TemporalTargetShifter:
         --------------
         .. code-block:: python
 
+            from temporalscope.core.temporal_target_shifter import TemporalTargetShifter
+            from temporalscope.core.temporal_data_loader import TimeFrame
+            import pandas as pd
+
+            # Create a sample Pandas DataFrame
+            data = {
+                'time': pd.date_range(start='2022-01-01', periods=100),
+                'target': np.random.rand(100),
+                'feature_1': np.random.rand(100)
+            }
+            df = pd.DataFrame(data)
+
+            # Create a TimeFrame object
+            tf = TimeFrame(df, time_col="time", target_col="target", backend="pd")
+
+            # Initialize TemporalTargetShifter
             shifter = TemporalTargetShifter(n_lags=2, target_col="target")
-            shifted_data = shifter.fit_transform(time_frame)
+
+            # Fit and transform in a single step
+            shifted_data = shifter.fit_transform(tf)
         """
+        # Fit the data (infers backend and validates input)
         self.fit(tf)
+
+        # Apply the transformation (delegates to backend-specific methods)
         transformed = self.transform(tf)
 
-        # Return TimeFrame if input was TimeFrame, otherwise return DataFrame
+        # If input was a TimeFrame, return the transformed TimeFrame
         if isinstance(tf, TimeFrame):
             return TimeFrame(
                 transformed,
@@ -495,6 +575,8 @@ class TemporalTargetShifter:
                     if self.mode == self.MODE_MACHINE_LEARNING
                     else f"{self.target_col}_sequence"
                 ),
-                backend=self.backend,
+                backend=self.data_format,  # Ensure we use the inferred backend from fit()
             )
+
+        # If input was a raw DataFrame, return the transformed DataFrame
         return transformed
