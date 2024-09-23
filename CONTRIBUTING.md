@@ -168,6 +168,11 @@ $ hatch run check
 $ hatch run fix
 ```
 
+6. All checks (managed by pre-commit)
+```console
+$ hatch run quality-assurance
+```
+
 > [!NOTE]
 > Running these checks locally will help identify and resolve issues before submitting your changes, streamlining the review process.
 
