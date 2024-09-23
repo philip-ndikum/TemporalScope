@@ -85,22 +85,17 @@ class TimeFrame:
     .. code-block:: python
 
        # Example of creating a TimeFrame with a Polars DataFrame
-       data = pl.DataFrame({
-           'time': pl.date_range(start='2021-01-01', periods=100, interval='1d'),
-           'value': range(100)
-       })
-       tf = TimeFrame(data, time_col='time', target_col='value')
+       data = pl.DataFrame({"time": pl.date_range(start="2021-01-01", periods=100, interval="1d"), "value": range(100)})
+       tf = TimeFrame(data, time_col="time", target_col="value")
 
        # Accessing the data
        print(tf.get_data().head())
 
        # Example of creating a TimeFrame with a Modin DataFrame
        import modin.pandas as mpd
-       df = mpd.DataFrame({
-           'time': pd.date_range(start='2021-01-01', periods=100, freq='D'),
-           'value': range(100)
-       })
-       tf = TimeFrame(df, time_col='time', target_col='value', backend=BACKEND_MODIN)
+
+       df = mpd.DataFrame({"time": pd.date_range(start="2021-01-01", periods=100, freq="D"), "value": range(100)})
+       tf = TimeFrame(df, time_col="time", target_col="value", backend=BACKEND_MODIN)
 
        # Accessing the data
        print(tf.get_data().head())
