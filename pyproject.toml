@@ -9,7 +9,7 @@ description = "TemporalScope: Model-Agnostic Temporal Feature Importance Analysi
 authors = [
     { name = "Philip Ndikum", email = "philip-ndikum@users.noreply.github.com" },
     { name = "Serge Ndikum" },
-    { name = "Kane Norman" },
+    { name = "Kane Norman", email = "kanenorman@fas.harvard.edu" },
 ]
 license = "Apache-2.0"
 readme = "README.md"
@@ -54,28 +54,8 @@ keywords = [
     "Time-Series",
 ]
 
-[project.urls]
-"Source code" = "https://github.com/philip-ndikum/TemporalScope"
-Documentation = "https://temporalscope.readthedocs.io/en/latest/"
-
-[tool.hatch.envs.default]
-dependencies = [
-    "pre-commit",
-    "ruff",
-    "jupyterlab",
-    "notebook",
-    "commitizen==3.29.0",
-    "mypy",               # Include dependencies for QA scripts
-    "bandit",             # Include dependencies for QA scripts
-    "black",              # Include dependencies for QA scripts
-    "pytest",             # Include pytest for running tests
-    "pytest-cov",         # Include pytest-cov for coverage if needed
-    "docformatter",       # Add docformatter for docstring formatting
-    "commitizen",
-]
-
-[tool.hatch.envs.docs]
-dependencies = [
+[project.optional-dependencies]
+docs = [
     "pydata-sphinx-theme",
     "myst-parser",
     "sphinx >=4.0",
@@ -85,13 +65,22 @@ dependencies = [
     'sphinx-autoapi',
 ]
 
-[tool.hatch.envs.docs.scripts]
-build = "sphinx-build -WTb html . _build"
-readthedocs = "sphinx-build -WTb html . $READTHEDOCS_OUTPUT/html"
-serve = "python -m http.server --directory _build"
+[project.urls]
+"Source code" = "https://github.com/philip-ndikum/TemporalScope"
+Documentation = "https://temporalscope.readthedocs.io/en/latest/"
+
+[tool.hatch.envs.default]
+dependencies = ["pre-commit", "ruff", "jupyterlab", "notebook", "commitizen"]
+
+[tool.hatch.envs.docs]
+features = ["docs"]
 
 [tool.hatch.envs.test]
 extra-dependencies = ["pytest", "pytest-cov", "pytest-custom_exit_code"]
+
+[tool.hatch.envs.docs.scripts]
+build = "sphinx-build -WTb html . _build"
+serve = "python -m http.server --directory _build"
 
 [tool.hatch.envs.test.scripts]
 unit = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "not integration" {args:test}'
@@ -107,13 +96,13 @@ log_date_format = "%Y-%m-%d %H:%M:%S"
 minversion = "6.0"
 filterwarnings = "ignore"
 
-[tool.black]
-line-length = 120  # Set Black's line length to 120 for consistency
+[tool.ruff.format]
+docstring-code-format = true
 
 [tool.ruff]
-extend-exclude = ["*.pyc", "test/*", "tutorial_notebooks/*"]
+extend-exclude = ["*.pyc", "tutorial_notebooks/*"]
 target-version = "py310"
-line-length = 120  # Consistent line length across all tools
+line-length = 120
 
 [tool.ruff.lint]
 select = [
@@ -141,10 +130,10 @@ select = [
 ]
 
 ignore = [
-    "D400",  # Ignore "First line should end with a period" for docstrings.
-    "D401",  # Ignore "First line should be in imperative mood" for docstrings.
-    "D415",  # Ignore "First line should end with a period, question mark, or exclamation point."
-    "E501",  # Ignore "Line too long" in docstrings/comments for exceeding 120 characters.
+    "D400",    # Ignore "First line should end with a period" for docstrings.
+    "D401",    # Ignore "First line should be in imperative mood" for docstrings.
+    "D415",    # Ignore "First line should end with a period, question mark, or exclamation point."
+    "E501",    # Ignore "Line too long" in docstrings/comments for exceeding 120 characters.
     "PERF203", # `try`-`except` within a loop incurs performance overhead
     "PERF401", # Use a list comprehension to create a transformed list
     "PLR1714", # repeated-equality-comparison
@@ -189,24 +178,11 @@ check = "ruff check {args}"
 fix = "ruff check --fix"
 format = "ruff format {args}"
 format-check = "ruff format --check {args}"
-docformat = """
-docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
-docformatter --in-place --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope
-"""
-# Automated developer Q&A script
-quality-assurance = """
-pytest &&
-docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
-docformatter --in-place --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope
-ruff check src/temporalscope --output-format=full --show-files --show-fixes &&
-mypy src/temporalscope --ignore-missing-imports --show-error-codes --warn-unreachable &&
-bandit -r src/temporalscope
-"""
+quality-assurance = "pre-commit run"
 generate-kernel = """
 python -m ipykernel install --user --name temporalscope-kernel --display-name "TemporalScope"
 echo "Jupyter kernel 'TemporalScope' created. You can now use it in Jupyter notebooks."
 """
-
 
 [tool.commitizen]
 version = "0.1.0"

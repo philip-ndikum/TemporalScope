@@ -83,9 +83,9 @@ class TemporalTargetShifter:
 
         # Create a sample Pandas DataFrame
         data = {
-            'time': pd.date_range(start='2022-01-01', periods=100),
-            'target': np.random.rand(100),
-            'feature_1': np.random.rand(100)
+            "time": pd.date_range(start="2022-01-01", periods=100),
+            "target": np.random.rand(100),
+            "feature_1": np.random.rand(100),
         }
         df = pd.DataFrame(data)
 

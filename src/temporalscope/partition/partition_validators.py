@@ -24,18 +24,6 @@ a set of heuristics derived from key literature in the field.
     1. Shwartz-Ziv, R. and Armon, A., 2022. Tabular data: Deep learning is not all you need. Information Fusion, 81, pp.84-90.
     2. Grinsztajn, L., Oyallon, E. and Varoquaux, G., 2022. Why do tree-based models still outperform deep learning on typical tabular data?
     3. Gorishniy, Y., Rubachev, I., Khrulkov, V. and Babenko, A., 2021. Revisiting deep learning models for tabular data.
-
-TemporalScope is Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
 """
 
 import warnings
@@ -45,8 +33,7 @@ import modin.pandas as mpd
 import pandas as pd
 import polars as pl
 
-from temporalscope.conf import validate_backend
-from temporalscope.core.core_utils import SupportedBackendDataFrame
+from temporalscope.core.core_utils import SupportedBackendDataFrame, validate_backend
 
 PandasLike = TypeVar("PandasLike", pd.DataFrame, mpd.DataFrame)
 

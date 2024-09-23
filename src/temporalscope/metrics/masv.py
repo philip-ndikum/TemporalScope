@@ -29,10 +29,12 @@ import numpy as np
 import pandas as pd
 from shap import Explainer
 
-from temporalscope.partition.base import BaseTemporalPartitioner
+from temporalscope.partition.base_protocol import TemporalPartitionerProtocol
 
 
-def calculate_masv(model: Callable, data: pd.DataFrame, partitioner: BaseTemporalPartitioner) -> dict[str, list[float]]:
+def calculate_masv(
+    model: Callable, data: pd.DataFrame, partitioner: TemporalPartitionerProtocol
+) -> dict[str, list[float]]:
     r"""Calculate Mean Absolute SHAP Values (MASV).
 
     Calculate MASV for temporal feature importance across partitions.
@@ -45,7 +47,7 @@ def calculate_masv(model: Callable, data: pd.DataFrame, partitioner: BaseTempora
     :type data: pd.DataFrame
 
     :param partitioner: The partitioner object to divide the data into phases.
-    :type partitioner: BaseTemporalPartitioner
+    :type partitioner: TemporalPartitionerProtocol
 
     :return: A dictionary where keys are feature names and values are lists of
         MASV scores across partitions.
