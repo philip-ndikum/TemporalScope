@@ -37,7 +37,7 @@ any necessary validation, while adhering to the design principles of lazy-loadin
 and memory efficiency.
 """
 
-from typing import Dict, Iterator, Protocol, Tuple, Union
+from typing import Any, Dict, Iterator, Protocol, Tuple, Union
 
 import modin.pandas as mpd
 import pandas as pd
@@ -159,4 +159,8 @@ class TemporalPartitionerProtocol(Protocol):
         Implementing classes must provide their own data validation logic, such as ensuring sample size is sufficient,
         checking for window overlaps, or validating the feature count.
         """
+        pass
+
+    def get_partition_data(self) -> Any:
+        """Return the partitioned data."""
         pass
