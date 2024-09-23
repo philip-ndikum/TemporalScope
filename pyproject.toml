@@ -9,7 +9,7 @@ description = "TemporalScope: Model-Agnostic Temporal Feature Importance Analysi
 authors = [
     { name = "Philip Ndikum", email = "philip-ndikum@users.noreply.github.com" },
     { name = "Serge Ndikum" },
-    { name = "Kane Norman" , email="kanenorman@fas.harvard.edu"},
+    { name = "Kane Norman", email = "kanenorman@fas.harvard.edu" },
 ]
 license = "Apache-2.0"
 readme = "README.md"
@@ -54,15 +54,8 @@ keywords = [
     "Time-Series",
 ]
 
-[project.urls]
-"Source code" = "https://github.com/philip-ndikum/TemporalScope"
-Documentation = "https://temporalscope.readthedocs.io/en/latest/"
-
-[tool.hatch.envs.default]
-dependencies = ["pre-commit", "ruff", "jupyterlab", "notebook", "commitizen"]
-
-[tool.hatch.envs.docs]
-dependencies = [
+[project.optional-dependencies]
+docs = [
     "pydata-sphinx-theme",
     "myst-parser",
     "sphinx >=4.0",
@@ -72,13 +65,22 @@ dependencies = [
     'sphinx-autoapi',
 ]
 
-[tool.hatch.envs.docs.scripts]
-build = "sphinx-build -WTb html . _build"
-readthedocs = "sphinx-build -WTb html . $READTHEDOCS_OUTPUT/html"
-serve = "python -m http.server --directory _build"
+[project.urls]
+"Source code" = "https://github.com/philip-ndikum/TemporalScope"
+Documentation = "https://temporalscope.readthedocs.io/en/latest/"
+
+[tool.hatch.envs.default]
+dependencies = ["pre-commit", "ruff", "jupyterlab", "notebook", "commitizen"]
+
+[tool.hatch.envs.docs]
+features = ["docs"]
 
 [tool.hatch.envs.test]
 extra-dependencies = ["pytest", "pytest-cov", "pytest-custom_exit_code"]
+
+[tool.hatch.envs.docs.scripts]
+build = "sphinx-build -WTb html . _build"
+serve = "python -m http.server --directory _build"
 
 [tool.hatch.envs.test.scripts]
 unit = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "not integration" {args:test}'
