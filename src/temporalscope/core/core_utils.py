@@ -140,7 +140,11 @@ def validate_and_convert_input(df: SupportedBackendDataFrame, backend: str) -> S
     if backend not in backend_conversion_map:
         raise ValueError(f"Unsupported backend: {backend}")
 
-    for dataframe_type, conversion_func in backend_conversion_map[backend].items():
+    conversion_map = backend_conversion_map[backend]
+    if not isinstance(conversion_map, dict):
+        raise TypeError(f"Conversion map for backend '{backend}' is not a dictionary")
+
+    for dataframe_type, conversion_func in conversion_map.items():
         if isinstance(df, dataframe_type):
             return conversion_func(df)
 

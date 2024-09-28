@@ -130,8 +130,8 @@ def test_time_frame_input(data_format, n_lags):
     elif data_format == BACKEND_MODIN:
         df = mpd.DataFrame(data)
 
-    # Ensure TimeFrame uses data_format instead of backend
-    tf = TimeFrame(df, time_col="time", target_col="target", data_format=data_format)
+    # Ensure TimeFrame uses dataframe_backend
+    tf = TimeFrame(df, time_col="time", target_col="target", dataframe_backend=data_format)
     shifter = TemporalTargetShifter(n_lags=n_lags, target_col="target")
 
     # Test fitting and transforming TimeFrame

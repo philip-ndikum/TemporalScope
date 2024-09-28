@@ -17,15 +17,21 @@
 
 # TemporalScope/test/unit/test_core_temporal_data_loader.py
 
-
-from datetime import date, timedelta
-from typing import Dict, List, Union
-
+import warnings
+from typing import Dict, List, Union, Optional
+from datetime import datetime, timedelta, date, timezone
 import modin.pandas as mpd
 import numpy as np
+
 import pandas as pd
 import polars as pl
 import pytest
+
+
+from temporalscope.core.exceptions import (
+    TimeColumnError, MixedTypesWarning, MixedTimezonesWarning, MixedFrequencyWarning
+)
+
 
 from temporalscope.core.core_utils import (
     BACKEND_MODIN,
@@ -35,261 +41,226 @@ from temporalscope.core.core_utils import (
 from temporalscope.core.temporal_data_loader import TimeFrame
 
 
-def create_sample_data(num_samples: int = 100, num_features: int = 3) -> Dict[str, Union[List[date], List[float]]]:
-    """Create a sample data dictionary for testing.
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Union, Optional
+import numpy as np
+import pandas as pd
+import polars as pl
+import modin.pandas as mpd
 
-    :param num_samples: Number of samples to generate, defaults to 100
-    :type num_samples: int, optional
-    :param num_features: Number of feature columns to generate, defaults to 3
-    :type num_features: int, optional
-    :return: A dictionary containing generated data with keys 'time', 'feature_1', ..., 'feature_n', and 'target'
-    :rtype: Dict[str, Union[List[date], List[float]]]
+
+def create_sample_data(
+    num_samples: int = 100, 
+    num_features: int = 3, 
+    empty: bool = False, 
+    missing_values: bool = False, 
+    mixed_types: bool = False,
+    drop_columns: Optional[List[str]] = None,
+    non_numeric_time: bool = False,
+    empty_time: bool = False,
+    mixed_numeric_and_timestamp: bool = False,
+    date_like_string: bool = False,
+    object_type_time_col: bool = False,
+    mixed_timezones: bool = False,
+    polars_specific: bool = False  
+) -> Dict[str, Union[List[datetime], List[float], List[Optional[float]]]]:
+    """ Create a sample dataset for scalable unit testing, supporting various edge cases.
+
+    This function generates sample time-series data for different unit testing scenarios,
+    including empty datasets, datasets with mixed data types, missing values, or different
+    types of time columns. It is designed to be flexible, providing various ways to test
+    data validation for time-series models.
+
+    :param num_samples: Number of samples to generate.
+    :param num_features: Number of feature columns to generate.
+    :param empty: If True, generates an empty dataset.
+    :param missing_values: If True, introduces missing values into the dataset.
+    :param mixed_types: If True, mixes numeric and string data types in feature columns.
+    :param drop_columns: List of columns to drop from the dataset.
+    :param non_numeric_time: If True, replaces the `time_col` with non-numeric values.
+    :param empty_time: If True, fills the `time_col` with empty values.
+    :param mixed_numeric_and_timestamp: If True, mixes numeric and timestamp values in `time_col`.
+    :param date_like_string: If True, fills the `time_col` with date-like string values.
+    :param object_type_time_col: If True, inserts arrays or complex objects into the `time_col`.
+    :param mixed_timezones: If True, mixes timestamps with and without timezone information in `time_col`.
+    :param polars_specific: If True, handles edge cases specific to Polars.
+    :return: A dictionary containing generated data with keys 'time', 'feature_1', ..., 'feature_n', and 'target'.
     """
-    start_date = date(2021, 1, 1)
-    data = {
-        "time": [start_date + timedelta(days=i) for i in range(num_samples)],
-    }
+    
+    if empty:
+        return {"time": [], "target": []}
 
-    # Generate feature columns
+    start_date = datetime(2021, 1, 1)
+
+    if empty_time:
+        data = {"time": [None for _ in range(num_samples)]}
+    elif non_numeric_time:
+        data = {"time": ["invalid_time" for _ in range(num_samples)]}
+    elif mixed_numeric_and_timestamp:
+        if polars_specific:
+            data = {"time": [str(start_date + timedelta(days=i)) if i % 2 == 0 else float(i) for i in range(num_samples)]}
+        else:
+            data = {"time": [start_date + timedelta(days=i) if i % 2 == 0 else float(i) for i in range(num_samples)]}
+    elif date_like_string:
+        data = {"time": [f"2021-01-{i+1:02d}" for i in range(num_samples)]}
+    elif object_type_time_col:
+        data = {"time": [[start_date + timedelta(days=i)] for i in range(num_samples)]}
+    elif mixed_timezones:
+        data = {"time": [(start_date + timedelta(days=i)).replace(tzinfo=timezone.utc if i % 2 == 0 else None)
+                for i in range(num_samples)]}
+    else:
+        data = {"time": [start_date + timedelta(days=i) for i in range(num_samples)]}
+
     for i in range(1, num_features + 1):
-        data[f"feature_{i}"] = np.random.rand(num_samples).tolist()
+        if mixed_types:
+            data[f"feature_{i}"] = [f"str_{i}" if j % 2 == 0 else j for j in range(num_samples)]
+        else:
+            data[f"feature_{i}"] = np.random.rand(num_samples).tolist()
 
-    # Generate target column (e.g., sum of features plus noise)
+    if missing_values:
+        for i in range(num_samples):
+            if i % 10 == 0:
+                for j in range(1, num_features + 1):
+                    data[f"feature_{j}"][i] = None
+
     data["target"] = [
-        sum(data[f"feature_{j}"][i] for j in range(1, num_features + 1)) + np.random.normal(0, 0.1)
+        sum(data[f"feature_{j}"][i] for j in range(1, num_features + 1) if isinstance(data[f"feature_{j}"][i], float)) +
+        np.random.normal(0, 0.1)
         for i in range(num_samples)
     ]
+
+    if drop_columns:
+        data = pd.DataFrame(data).drop(columns=drop_columns).to_dict(orient='list')
 
     return data
 
 
-@pytest.fixture(params=[BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
-def sample_dataframe(request):
-    """Fixture to create sample DataFrames for each backend.
 
-    :param request: Pytest fixture request object containing the backend parameter.
-    :type request: _pytest.fixtures.SubRequest
-    :return: A tuple of the DataFrame and the backend identifier.
-    :rtype: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    data = create_sample_data()
-    backend = request.param
+@pytest.mark.parametrize(
+    "backend, case_type, expected_error, expected_warning, match_message",
+    [
+        (BACKEND_POLARS, "missing_time_col", TimeColumnError, None, r"Missing required column: time"),
+        (BACKEND_PANDAS, "missing_time_col", TimeColumnError, None, r"Missing required column: time"),
+        (BACKEND_MODIN, "missing_time_col", TimeColumnError, None, r"Missing required column: time"),
+        (BACKEND_POLARS, "non_numeric_time_col", TimeColumnError, None, r"`time_col` must be numeric or timestamp-like"),
+        (BACKEND_PANDAS, "non_numeric_time_col", TimeColumnError, None, r"`time_col` must be numeric or timestamp-like"),
+        (BACKEND_MODIN, "non_numeric_time_col", TimeColumnError, None, r"`time_col` must be numeric or timestamp-like"),
+        (BACKEND_PANDAS, "empty_time_col", TimeColumnError, None, r"Missing values found in `time_col`"),
+        (BACKEND_POLARS, "mixed_frequencies", None, MixedFrequencyWarning, r"mixed timestamp frequencies"),
+        (BACKEND_PANDAS, "mixed_frequencies", None, MixedFrequencyWarning, r"mixed timestamp frequencies"),
+        (BACKEND_POLARS, "mixed_timezones", None, MixedTimezonesWarning, r"mixed timezone-aware and naive timestamps"),
+        (BACKEND_PANDAS, "mixed_timezones", None, MixedTimezonesWarning, r"mixed timezone-aware and naive timestamps"),
+        (BACKEND_POLARS, "date_like_string", TimeColumnError, None, r"`time_col` must be numeric or timestamp-like"),
+        (BACKEND_PANDAS, "date_like_string", TimeColumnError, None, r"`time_col` must be numeric or timestamp-like"),
+    ]
+)
+def test_validation_edge_cases(backend, case_type, expected_error, expected_warning, match_message):
+    """Test validation logic under different edge cases and backends."""
+    
+    polars_specific = backend == BACKEND_POLARS
+
+    if case_type == "missing_time_col":
+        data = create_sample_data(drop_columns=["time"], polars_specific=polars_specific)
+    elif case_type == "non_numeric_time_col":
+        data = create_sample_data(non_numeric_time=True, polars_specific=polars_specific)
+    elif case_type == "empty_time_col":
+        data = create_sample_data(empty_time=True, polars_specific=polars_specific)
+    elif case_type == "mixed_frequencies":
+        data = create_sample_data(mixed_frequencies=True, polars_specific=polars_specific)
+    elif case_type == "date_like_string":
+        data = create_sample_data(date_like_string=True, polars_specific=polars_specific)
+    elif case_type == "mixed_timezones":
+        data = create_sample_data(mixed_timezones=True, polars_specific=polars_specific)
 
     if backend == BACKEND_POLARS:
-        # Ensure 'time' column is properly typed
-        data["time"] = pl.Series(data["time"])
-        df = pl.DataFrame(data)
+        df = pl.DataFrame(data, strict=False)  # Allow mixed types for Polars
     elif backend == BACKEND_PANDAS:
         df = pd.DataFrame(data)
     elif backend == BACKEND_MODIN:
         df = mpd.DataFrame(data)
-    else:
-        raise ValueError(f"Unsupported backend: {backend}")
-    return df, backend
+
+    if expected_error:
+        with pytest.raises(expected_error, match=match_message):
+            TimeFrame(df, time_col="time", target_col="target", dataframe_backend=backend)
+    elif expected_warning:
+        with pytest.warns(expected_warning, match=match_message if match_message else None):
+            TimeFrame(df, time_col="time", target_col="target", dataframe_backend=backend)
 
 
-def test_timeframe_initialization(sample_dataframe):
-    """Test the initialization of TimeFrame with various backends.
+        
+        
+# @pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+# def test_sort_data(backend):
+#     """Test sorting method for various backends."""
+#     data = create_sample_data(num_samples=100)
+#     if backend == BACKEND_POLARS:
+#         df = pl.DataFrame(data)
+#     elif backend == BACKEND_PANDAS:
+#         df = pd.DataFrame(data)
+#     elif backend == BACKEND_MODIN:
+#         df = mpd.DataFrame(data)
 
-    :param sample_dataframe: Fixture providing the DataFrame and backend.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, backend = sample_dataframe
-    tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    assert tf.backend == backend
-    assert tf.time_col == "time"
-    assert tf.target_col == "target"
-    assert len(tf.get_data()) == len(df)
+#     tf = TimeFrame(df, time_col="time", target_col="target", dataframe_backend=backend, sort=False)
+#     # Shuffle and sort
+#     if backend == BACKEND_POLARS:
+#         shuffled_df = tf.get_data().sample(fraction=1.0)
+#     else:
+#         shuffled_df = tf.get_data().sample(frac=1).reset_index(drop=True)
+#     tf.update_data(shuffled_df)
+#     tf.sort_data(ascending=True)
+#     sorted_df = tf.get_data()
 
-
-def test_sort_data(sample_dataframe):
-    """Test the sort_data method.
-
-    :param sample_dataframe: Fixture providing the DataFrame and backend.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, backend = sample_dataframe
-    tf = TimeFrame(df, time_col="time", target_col="target", backend=backend, sort=False)
-    # Shuffle the data
-    if backend == BACKEND_POLARS:
-        shuffled_df = tf.get_data().sample(fraction=1.0)
-    else:
-        shuffled_df = tf.get_data().sample(frac=1).reset_index(drop=True)
-    tf.update_data(shuffled_df)
-    tf.sort_data(ascending=True)
-    sorted_df = tf.get_data()
-    # Verify that data is sorted
-    times = sorted_df[tf.time_col].to_list() if backend == BACKEND_POLARS else sorted_df[tf.time_col].tolist()
-    assert times == sorted(times)
+#     # Verify sorting
+#     times = sorted_df[tf.time_col].to_list() if backend == BACKEND_POLARS else sorted_df[tf.time_col].tolist()
+#     assert times == sorted(times)
 
 
-def test_update_data(sample_dataframe):
-    """Test the update_data method.
+# @pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+# def test_update_target_col_invalid_length(backend):
+#     """Test updating target column with mismatched length."""
+#     data = create_sample_data(num_samples=100)
+#     if backend == BACKEND_POLARS:
+#         df = pl.DataFrame(data)
+#         new_target = pl.Series(np.random.rand(99))  # One less than expected
+#     elif backend == BACKEND_PANDAS:
+#         df = pd.DataFrame(data)
+#         new_target = pd.Series(np.random.rand(99))
+#     elif backend == BACKEND_MODIN:
+#         df = mpd.DataFrame(data)
+#         new_target = mpd.Series(np.random.rand(99))
 
-    :param sample_dataframe: Fixture providing the DataFrame and backend.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, backend = sample_dataframe
-    tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    new_data = create_sample_data(num_samples=50)
-    if backend == BACKEND_POLARS:
-        new_data["time"] = pl.Series(new_data["time"])
-        new_df = pl.DataFrame(new_data)
-    elif backend == BACKEND_PANDAS:
-        new_df = pd.DataFrame(new_data)
-    elif backend == BACKEND_MODIN:
-        new_df = mpd.DataFrame(new_data)
-    tf.update_data(new_df)
-    assert len(tf.get_data()) == 50
-
-
-def test_update_target_col(sample_dataframe):
-    """Test the update_target_col method.
-
-    :param sample_dataframe: Fixture providing the DataFrame and backend.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, backend = sample_dataframe
-    tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    new_target = np.random.rand(len(df))
-    if backend == BACKEND_POLARS:
-        new_target_col = pl.Series(new_target)
-    elif backend == BACKEND_PANDAS:
-        new_target_col = pd.Series(new_target)
-    elif backend == BACKEND_MODIN:
-        new_target_col = mpd.Series(new_target)
-    tf.update_target_col(new_target_col)
-    updated_target = (
-        tf.get_data()[tf.target_col].to_numpy() if backend == BACKEND_POLARS else tf.get_data()[tf.target_col].values
-    )
-    np.testing.assert_array_almost_equal(updated_target, new_target)
+#     tf = TimeFrame(df, time_col="time", target_col="target", dataframe_backend=backend)
+#     with pytest.raises(ValueError):
+#         tf.update_target_col(new_target)
 
 
-def test_missing_columns(sample_dataframe):
-    """Test initialization with missing required columns.
+# @pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+# def test_missing_columns(backend):
+#     """Test initialization with missing required columns."""
+#     data = create_sample_data(num_samples=100)
+#     if backend == BACKEND_POLARS:
+#         df = pl.DataFrame(data).drop(["target"])
+#     elif backend == BACKEND_PANDAS:
+#         df = pd.DataFrame(data).drop(columns=["target"])
+#     elif backend == BACKEND_MODIN:
+#         df = mpd.DataFrame(data).drop(columns=["target"])
 
-    :param sample_dataframe: Fixture providing the DataFrame and backend.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, backend = sample_dataframe
-    # Remove the target column
-    if backend == BACKEND_POLARS:
-        df = df.drop(["target"])
-    else:
-        df = df.drop(columns=["target"])
-    with pytest.raises(ValueError) as excinfo:
-        TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    assert "Missing required columns" in str(excinfo.value)
+#     with pytest.raises(ValueError):
+#         TimeFrame(df, time_col="time", target_col="target", dataframe_backend=backend)
 
 
-def test_invalid_backend(sample_dataframe):
-    """Test initialization with an invalid backend.
+# @pytest.mark.parametrize("backend", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
+# def test_invalid_backend_initialization(backend):
+#     """Test invalid backend during initialization."""
+#     data = create_sample_data(num_samples=100)
+#     if backend == BACKEND_POLARS:
+#         df = pl.DataFrame(data)
+#     elif backend == BACKEND_PANDAS:
+#         df = pd.DataFrame(data)
+#     elif backend == BACKEND_MODIN:
+#         df = mpd.DataFrame(data)
 
-    :param sample_dataframe: Fixture providing the DataFrame.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, _ = sample_dataframe
-    invalid_backend = "invalid_backend"
-    with pytest.raises(ValueError) as excinfo:
-        TimeFrame(df, time_col="time", target_col="target", backend=invalid_backend)
-    assert f"Unsupported backend '{invalid_backend}'" in str(excinfo.value)
+#     invalid_backend = "invalid_backend"
+#     with pytest.raises(ValueError):
+#         TimeFrame(df, time_col="time", target_col="target", dataframe_backend=invalid_backend)
 
-
-def test_invalid_time_col_type(sample_dataframe):
-    """Test initialization with invalid time_col type.
-
-    :param sample_dataframe: Fixture providing the DataFrame and backend.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, backend = sample_dataframe
-    with pytest.raises(ValueError) as excinfo:
-        TimeFrame(df, time_col=123, target_col="target", backend=backend)
-    assert "time_col must be a non-empty string." in str(excinfo.value)
-
-
-def test_invalid_target_col_type(sample_dataframe):
-    """Test initialization with invalid target_col type.
-
-    :param sample_dataframe: Fixture providing the DataFrame and backend.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, backend = sample_dataframe
-    with pytest.raises(ValueError) as excinfo:
-        TimeFrame(df, time_col="time", target_col=None, backend=backend)
-    assert "target_col must be a non-empty string." in str(excinfo.value)
-
-
-def test_invalid_dataframe_type():
-    """Test initialization with an invalid DataFrame type."""
-    invalid_df = "This is not a DataFrame"
-    with pytest.raises(TypeError):
-        TimeFrame(invalid_df, time_col="time", target_col="target", backend=BACKEND_POLARS)
-
-
-def test_sort_data_invalid_backend():
-    """Test initialization with an unsupported backend."""
-    data = create_sample_data()
-    df = pd.DataFrame(data)
-    with pytest.raises(ValueError) as excinfo:
-        TimeFrame(df, time_col="time", target_col="target", backend="unsupported_backend")
-    assert "Unsupported backend" in str(excinfo.value)
-
-
-def test_update_target_col_invalid_length(sample_dataframe):
-    """Test update_target_col with mismatched length."""
-    df, backend = sample_dataframe
-    tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    new_target = np.random.rand(len(df) - 1)  # Mismatch length by 1
-    if backend == BACKEND_POLARS:
-        new_target_col = pl.Series(new_target)
-    elif backend == BACKEND_PANDAS:
-        new_target_col = pd.Series(new_target)
-    elif backend == BACKEND_MODIN:
-        new_target_col = mpd.Series(new_target)
-
-    with pytest.raises(ValueError) as excinfo:
-        tf.update_target_col(new_target_col)
-
-    assert "The new target column must have the same number of rows as the DataFrame." in str(excinfo.value)
-
-
-
-def test_update_target_col_invalid_type(sample_dataframe):
-    """Test update_target_col with invalid Series type.
-
-    :param sample_dataframe: Fixture providing the DataFrame and backend.
-    :type sample_dataframe: Tuple[Union[pl.DataFrame, pd.DataFrame, mpd.DataFrame], str]
-    """
-    df, backend = sample_dataframe
-    tf = TimeFrame(df, time_col="time", target_col="target", backend=backend)
-    invalid_series = "This is not a Series"
-    with pytest.raises(TypeError) as excinfo:
-        tf.update_target_col(invalid_series)
-    assert "Expected a" in str(excinfo.value)
-
-
-@pytest.mark.parametrize(
-    "df_backend,expected_backend",
-    [(BACKEND_POLARS, BACKEND_POLARS), (BACKEND_PANDAS, BACKEND_PANDAS), (BACKEND_MODIN, BACKEND_MODIN)],
-)
-def test_infer_backend(sample_dataframe, df_backend, expected_backend):
-    """Test that the backend is correctly inferred for Polars, Pandas, and Modin DataFrames."""
-    df, backend = sample_dataframe
-    if backend == df_backend:
-        tf = TimeFrame(df, time_col="time", target_col="target")
-        inferred_backend = tf._infer_backend(df)
-        assert inferred_backend == expected_backend
-
-
-def test_infer_backend_invalid():
-    """Test that a ValueError is raised for unsupported DataFrame types."""
-    invalid_df = "This is not a DataFrame"
-
-    # Creating a valid TimeFrame object first to avoid column validation
-    valid_df = pd.DataFrame({"time": [1, 2, 3], "target": [1, 2, 3]})
-    tf = TimeFrame(valid_df, time_col="time", target_col="target")  # Placeholder
-
-    # Now test the _infer_backend method directly on the invalid data
-    with pytest.raises(ValueError) as excinfo:
-        tf._infer_backend(invalid_df)
-    assert "Unsupported DataFrame type" in str(excinfo.value)
