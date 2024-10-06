@@ -145,13 +145,10 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         from temporalscope.partition.sliding_window import SlidingWindowPartitioner
 
         # Create a sample dataset using Pandas
-        data_df = pd.DataFrame({
-            'time': pd.date_range(start='2021-01-01', periods=6, freq='D'),
-            'value': range(6)
-        })
+        data_df = pd.DataFrame({"time": pd.date_range(start="2021-01-01", periods=6, freq="D"), "value": range(6)})
 
         # Create a TimeFrame object
-        data_tf = TimeFrame(data_df, time_col='time', target_col='value', backend='pd')
+        data_tf = TimeFrame(data_df, time_col="time", target_col="value", backend="pd")
 
         # Create a SlidingWindowPartitioner with window_size=2 and stride=1
         partitioner = SlidingWindowPartitioner(
@@ -449,9 +446,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         --------------
         .. code-block:: python
 
-            partitioner = SlidingWindowPartitioner(
-                tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3
-            )
+            partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
 
             for partition_data in partitioner._transform_pandas_modin():
                 print(partition_data)
@@ -542,9 +537,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         --------------
         .. code-block:: python
 
-            partitioner = SlidingWindowPartitioner(
-                tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3
-            )
+            partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
 
             for partition_data in partitioner._transform_polars():
                 print(partition_data)
@@ -635,9 +628,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         --------------
         .. code-block:: python
 
-            partitioner = SlidingWindowPartitioner(
-                tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3
-            )
+            partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
 
             for partition in partitioner.fit():
                 print(partition)
@@ -649,11 +640,11 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         .. code-block:: python
 
             {
-                'partition_1': {
-                    'full': (start_index, end_index),
-                    'train': (train_start, train_end),
-                    'test': (test_start, test_end),
-                    'validation': (validation_start, validation_end)  # (Optional, if val_pct is provided)
+                "partition_1": {
+                    "full": (start_index, end_index),
+                    "train": (train_start, train_end),
+                    "test": (test_start, test_end),
+                    "validation": (validation_start, validation_end),  # (Optional, if val_pct is provided)
                 }
             }
 
@@ -688,9 +679,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         --------------
         .. code-block:: python
 
-            partitioner = SlidingWindowPartitioner(
-                tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3
-            )
+            partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
 
             for partition_data in partitioner.transform():
                 print(partition_data)
@@ -742,9 +731,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         --------------
         .. code-block:: python
 
-            partitioner = SlidingWindowPartitioner(
-                tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3
-            )
+            partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
 
             for partition_data in partitioner.fit_transform():
                 print(partition_data)
@@ -791,9 +778,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         --------------
         .. code-block:: python
 
-            partitioner = SlidingWindowPartitioner(
-                tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3
-            )
+            partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
 
             # Perform checks on the full dataset
             partitioner.check_data()

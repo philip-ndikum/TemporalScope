@@ -46,6 +46,6 @@ jobs:
       # Ensure that the coverage is only uploaded once (if statement)
       - name: Upload coverage to codecov.io
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v4.2.0
+        uses: codecov/codecov-action@v4.5.0
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

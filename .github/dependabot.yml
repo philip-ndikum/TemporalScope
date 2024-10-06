@@ -2,21 +2,12 @@ version: 2
 updates:
   # Pip dependencies (via pyproject.toml)
   - package-ecosystem: "pip"
-    directory: "/" # Root directory where your pyproject.toml is located
+    directory: "/"
     schedule:
-      interval: "weekly" # Check for updates weekly
-    open-pull-requests-limit: 5
-
-  # Conda dependencies
-  - package-ecosystem: "conda"
-    directory: "/" # If your conda environment.yml is in the root directory
-    schedule:
-      interval: "weekly" # Check for updates weekly
-    open-pull-requests-limit: 5
+      interval: "weekly"
 
   # GitHub Actions (for any workflows using specific actions or dependencies)
   - package-ecosystem: "github-actions"
-    directory: "/" # Root directory of the repository
+    directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5

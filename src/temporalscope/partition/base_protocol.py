@@ -37,7 +37,7 @@ any necessary validation, while adhering to the design principles of lazy-loadin
 and memory efficiency.
 """
 
-from typing import Dict, Iterator, Protocol, Tuple, Union
+from typing import Any, Dict, Iterator, Protocol, Tuple, Union
 
 import modin.pandas as mpd
 import pandas as pd
@@ -102,18 +102,8 @@ class TemporalPartitionerProtocol(Protocol):
             .. code-block:: python
 
                 {
-                    "partition_1": {
-                        "full": (0, 10),
-                        "train": (0, 8),
-                        "test": (8, 10),
-                        "validation": None
-                    },
-                    "partition_2": {
-                        "full": (5, 15),
-                        "train": (5, 13),
-                        "test": (13, 15),
-                        "validation": None
-                    }
+                    "partition_1": {"full": (0, 10), "train": (0, 8), "test": (8, 10), "validation": None},
+                    "partition_2": {"full": (5, 15), "train": (5, 13), "test": (13, 15), "validation": None},
                 }
         """
         pass
@@ -151,14 +141,14 @@ class TemporalPartitionerProtocol(Protocol):
                         "full": DataFrame(...),
                         "train": DataFrame(...),
                         "test": DataFrame(...),
-                        "validation": None
+                        "validation": None,
                     },
                     "partition_2": {
                         "full": DataFrame(...),
                         "train": DataFrame(...),
                         "test": DataFrame(...),
-                        "validation": None
-                    }
+                        "validation": None,
+                    },
                 }
         """
         pass
@@ -169,4 +159,8 @@ class TemporalPartitionerProtocol(Protocol):
         Implementing classes must provide their own data validation logic, such as ensuring sample size is sufficient,
         checking for window overlaps, or validating the feature count.
         """
+        pass
+
+    def get_partition_data(self) -> Any:
+        """Return the partitioned data."""
         pass

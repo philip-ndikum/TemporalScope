@@ -24,10 +24,6 @@ from __future__ import annotations
 
 import datetime
 import importlib.metadata
-import os
-import sys
-
-sys.path.insert(0, os.path.abspath("../.."))
 
 project = "TemporalScope"
 author = "Philip Ndikum, Serge Ndikum, Kane Norman"
@@ -63,7 +59,6 @@ autoclass_content = "class"
 autosummary_generate = True
 
 html_theme = "pydata_sphinx_theme"
-html_static_path = ["_static"]
 html_title = project
 html_theme_options = {
     "icon_links": [
