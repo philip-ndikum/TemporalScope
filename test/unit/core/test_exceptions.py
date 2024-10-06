@@ -17,8 +17,8 @@
 
 """ TemporalScope/test/unit/test_core_exceptions.py
 
-This module contains unit tests for the custom exceptions and warnings defined 
-in the TemporalScope package. These tests ensure that the exceptions are 
+This module contains unit tests for the custom exceptions and warnings defined
+in the TemporalScope package. These tests ensure that the exceptions are
 raised correctly and the warnings are issued in the appropriate scenarios.
 """
 
@@ -30,9 +30,14 @@ from temporalscope.core.exceptions import (
     TimeColumnError,
     MixedTypesWarning,
     MixedTimezonesWarning,
-    MixedFrequencyWarning  
+    MixedFrequencyWarning,
+    UnsupportedBackendError
 )
 
+def test_unsupported_backend_error():
+    """Test that UnsupportedBackendError is raised with the correct message."""
+    with pytest.raises(UnsupportedBackendError, match="Unsupported backend"):
+        raise UnsupportedBackendError("Unsupported backend 'invalid_backend'")
 def test_time_frame_error_inheritance():
     """Test that TimeFrameError is the base class for other exceptions."""
     with pytest.raises(TimeFrameError):
@@ -61,3 +66,9 @@ def test_mixed_frequency_warning():
     """Test that MixedFrequencyWarning is issued when mixed timestamp frequencies are detected."""
     with pytest.warns(MixedFrequencyWarning, match="Mixed timestamp frequencies"):
         warnings.warn("Mixed timestamp frequencies", MixedFrequencyWarning)
+
+
+def test_unsupported_backend_error():
+    """Test that UnsupportedBackendError is raised with the correct message."""
+    with pytest.raises(UnsupportedBackendError, match="Unsupported backend"):
+        raise UnsupportedBackendError("Unsupported backend 'invalid_backend'")

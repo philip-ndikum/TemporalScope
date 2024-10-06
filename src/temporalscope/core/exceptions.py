@@ -66,13 +66,13 @@ class TimeFrameError(Exception):
 class TimeColumnError(TimeFrameError):
     """ Exception raised for errors related to the `time_col`.
 
-    This error is raised when the `time_col` in the TimeFrame is either 
-    missing, contains unsupported types (non-numeric or non-timestamp), 
+    This error is raised when the `time_col` in the TimeFrame is either
+    missing, contains unsupported types (non-numeric or non-timestamp),
     or has invalid data like null values.
 
     Attributes:
         message (str): Explanation of the error.
-    
+
     Example Usage:
     --------------
     .. code-block:: python
@@ -138,3 +138,20 @@ class MixedFrequencyWarning(UserWarning):
     """
 
     pass
+
+
+class UnsupportedBackendError(Exception):
+    """Exception raised when an unsupported backend is encountered.
+
+    This error is raised when a user attempts to use a backend that is not
+    supported by TemporalScope. It centralizes backend validation errors across the package.
+
+    Attributes:
+        backend (str): The invalid backend that caused the error.
+        message (str): Explanation of the error.
+    """
+
+    def __init__(self, backend: str, message: str = "Unsupported backend"):
+        self.backend = backend
+        self.message = f"{message}: {backend}. Supported backends are 'pd', 'mpd', 'pl'."
+        super().__init__(self.message)

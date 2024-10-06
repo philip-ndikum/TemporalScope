@@ -91,7 +91,7 @@ readthedocs = "sphinx-build -WTb html . $READTHEDOCS_OUTPUT/html"
 serve = "python -m http.server --directory _build"
 
 [tool.hatch.envs.test]
-extra-dependencies = ["pytest", "pytest-cov", "pytest-custom_exit_code"]
+extra-dependencies = ["pytest", "pytest-cov", "pytest-custom_exit_code", "pytest-mock"]
 
 [tool.hatch.envs.test.scripts]
 unit = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "not integration" {args:test}'
@@ -170,6 +170,7 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_unreachable = true
 exclude = 'test/*'
+warn_return_any = false      # Turn off MyPy warnings for missing return types
 
 [tool.bandit]
 exclude_dirs = ["test"]
@@ -193,6 +194,7 @@ docformat = """
 docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
 docformatter --in-place --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope
 """
+clear-coverage = "coverage erase"
 # Automated developer Q&A script
 quality-assurance = """
 pytest &&
@@ -206,7 +208,6 @@ generate-kernel = """
 python -m ipykernel install --user --name temporalscope-kernel --display-name "TemporalScope"
 echo "Jupyter kernel 'TemporalScope' created. You can now use it in Jupyter notebooks."
 """
-
 
 [tool.commitizen]
 version = "0.1.0"

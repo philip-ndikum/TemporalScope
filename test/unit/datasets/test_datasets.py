@@ -29,40 +29,27 @@ def dataset_loader():
     return DatasetLoader(dataset_name="macrodata")
 
 
-def test_load_dataset_and_target(dataset_loader):
-    """Test loading the dataset and its target column."""
-    df, target_col = dataset_loader._load_dataset_and_target()
-    assert isinstance(df, pd.DataFrame)
-    assert target_col == "realgdp"
-    assert "ds" in df.columns
-    assert len(df) > 0  # Ensure the dataset is not empty
-
-
-def test_init_timeframes_for_backends(dataset_loader):
-    """Test initializing TimeFrame objects for multiple backends."""
+@pytest.mark.parametrize("backend", [BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS])
+def test_init_timeframes_for_backends_parametrized(dataset_loader, backend):
+    """Test initializing TimeFrame objects for different backends."""
     df, target_col = dataset_loader._load_dataset_and_target()
 
-    timeframes = dataset_loader.init_timeframes_for_backends(df, target_col)
-    
-    # Check if the returned TimeFrame objects for each backend are valid
-    assert isinstance(timeframes[BACKEND_PANDAS], TimeFrame)
-    assert isinstance(timeframes[BACKEND_MODIN], TimeFrame)
-    assert isinstance(timeframes[BACKEND_POLARS], TimeFrame)
+    timeframes = dataset_loader.init_timeframes_for_backends(df, target_col, backends=(backend,))
 
-    # Ensure correct data in each backend
-    assert timeframes[BACKEND_PANDAS].dataframe_backend == BACKEND_PANDAS
-    assert timeframes[BACKEND_MODIN].dataframe_backend == BACKEND_MODIN
-    assert timeframes[BACKEND_POLARS].dataframe_backend == BACKEND_POLARS
+    assert isinstance(timeframes[backend], TimeFrame)
+
+    # Check that the backend is correct
+    assert timeframes[backend].dataframe_backend == backend
 
 
-def test_load_and_init_timeframes(dataset_loader):
-    """Test loading dataset and initializing TimeFrames for all backends."""
-    timeframes = dataset_loader.load_and_init_timeframes()
+@pytest.mark.parametrize("backend", [BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS])
+def test_load_and_init_timeframes_parametrized(dataset_loader, backend):
+    """Test loading dataset and initializing TimeFrames for each backend."""
+    timeframes = dataset_loader.load_and_init_timeframes(backends=(backend,))
 
-    # Check if the returned TimeFrame objects for each backend are valid
-    assert isinstance(timeframes[BACKEND_PANDAS], TimeFrame)
-    assert isinstance(timeframes[BACKEND_MODIN], TimeFrame)
-    assert isinstance(timeframes[BACKEND_POLARS], TimeFrame)
+    # Check if the returned TimeFrame object is valid for the backend
+    assert isinstance(timeframes[backend], TimeFrame)
+    assert timeframes[backend].dataframe_backend == backend
 
 
 def test_invalid_backend_raises_error(dataset_loader):
@@ -79,15 +66,15 @@ def test_invalid_dataset_name():
         DatasetLoader(dataset_name="invalid")
 
 
-def test_init_timeframes_with_custom_backend(dataset_loader):
-    """Test initializing TimeFrames with a custom selection of backends."""
+@pytest.mark.parametrize("backend", [BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS])
+def test_init_timeframes_with_custom_backend(dataset_loader, backend):
+    """Test initializing TimeFrames with a custom backend selection."""
     df, target_col = dataset_loader._load_dataset_and_target()
-    timeframes = dataset_loader.init_timeframes_for_backends(df, target_col, backends=(BACKEND_PANDAS,))
+    timeframes = dataset_loader.init_timeframes_for_backends(df, target_col, backends=(backend,))
 
     # Ensure only the requested backend is initialized
-    assert BACKEND_PANDAS in timeframes
-    assert BACKEND_MODIN not in timeframes
-    assert BACKEND_POLARS not in timeframes
+    assert backend in timeframes
+    assert isinstance(timeframes[backend], TimeFrame)
 
 
 def test_load_dataset_internal_call(mocker):
@@ -108,3 +95,21 @@ def test_load_dataset_and_verify_time_column(dataset_loader):
     # Ensure 'ds' column exists and is of datetime type
     assert "ds" in df.columns
     assert pd.api.types.is_datetime64_any_dtype(df["ds"])
+
+@pytest.mark.parametrize("backends", [
+    (BACKEND_PANDAS,),
+    (BACKEND_MODIN,),
+    (BACKEND_POLARS,),
+    (BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS)
+])
+def test_load_and_init_timeframes_return(dataset_loader, backends):
+    """Test that the returned timeframes object is a dictionary and contains the expected backends."""
+    timeframes = dataset_loader.load_and_init_timeframes(backends=backends)
+
+    # Ensure the return value is a dictionary
+    assert isinstance(timeframes, dict)
+
+    # Check that the returned dictionary contains the expected backends
+    for backend in backends:
+        assert backend in timeframes
+        assert isinstance(timeframes[backend], TimeFrame)

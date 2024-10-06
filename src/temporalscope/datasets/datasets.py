@@ -15,14 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
-""" TemporalScope/src/temporalscope/datasets/datasets.py
+"""TemporalScope/src/temporalscope/datasets/datasets.py
 
 Utility class for loading datasets and initializing TimeFrame objects with multi-backend support.
 Supports Pandas, Modin, and Polars as backends for time series forecasting and analysis.
 
 This class is intended to be used for tutorials and examples that involve open-source datasets
-licensed under Apache, MIT, or similar valid open-source licenses. It simplifies dataset loading 
-and preprocessing while providing compatibility with multiple DataFrame backends, including Pandas, 
+licensed under Apache, MIT, or similar valid open-source licenses. It simplifies dataset loading
+and preprocessing while providing compatibility with multiple DataFrame backends, including Pandas,
 Modin, and Polars. The class can be easily extended to include additional datasets in the future.
 
 Example:
@@ -57,11 +57,12 @@ from temporalscope.core.core_utils import (
     BACKEND_MODIN,
     BACKEND_POLARS,
     SupportedBackendDataFrame,
-    print_divider
+    print_divider,
 )
 
+
 def _load_macrodata() -> Tuple[pd.DataFrame, str]:
-    """ Load and preprocess the macrodata dataset.
+    """Load and preprocess the macrodata dataset.
 
     Combines the 'year' and 'quarter' columns to create a datetime 'ds' column.
     The dataset is then returned with the 'realgdp' column as the default target.
@@ -77,8 +78,7 @@ def _load_macrodata() -> Tuple[pd.DataFrame, str]:
 
     # Combine 'year' and 'quarter' to create a datetime 'ds' column
     dataset_df["ds"] = pd.to_datetime(
-        dataset_df["year"].astype(str) + "-" +
-        ((dataset_df["quarter"] - 1) * 3 + 1).astype(str) + "-01"
+        dataset_df["year"].astype(str) + "-" + ((dataset_df["quarter"] - 1) * 3 + 1).astype(str) + "-01"
     )
 
     # Drop the 'year' and 'quarter' columns
@@ -98,7 +98,7 @@ SupportedBackends = Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]
 
 
 class DatasetLoader:
-    """ A utility class for loading datasets and initializing TimeFrame objects for multiple backends.
+    """A utility class for loading datasets and initializing TimeFrame objects for multiple backends.
 
     This class supports datasets that are licensed under valid open-source licenses (such as Apache and MIT).
     It simplifies loading and preprocessing of datasets and enables compatibility with Pandas, Modin, and Polars
@@ -132,9 +132,9 @@ class DatasetLoader:
     """
 
     def __init__(self, dataset_name: str = "macrodata") -> None:
-        """ 
+        """
         Initialize DatasetLoader with a specified dataset.
-        
+
         :param dataset_name: The name of the dataset to load. Must be available in AVAILABLE_DATASETS.
         :raises ValueError: If the specified dataset is not available.
         """
@@ -145,9 +145,9 @@ class DatasetLoader:
         self.dataset_name = dataset_name
 
     def _load_dataset_and_target(self) -> Tuple[pd.DataFrame, str]:
-        """ 
+        """
         Internal method to load the dataset and its associated target column.
-        
+
         :return: A tuple containing the preprocessed DataFrame and the associated target column name.
         :rtype: Tuple[pd.DataFrame, str]
         """
@@ -166,10 +166,13 @@ class DatasetLoader:
         return dataset_df, target_col
 
     def init_timeframes_for_backends(
-        self, df: pd.DataFrame, target_col: str, backends: Tuple[str, ...] = (BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS)
+        self,
+        df: pd.DataFrame,
+        target_col: str,
+        backends: Tuple[str, ...] = (BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS),
     ) -> Dict[str, TimeFrame]:
-        """ Initialize TimeFrame objects for the specified backends using the provided DataFrame.
-        
+        """Initialize TimeFrame objects for the specified backends using the provided DataFrame.
+
         :param df: The preprocessed DataFrame to initialize TimeFrames with.
         :param target_col: The target column to use for TimeFrame initialization.
         :param backends: A tuple of supported backends to initialize. Defaults to Pandas, Modin, and Polars.
@@ -215,8 +218,8 @@ class DatasetLoader:
     def load_and_init_timeframes(
         self, backends: Tuple[str, ...] = (BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS)
     ) -> Dict[str, TimeFrame]:
-        """ Load the dataset and initialize TimeFrames for the specified backends.
-        
+        """Load the dataset and initialize TimeFrames for the specified backends.
+
         :param backends: A tuple of supported backends to initialize. Defaults to Pandas, Modin, and Polars.
         :return: A dictionary containing TimeFrame objects for each backend.
         :rtype: Dict[str, TimeFrame]
