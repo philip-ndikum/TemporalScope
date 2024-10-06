@@ -22,14 +22,16 @@ import pandas as pd
 import polars as pl
 import pytest
 
-from temporalscope.datasets.synthetic_data_generator import (
+from temporalscope.core.core_utils import (
     BACKEND_MODIN,
     BACKEND_PANDAS,
     BACKEND_POLARS,
     MODE_MULTI_STEP,
     MODE_SINGLE_STEP,
-    create_sample_data,
 )
+
+
+from temporalscope.datasets.synthetic_data_generator import create_sample_data
 
 
 # Skip unsupported backends for multi-step mode and Pandas-to-Polars conversion

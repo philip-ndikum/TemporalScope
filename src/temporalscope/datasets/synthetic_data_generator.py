@@ -101,6 +101,8 @@ import pytest
 
 from temporalscope.core.core_utils import (
     BACKEND_PANDAS,
+    BACKEND_MODIN,
+    BACKEND_POLARS,
     MODE_MULTI_STEP,
     MODE_SINGLE_STEP,
     SUPPORTED_MULTI_STEP_BACKENDS,
@@ -110,7 +112,7 @@ from temporalscope.core.core_utils import (
     validate_mode,
 )
 
-# Constants
+# Constants defined locally in this file
 DEFAULT_NUM_SAMPLES = 100
 DEFAULT_NUM_FEATURES = 3
 SEED = 42
