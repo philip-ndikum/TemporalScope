@@ -101,8 +101,6 @@ import pytest
 
 from temporalscope.core.core_utils import (
     BACKEND_PANDAS,
-    BACKEND_MODIN,
-    BACKEND_POLARS,
     MODE_MULTI_STEP,
     MODE_SINGLE_STEP,
     SUPPORTED_MULTI_STEP_BACKENDS,

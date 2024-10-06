@@ -29,8 +29,6 @@ from temporalscope.core.core_utils import (
     MODE_MULTI_STEP,
     MODE_SINGLE_STEP,
 )
-
-
 from temporalscope.datasets.synthetic_data_generator import create_sample_data
 
 
