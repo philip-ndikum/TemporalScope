@@ -21,7 +21,7 @@
 # import polars as pl
 # import pytest
 
-# from temporalscope.partition.data_checks import (
+# from temporalscope.partition.partition_validators import (
 #     check_binary_numerical_features,
 #     check_categorical_feature_cardinality,
 #     check_class_balance,

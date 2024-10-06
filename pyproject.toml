@@ -76,7 +76,7 @@ dependencies = ["pre-commit", "ruff", "jupyterlab", "notebook", "commitizen"]
 features = ["docs"]
 
 [tool.hatch.envs.test]
-extra-dependencies = ["pytest", "pytest-cov", "pytest-custom_exit_code"]
+extra-dependencies = ["pytest", "pytest-cov", "pytest-custom_exit_code", "pytest-mock"]
 
 [tool.hatch.envs.docs.scripts]
 build = "sphinx-build -WTb html . _build"
@@ -159,6 +159,7 @@ python_version = "3.10"
 ignore_missing_imports = true
 warn_unreachable = true
 exclude = 'test/*'
+warn_return_any = false      # Turn off MyPy warnings for missing return types
 
 [tool.bandit]
 exclude_dirs = ["test"]
@@ -178,7 +179,20 @@ check = "ruff check {args}"
 fix = "ruff check --fix"
 format = "ruff format {args}"
 format-check = "ruff format --check {args}"
-quality-assurance = "pre-commit run"
+docformat = """
+docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
+docformatter --in-place --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope
+"""
+clear-coverage = "coverage erase"
+# Automated developer Q&A script
+quality-assurance = """
+pytest &&
+docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
+docformatter --in-place --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope
+ruff check src/temporalscope --output-format=full --show-files --show-fixes &&
+mypy src/temporalscope --ignore-missing-imports --show-error-codes --warn-unreachable &&
+bandit -r src/temporalscope
+"""
 generate-kernel = """
 python -m ipykernel install --user --name temporalscope-kernel --display-name "TemporalScope"
 echo "Jupyter kernel 'TemporalScope' created. You can now use it in Jupyter notebooks."
