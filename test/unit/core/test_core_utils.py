@@ -17,38 +17,12 @@
 
 # TemporalScope/test/unit/test_core_utils.py
 
-import warnings
-import pytest
-from unittest.mock import patch
-from typing import Optional, Tuple, Union
-
-import modin.pandas as mpd
-import pandas as pd
-import polars as pl
-import numpy as np
 
 # Import core utility functions
-from temporalscope.core.core_utils import (
-    check_nans,
-    check_nulls,
-    get_api_keys,
-    get_default_backend_cfg,
-    validate_and_convert_input,
-    validate_backend,
-    print_divider,
-    infer_backend_from_dataframe,
-    is_timestamp_like,
-    is_numeric,
-    has_mixed_frequencies,
-    sort_dataframe,
-    check_empty_columns
-)
 
 # Import exceptions
-from temporalscope.core.exceptions import UnsupportedBackendError, MixedFrequencyWarning, MixedTimezonesWarning
 
 # Import the sample data generation and fixture from test_data_utils
-from temporalscope.datasets.synthetic_data_generator import create_sample_data, sample_df_with_conditions
 
 # # Constants
 # BACKEND_PANDAS = "pd"
@@ -231,7 +205,6 @@ from temporalscope.datasets.synthetic_data_generator import create_sample_data, 
 #         result = validate_and_convert_input(df_modin, BACKEND_POLARS)
 #         assert isinstance(result, pl.DataFrame), f"Expected Polars DataFrame but got {type(result)}"
 #         mock_to_pandas.assert_called_once()  # Ensure _to_pandas is called
-
 
 
 # @pytest.mark.parametrize(

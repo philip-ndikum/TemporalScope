@@ -33,8 +33,7 @@ import modin.pandas as mpd
 import pandas as pd
 import polars as pl
 
-from temporalscope.core.core_utils import validate_backend
-from temporalscope.core.core_utils import SupportedBackendDataFrame
+from temporalscope.core.core_utils import SupportedBackendDataFrame, validate_backend
 
 PandasLike = TypeVar("PandasLike", pd.DataFrame, mpd.DataFrame)
 

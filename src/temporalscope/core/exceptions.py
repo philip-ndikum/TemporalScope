@@ -39,14 +39,13 @@ Example Usage:
 --------------
 .. code-block:: python
 
-    from temporalscope.core.exceptions import (
-        TimeColumnError, MixedTypesWarning, MixedTimezonesWarning
-    )
+    from temporalscope.core.exceptions import TimeColumnError, MixedTypesWarning, MixedTimezonesWarning
+
 
     def validate_time_column(df):
-        if df['time'].dtype == object:
+        if df["time"].dtype == object:
             raise TimeColumnError("Invalid time column data type.")
-        elif contains_mixed_types(df['time']):
+        elif contains_mixed_types(df["time"]):
             warnings.warn("Mixed numeric and timestamp types.", MixedTypesWarning)
 
 """
@@ -64,7 +63,7 @@ class TimeFrameError(Exception):
 
 
 class TimeColumnError(TimeFrameError):
-    """ Exception raised for errors related to the `time_col`.
+    """Exception raised for errors related to the `time_col`.
 
     This error is raised when the `time_col` in the TimeFrame is either
     missing, contains unsupported types (non-numeric or non-timestamp),
@@ -80,6 +79,7 @@ class TimeColumnError(TimeFrameError):
         if not pd.api.types.is_numeric_dtype(df[time_col]) and \
            not pd.api.types.is_datetime64_any_dtype(df[time_col]):
             raise TimeColumnError("`time_col` must be numeric or timestamp-like.")
+
     """
 
     pass
@@ -149,9 +149,15 @@ class UnsupportedBackendError(Exception):
     Attributes:
         backend (str): The invalid backend that caused the error.
         message (str): Explanation of the error.
+
     """
 
-    def __init__(self, backend: str, message: str = "Unsupported backend"):
+    def __init__(self, backend, message="Unsupported backend"):
+        """Initialize the UnsupportedBackendError.
+
+        :param backend: The invalid backend (e.g., 'pl', 'pd', 'mpd') that caused the error.
+        :param message: Optional; a custom error message. Defaults to "Unsupported backend".
+        """
         self.backend = backend
         self.message = f"{message}: {backend}. Supported backends are 'pd', 'mpd', 'pl'."
         super().__init__(self.message)

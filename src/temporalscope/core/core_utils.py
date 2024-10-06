@@ -101,15 +101,15 @@ models, neural networks, etc.):
 """
 
 import os
-from typing import Dict, Optional, Union, cast, Callable, Type
-from datetime import datetime, timedelta, date
 import warnings
+from typing import Callable, Dict, Optional, Type, Union, cast
 
 import modin.pandas as mpd
 import pandas as pd
 import polars as pl
 from dotenv import load_dotenv
-from temporalscope.core.exceptions import UnsupportedBackendError, MixedFrequencyWarning
+
+from temporalscope.core.exceptions import MixedFrequencyWarning, UnsupportedBackendError
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -191,10 +191,7 @@ def validate_mode(backend: str, mode: str) -> None:
 
 
 def validate_and_convert_input(
-    df: SupportedBackendDataFrame,
-    backend: str,
-    time_col: Optional[str] = None,
-    mode: str = MODE_SINGLE_STEP
+    df: SupportedBackendDataFrame, backend: str, time_col: Optional[str] = None, mode: str = MODE_SINGLE_STEP
 ) -> SupportedBackendDataFrame:
     """Validates and converts the input DataFrame to the specified backend type, with optional time column casting.
 
@@ -203,35 +200,9 @@ def validate_and_convert_input(
     :param time_col: Optional; the name of the time column for casting.
     :param mode: The processing mode ('single_step' or 'multi_step').
     :raises TypeError: If input DataFrame type doesn't match the specified backend or conversion fails.
-    :raises NotImplementedError: If multi-step mode is requested for unsupported backends or unsupported conversion to Polars.
+    :raises NotImplementedError: If multi-step mode is requested for unsupported backends.
     :return: The DataFrame converted to the specified backend type.
-
-    Example
-    -------
-    Here's how you would use this function to convert a Pandas DataFrame to Polars:
-
-        .. code-block:: python
-
-            import pandas as pd
-            import polars as pl
-
-            data = {'col1': [1, 2], 'col2': [3, 4], 'time': pd.date_range(start='1/1/2023', periods=2)}
-            df = pd.DataFrame(data)
-
-            # Convert the DataFrame from Pandas to Polars, with an optional time column for casting
-            converted_df = validate_and_convert_input(df, 'pl', time_col='time')
-            print(type(converted_df))  # Output: <class 'polars.DataFrame'>
-
-            # If you don't need to cast the time column, just omit the time_col argument
-            converted_df = validate_and_convert_input(df, 'pl')
-            print(type(converted_df))  # Output: <class 'polars.DataFrame'>
-
-    .. note::
-        - This function first converts the input DataFrame into the appropriate backend.
-        - If `time_col` is specified and the backend is Polars, it casts the time column to `pl.Datetime`.
-        - Pandas to Polars conversion is currently unsupported and raises a `NotImplementedError`. This needs to be implemented later.
     """
-    # Validate the backend and mode combination
     validate_backend(backend)
     validate_mode(backend, mode)
 
@@ -240,12 +211,11 @@ def validate_and_convert_input(
         str, Dict[Type[SupportedBackendDataFrame], Callable[[SupportedBackendDataFrame], SupportedBackendDataFrame]]
     ] = {
         BACKEND_POLARS: {
-            # Polars to Polars
             pl.DataFrame: lambda x: x,
-            # Pandas to Polars - currently not supported
-            pd.DataFrame: lambda x: (_ for _ in ()).throw(NotImplementedError("Pandas to Polars conversion is not currently supported.")),
-            # Modin to Polars
-            mpd.DataFrame: lambda x: pl.from_pandas(x._to_pandas()),
+            pd.DataFrame: lambda x: pl.from_pandas(x),  # Use polars.from_pandas for conversion
+            mpd.DataFrame: lambda x: pl.from_pandas(
+                x._to_pandas() if hasattr(x, "_to_pandas") else x
+            ),  # Safely handle the Modin conversion
         },
         BACKEND_PANDAS: {
             pd.DataFrame: lambda x: x,  # Pandas to Pandas
@@ -260,25 +230,18 @@ def validate_and_convert_input(
     }
 
     # Step 1: Convert the DataFrame to the desired backend
-    converted_df = None
     for dataframe_type, conversion_func in backend_conversion_map[backend].items():
         if isinstance(df, dataframe_type):
             converted_df = conversion_func(df)
             break
-
-    if converted_df is None:
+    else:
         raise TypeError(f"Input DataFrame type {type(df)} does not match the specified backend '{backend}'")
 
     # Step 2: Explicitly cast the time column to pl.Datetime if backend is Polars and the column exists
     if backend == BACKEND_POLARS and time_col and time_col in converted_df.columns:
-        # Force cast time_col to pl.Datetime
         converted_df = converted_df.with_columns(pl.col(time_col).cast(pl.Datetime))
 
-        # Check the type of the column and assert it is correct
-        assert isinstance(converted_df[time_col][0], pl.Datetime), f"Expected a timestamp-like time column, but got {type(converted_df[time_col][0])}"
-
     return converted_df
-
 
 
 def get_api_keys() -> Dict[str, Optional[str]]:
@@ -332,8 +295,7 @@ def check_nulls(df: SupportedBackendDataFrame, backend: str) -> bool:
     elif backend == BACKEND_MODIN:
         return bool(cast(mpd.DataFrame, df).isnull().values.any())
 
-    # Suppress the warning since this path is unreachable due to `validate_backend`
-    # mypy: ignore
+    raise UnsupportedBackendError(f"Unsupported backend: {backend}")
 
 
 def check_nans(df: SupportedBackendDataFrame, backend: str) -> bool:
@@ -341,7 +303,7 @@ def check_nans(df: SupportedBackendDataFrame, backend: str) -> bool:
 
     :param df: The DataFrame to check for NaN values.
     :type df: SupportedBackendDataFrame
-    :param backend: The backend used for the DataFrame ('pl' for Polars, 'pd' for Pandas, 'mpd' for Modin').
+    :param backend: The backend used for the DataFrame ('pl', 'pd', 'mpd').
     :type backend: str
     :return: True if there are NaN values, False otherwise.
     :rtype: bool
@@ -357,8 +319,7 @@ def check_nans(df: SupportedBackendDataFrame, backend: str) -> bool:
     elif backend == BACKEND_MODIN:
         return bool(cast(mpd.DataFrame, df).isna().values.any())
 
-    # Suppress the warning since this path is unreachable due to `validate_backend`
-    # mypy: ignore
+    raise UnsupportedBackendError(f"Unsupported backend: {backend}")
 
 
 def is_timestamp_like(df: SupportedBackendDataFrame, time_col: str) -> bool:
@@ -393,6 +354,8 @@ def is_timestamp_like(df: SupportedBackendDataFrame, time_col: str) -> bool:
     elif isinstance(df, pl.DataFrame):
         return time_column.dtype == pl.Datetime
 
+    raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df)}")
+
 
 def is_numeric(df: SupportedBackendDataFrame, time_col: str) -> bool:
     """Check if the specified column in the DataFrame is numeric.
@@ -412,15 +375,12 @@ def is_numeric(df: SupportedBackendDataFrame, time_col: str) -> bool:
 
     # Handle empty columns for different backends
     if isinstance(df, pl.DataFrame):
-        # Polars: Check if the DataFrame has zero rows or if the column is empty
         if df.height == 0 or time_column.is_empty():
             return False
     elif isinstance(df, mpd.DataFrame):
-        # Modin: Check if the column is empty by using length
         if len(time_column) == 0:
             return False
     elif isinstance(df, pd.DataFrame):
-        # Pandas: Check if the column is empty
         if isinstance(time_column, pd.Series) and time_column.empty:
             return False
 
@@ -429,6 +389,8 @@ def is_numeric(df: SupportedBackendDataFrame, time_col: str) -> bool:
         return pd.api.types.is_numeric_dtype(time_column)
     elif isinstance(df, pl.DataFrame):
         return time_column.dtype in [pl.Int32, pl.Int64, pl.Float32, pl.Float64]
+
+    raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df)}")
 
 
 def has_mixed_frequencies(df: SupportedBackendDataFrame, time_col: str, min_non_null_values: int = 3) -> bool:
@@ -501,10 +463,8 @@ def sort_dataframe(
     :raises TypeError: If the DataFrame type does not match the backend.
     :raises UnsupportedBackendError: If the backend is unsupported or validation fails.
     """
-    # Validate backend
     validate_backend(backend)
 
-    # Select backend-specific sorting logic
     if backend == BACKEND_POLARS:
         if not isinstance(df, pl.DataFrame):
             raise TypeError(f"Expected Polars DataFrame but got {type(df)}")
@@ -521,6 +481,8 @@ def sort_dataframe(
             raise TypeError(f"Expected Modin DataFrame but got {type(df)}")
         df.sort_values(by=time_col, ascending=ascending, inplace=True)
         return df
+
+    raise UnsupportedBackendError(f"Unsupported backend: {backend}")
 
 
 def check_empty_columns(df: SupportedBackendDataFrame, backend: str) -> bool:

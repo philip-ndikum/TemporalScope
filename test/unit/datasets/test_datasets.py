@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import pytest
-from temporalscope.datasets.datasets import DatasetLoader
-from temporalscope.core.temporal_data_loader import TimeFrame
-from temporalscope.core.core_utils import BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS
 import pandas as pd
-import modin.pandas as mpd
-import polars as pl
+import pytest
+
+from temporalscope.core.core_utils import BACKEND_MODIN, BACKEND_PANDAS, BACKEND_POLARS
+from temporalscope.core.temporal_data_loader import TimeFrame
+from temporalscope.datasets.datasets import DatasetLoader
+
 
 @pytest.fixture
 def dataset_loader():
@@ -96,12 +96,11 @@ def test_load_dataset_and_verify_time_column(dataset_loader):
     assert "ds" in df.columns
     assert pd.api.types.is_datetime64_any_dtype(df["ds"])
 
-@pytest.mark.parametrize("backends", [
-    (BACKEND_PANDAS,),
-    (BACKEND_MODIN,),
-    (BACKEND_POLARS,),
-    (BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS)
-])
+
+@pytest.mark.parametrize(
+    "backends",
+    [(BACKEND_PANDAS,), (BACKEND_MODIN,), (BACKEND_POLARS,), (BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS)],
+)
 def test_load_and_init_timeframes_return(dataset_loader, backends):
     """Test that the returned timeframes object is a dictionary and contains the expected backends."""
     timeframes = dataset_loader.load_and_init_timeframes(backends=backends)

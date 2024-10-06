@@ -26,7 +26,7 @@ and preprocessing while providing compatibility with multiple DataFrame backends
 Modin, and Polars. The class can be easily extended to include additional datasets in the future.
 
 Example:
----------
+-------
 .. code-block:: python
 
     from temporalscope.datasets.datasets import DatasetLoader
@@ -46,19 +46,20 @@ Example:
 
 """
 
-import pandas as pd
+from typing import Callable, Dict, Tuple, Union
+
 import modin.pandas as mpd
+import pandas as pd
 import polars as pl
 from statsmodels.datasets import macrodata
-from typing import Tuple, Dict, Callable, Union
-from temporalscope.core.temporal_data_loader import TimeFrame
+
 from temporalscope.core.core_utils import (
-    BACKEND_PANDAS,
     BACKEND_MODIN,
+    BACKEND_PANDAS,
     BACKEND_POLARS,
-    SupportedBackendDataFrame,
     print_divider,
 )
+from temporalscope.core.temporal_data_loader import TimeFrame
 
 
 def _load_macrodata() -> Tuple[pd.DataFrame, str]:
@@ -106,17 +107,17 @@ class DatasetLoader:
     and demonstration of time series forecasting workflows.
 
     Attributes:
-    ------------
+    ----------
     dataset_name : str
         The name of the dataset to be loaded. It must be available in the `AVAILABLE_DATASETS` dictionary.
 
     Methods:
-    ---------
+    -------
     load_and_init_timeframes:
         Load the specified dataset and initialize TimeFrame objects for multiple backends.
 
     Example:
-    ---------
+    -------
     .. code-block:: python
 
         # Initialize the loader with the 'macrodata' dataset
@@ -132,8 +133,7 @@ class DatasetLoader:
     """
 
     def __init__(self, dataset_name: str = "macrodata") -> None:
-        """
-        Initialize DatasetLoader with a specified dataset.
+        """Initialize DatasetLoader with a specified dataset.
 
         :param dataset_name: The name of the dataset to load. Must be available in AVAILABLE_DATASETS.
         :raises ValueError: If the specified dataset is not available.
@@ -145,8 +145,7 @@ class DatasetLoader:
         self.dataset_name = dataset_name
 
     def _load_dataset_and_target(self) -> Tuple[pd.DataFrame, str]:
-        """
-        Internal method to load the dataset and its associated target column.
+        """Internal method to load the dataset and its associated target column.
 
         :return: A tuple containing the preprocessed DataFrame and the associated target column name.
         :rtype: Tuple[pd.DataFrame, str]
@@ -181,7 +180,7 @@ class DatasetLoader:
         :raises ValueError: If an unsupported backend is specified.
 
         Example:
-        ---------
+        -------
         .. code-block:: python
 
             from temporalscope.datasets.datasets import DatasetLoader
@@ -225,7 +224,7 @@ class DatasetLoader:
         :rtype: Dict[str, TimeFrame]
 
         Example:
-        ---------
+        -------
         .. code-block:: python
 
             dataset_loader = DatasetLoader(dataset_name="macrodata")

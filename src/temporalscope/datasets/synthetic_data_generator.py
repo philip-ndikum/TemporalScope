@@ -85,37 +85,30 @@ Example Usage:
 .. code-block:: python
 
     # Generating data for single-step mode
-    df = create_sample_data(num_samples=100, num_features=3, mode='single_step')
+    df = create_sample_data(num_samples=100, num_features=3, mode="single_step")
     print(df.head())  # Shows the generated data with features and a scalar target.
 
     # Generating data for multi-step mode
-    df = create_sample_data(num_samples=100, num_features=3, mode='multi_step')
+    df = create_sample_data(num_samples=100, num_features=3, mode="multi_step")
     print(df.head())  # Shows the generated input sequence (`X`) and target sequence (`Y`).
 """
 
+from typing import Any, Callable, Optional, Tuple
+
 import numpy as np
-from datetime import datetime
-from typing import Any, Optional, Tuple, Callable
-import pytest
-
 import pandas as pd
-import polars as pl
-import modin.pandas as mpd
-
+import pytest
 
 from temporalscope.core.core_utils import (
     BACKEND_PANDAS,
-    BACKEND_MODIN,
-    BACKEND_POLARS,
-    MODE_SINGLE_STEP,
     MODE_MULTI_STEP,
+    MODE_SINGLE_STEP,
     SUPPORTED_MULTI_STEP_BACKENDS,
+    SupportedBackendDataFrame,
+    validate_and_convert_input,
     validate_backend,
-    validate_mode
+    validate_mode,
 )
-from temporalscope.core.exceptions import UnsupportedBackendError
-from temporalscope.core.core_utils import SupportedBackendDataFrame
-from temporalscope.core.core_utils import validate_backend, validate_and_convert_input, BACKEND_MODIN, BACKEND_POLARS
 
 # Constants
 DEFAULT_NUM_SAMPLES = 100
@@ -125,12 +118,7 @@ DEFAULT_NAN_INTERVAL = 10  # Default interval for inserting NaNs
 DEFAULT_NULL_INTERVAL = 15  # Default interval for inserting nulls
 
 
-import numpy as np
-from datetime import datetime
-import pandas as pd
-from temporalscope.core.core_utils import validate_and_convert_input
-
-def create_sample_data(
+def create_sample_data(  # noqa: PLR0912
     backend: str,
     num_samples: int = DEFAULT_NUM_SAMPLES,
     num_features: int = DEFAULT_NUM_FEATURES,
@@ -274,7 +262,7 @@ def create_sample_data(
     if mode == MODE_SINGLE_STEP:
         data["target"] = np.random.rand(num_samples)
     elif mode == MODE_MULTI_STEP:
-        data["target"] = [np.random.rand(10) for _ in range(num_samples)]
+        data["target"] = np.array([np.random.rand(10) for _ in range(num_samples)])
     else:
         raise ValueError(f"Unsupported mode: {mode}")
 
@@ -289,7 +277,7 @@ def create_sample_data(
 
 
 @pytest.fixture
-def sample_df_with_conditions() -> Callable[[Optional[str], Any], Tuple[SupportedBackendDataFrame, str]]:
+def sample_df_with_conditions() -> Callable[..., Tuple[SupportedBackendDataFrame, str]]:
     """Pytest fixture for creating DataFrames for each backend (Pandas, Modin, Polars) with customizable conditions.
 
     This function generates synthetic data using Pandas and leaves the conversion to the backend
@@ -297,7 +285,7 @@ def sample_df_with_conditions() -> Callable[[Optional[str], Any], Tuple[Supporte
 
     :return:
         A function that generates a DataFrame and the backend type based on user-specified conditions.
-    :rtype: Callable[[Optional[str], Any], Tuple[Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame], str]]
+    :rtype: Callable[..., Tuple[Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame], str]]
 
     .. example::
 
@@ -326,6 +314,9 @@ def sample_df_with_conditions() -> Callable[[Optional[str], Any], Tuple[Supporte
             A tuple containing the generated DataFrame and the backend type.
         :rtype: Tuple[Union[pd.DataFrame, pl.DataFrame, mpd.DataFrame], str]
         """
+        # Assign a default backend if none is provided
+        backend = backend or BACKEND_PANDAS
+
         # Generate the sample data using Pandas
         df = create_sample_data(backend=BACKEND_PANDAS, **kwargs)
 

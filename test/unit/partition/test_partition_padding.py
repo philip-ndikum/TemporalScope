@@ -43,7 +43,6 @@
 # np.random.seed(42)  # Set a seed for reproducibility
 
 
-
 # def generate_test_data(backend, num_samples=5):
 #     """Generate test data with consistent column names across all backends."""
 #     start_date = pd.to_datetime("2021-01-01")
@@ -116,7 +115,6 @@
 #     return pd.DataFrame(data)
 
 
-
 # def check_monotonicity(df: SupportedBackendDataFrame, time_col: str, ascending: bool = True) -> bool:
 #     if isinstance(df, pl.DataFrame):
 #         # Handle Polars DataFrame
@@ -139,7 +137,6 @@
 #                 return diffs.gt(0).all()
 #             else:
 #                 return diffs.lt(0).all()
-
 
 
 # # Parametrize tests for ascending and descending order
@@ -188,9 +185,6 @@
 #     # Continue with checking valid sorting after warning
 #     sorted_df = sort_dataframe(df, time_col="ds", ascending=True)
 #     assert check_monotonicity(sorted_df, "ds", ascending=True)
-
-
-
 
 
 # # Padding function tests with Modin and Polars compatibility

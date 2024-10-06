@@ -16,23 +16,6 @@
 
 # TemporalScope/test/unit/test_core_temporal_data_loader.py
 
-import pytest
-from typing import Dict, Union, Optional, List
-from datetime import datetime, timedelta, timezone
-
-import numpy as np
-import pandas as pd
-import polars as pl
-import modin.pandas as mpd
-
-from temporalscope.core.temporal_data_loader import TimeFrame
-
-from temporalscope.core.exceptions import (
-    TimeColumnError,
-    MixedTypesWarning,
-    MixedFrequencyWarning,
-    UnsupportedBackendError,
-)
 
 BACKEND_POLARS = "pl"
 BACKEND_PANDAS = "pd"
@@ -227,7 +210,6 @@ BACKEND_MODIN = "mpd"
 #         assert time_col_np[0] > time_col_np[-1]
 #     else:
 #         assert sorted_df["time"].iloc[0] > sorted_df["time"].iloc[-1]
-
 
 
 # @pytest.mark.parametrize("backend", [BACKEND_PANDAS, BACKEND_POLARS, BACKEND_MODIN])

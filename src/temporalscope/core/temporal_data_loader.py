@@ -109,37 +109,29 @@ Engineering Design
 
 """
 
-import warnings
-from typing import Optional, Union, cast
-from datetime import datetime, timedelta, date
+from typing import Optional, Union
 
 import modin.pandas as mpd
 import pandas as pd
 import polars as pl
-
-from temporalscope.core.exceptions import (
-    TimeColumnError,
-    MixedTypesWarning,
-    MixedFrequencyWarning,
-    UnsupportedBackendError,
-)
 
 from temporalscope.core.core_utils import (
     BACKEND_MODIN,
     BACKEND_PANDAS,
     BACKEND_POLARS,
     SupportedBackendDataFrame,
-    validate_and_convert_input,
-    infer_backend_from_dataframe,
-    validate_backend,
-    is_numeric,
-    is_timestamp_like,
-    has_mixed_frequencies,
-    sort_dataframe,
     check_empty_columns,
     check_nulls,
+    infer_backend_from_dataframe,
+    is_numeric,
+    is_timestamp_like,
+    sort_dataframe,
+    validate_and_convert_input,
 )
-
+from temporalscope.core.exceptions import (
+    TimeColumnError,
+    UnsupportedBackendError,
+)
 
 # Define alias with forward reference
 TimeFrameCompatibleData = Union["TimeFrame", SupportedBackendDataFrame]
@@ -180,11 +172,9 @@ class TimeFrame:
     .. code-block:: python
 
        import polars as pl
-       data = pl.DataFrame({
-           'time': pl.date_range(start='2021-01-01', periods=100, interval='1d'),
-           'value': range(100)
-       })
-       tf = TimeFrame(data, time_col='time', target_col='value')
+
+       data = pl.DataFrame({"time": pl.date_range(start="2021-01-01", periods=100, interval="1d"), "value": range(100)})
+       tf = TimeFrame(data, time_col="time", target_col="value")
        print(tf.get_data().head())
 
     .. seealso::
@@ -242,15 +232,11 @@ class TimeFrame:
             import polars as pl
             from temporalscope.core.temporal_data_loader import TimeFrame
 
-            data = pl.DataFrame({
-                'time': pl.date_range(start='2021-01-01', periods=5, interval='1d'),
-                'value': range(5)
-            })
+            data = pl.DataFrame({"time": pl.date_range(start="2021-01-01", periods=5, interval="1d"), "value": range(5)})
 
-            tf = TimeFrame(data, time_col='time', target_col='value')
+            tf = TimeFrame(data, time_col="time", target_col="value")
             print(tf.get_data().head())
         """
-
         # Ensure time_col and target_col are valid strings
         if not isinstance(time_col, str) or not time_col:
             raise ValueError("`time_col` must be a non-empty string.")
@@ -345,14 +331,11 @@ class TimeFrame:
             import pandas as pd
 
             # Create a Pandas DataFrame
-            data = {
-                'time': pd.date_range(start='2021-01-01', periods=5, freq='D'),
-                'target': range(5, 0, -1)
-            }
+            data = {"time": pd.date_range(start="2021-01-01", periods=5, freq="D"), "target": range(5, 0, -1)}
             df = pd.DataFrame(data)
 
             # Initialize a TimeFrame
-            tf = TimeFrame(df, time_col='time', target_col='target')
+            tf = TimeFrame(df, time_col="time", target_col="target")
 
             # Retrieve the DataFrame
             data = tf.get_data()
@@ -379,14 +362,11 @@ class TimeFrame:
             import pandas as pd
 
             # Create a Pandas DataFrame
-            data = {
-                'time': pd.date_range(start='2021-01-01', periods=5, freq='D'),
-                'target': range(5, 0, -1)
-            }
+            data = {"time": pd.date_range(start="2021-01-01", periods=5, freq="D"), "target": range(5, 0, -1)}
             df = pd.DataFrame(data)
 
             # Initialize a TimeFrame
-            tf = TimeFrame(df, time_col='time', target_col='target')
+            tf = TimeFrame(df, time_col="time", target_col="target")
 
             # Sort the DataFrame in ascending order
             tf.sort_data(ascending=True)
@@ -435,20 +415,16 @@ class TimeFrame:
             import pandas as pd
 
             # Create a Pandas DataFrame
-            df = pd.DataFrame({
-                'time': pd.date_range(start='2021-01-01', periods=5, freq='D'),
-                'target': range(5, 0, -1)
-            })
+            df = pd.DataFrame({"time": pd.date_range(start="2021-01-01", periods=5, freq="D"), "target": range(5, 0, -1)})
 
             # Initialize a TimeFrame
-            tf = TimeFrame(df, time_col='time', target_col='target')
+            tf = TimeFrame(df, time_col="time", target_col="target")
 
             # Update the DataFrame and target column
-            new_target = pd.Series([1, 2, 3, 4, 5], name='target')
+            new_target = pd.Series([1, 2, 3, 4, 5], name="target")
             tf.update_data(new_df=None, new_target_col=new_target)
             print(tf.get_data())
         """
-
         # Update time_col and target_col if provided
         if time_col:
             self._time_col = time_col
@@ -504,13 +480,10 @@ class TimeFrame:
             import pandas as pd
 
             # Create a Pandas DataFrame
-            df = pd.DataFrame({
-                'time': pd.date_range(start='2021-01-01', periods=5, freq='D'),
-                'target': range(5, 0, -1)
-            })
+            df = pd.DataFrame({"time": pd.date_range(start="2021-01-01", periods=5, freq="D"), "target": range(5, 0, -1)})
 
             # Initialize a TimeFrame
-            tf = TimeFrame(df, time_col='time', target_col='target')
+            tf = TimeFrame(df, time_col="time", target_col="target")
 
             # Run validation on the TimeFrame
             tf.validate_data()
@@ -534,4 +507,4 @@ class TimeFrame:
 
         # 4. Check for missing values in `time_col` and `target_col`
         if check_nulls(self.df, self._dataframe_backend):
-            raise ValueError(f"Missing values found in `time_col` or `target_col`.")
+            raise ValueError("Missing values found in `time_col` or `target_col`.")

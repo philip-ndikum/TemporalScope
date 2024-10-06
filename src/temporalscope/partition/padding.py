@@ -42,8 +42,8 @@ For categorical columns, users **must** handle encoding (e.g., label encoding, o
 partitioning or padding utilities. This module focuses only on numerical and time columns. The only special handling
 occurs for the `time_col` (if specified), which can be a timestamp or a numeric column.
 
-Examples:
----------
+Examples
+--------
     .. code-block:: python
 
         >>> import pandas as pd
@@ -62,13 +62,16 @@ Examples:
 .. seealso::
     1. Dwarampudi, M. and Reddy, N.V., 2019. Effects of padding on LSTMs and CNNs. arXiv preprint arXiv:1903.07288.
     2. Lafabregue, B., Weber, J., Gançarski, P. and Forestier, G., 2022. End-to-end deep representation learning for time series clustering: a comparative study. Data Mining and Knowledge Discovery, 36(1), pp.29-81.
+
 """
 
 import warnings
-from typing import Union, Optional, cast
-import pandas as pd
+from typing import Optional, Union
+
 import modin.pandas as mpd
+import pandas as pd
 import polars as pl
+
 from temporalscope.core.core_utils import SupportedBackendDataFrame
 
 # Define numeric types for each backend
@@ -144,7 +147,7 @@ def sort_dataframe(df: SupportedBackendDataFrame, time_col: str, ascending: bool
     raise TypeError(f"Unsupported DataFrame type: {type(df)}")
 
 
-def ensure_type_consistency(
+def ensure_type_consistency(  # noqa: PLR0912
     df: SupportedBackendDataFrame, pad_df: SupportedBackendDataFrame
 ) -> SupportedBackendDataFrame:
     """Ensure the column types of `pad_df` match the column types of `df`.
@@ -166,16 +169,10 @@ def ensure_type_consistency(
         from temporalscope.partition.padding import ensure_type_consistency
 
         # Original DataFrame
-        df = pd.DataFrame({
-            "a": pd.Series([1.0, 2.0], dtype="float32"),
-            "b": pd.Series([3, 4], dtype="int64")
-        })
+        df = pd.DataFrame({"a": pd.Series([1.0, 2.0], dtype="float32"), "b": pd.Series([3, 4], dtype="int64")})
 
         # Padded DataFrame
-        pad_df = pd.DataFrame({
-            "a": [0.0, 0.0],
-            "b": [0, 0]
-        })
+        pad_df = pd.DataFrame({"a": [0.0, 0.0], "b": [0, 0]})
 
         # Ensure type consistency between df and pad_df
         pad_df = ensure_type_consistency(df, pad_df)
@@ -188,8 +185,8 @@ def ensure_type_consistency(
         - We convert Modin DataFrames to Pandas temporarily to ensure type consistency because Modin’s internal
           `astype()` can sometimes cause issues when working with mixed data types or `bool` columns. After
           consistency is ensured, we convert the DataFrame back to Modin to maintain backend consistency.
-    """
 
+    """
     # If df is a Modin DataFrame, convert to Pandas if possible
     is_modin_df = False
     if isinstance(df, mpd.DataFrame):
@@ -228,7 +225,7 @@ def ensure_type_consistency(
         raise TypeError(f"Unsupported DataFrame type: {type(df)}")
 
 
-def zero_pad(
+def zero_pad(  # noqa: PLR0911, PLR0912
     df: SupportedBackendDataFrame,
     target_len: int,
     time_col: Optional[str] = None,
@@ -335,7 +332,7 @@ def zero_pad(
     return df
 
 
-def forward_fill_pad(
+def forward_fill_pad(  # noqa: PLR0911, PLR0912
     df: SupportedBackendDataFrame,
     target_len: int,
     end: int,
@@ -375,8 +372,8 @@ def forward_fill_pad(
     .. note::
         Forward-fill padding is useful in scenarios where missing data is best approximated by the last known
         valid value, such as financial data or sensor readings in IoT applications.
-    """
 
+    """
     # Validate the padding option
     if padding not in ["pre", "post"]:
         raise ValueError(f"Invalid padding option: {padding}. Use 'pre' or 'post'.")
@@ -436,7 +433,7 @@ def forward_fill_pad(
     return df
 
 
-def backward_fill_pad(
+def backward_fill_pad(  # noqa: PLR0912
     df: SupportedBackendDataFrame,
     target_len: int,
     end: int,
@@ -476,6 +473,7 @@ def backward_fill_pad(
     .. note::
         Backward-fill padding is often applied when future values are unknown and it's reasonable to assume that
         the first valid observation represents future unknowns, which is useful in cases like predictive modeling.
+
     """
     validate_dataframe(df)
 
@@ -532,10 +530,10 @@ def backward_fill_pad(
         raise ValueError(f"Invalid padding option: {padding}. Use 'pre' or 'post'.")
 
     # This line ensures that MyPy sees a return in all cases, although it's unreachable.
-    assert False, "This should never be reached"
+    raise RuntimeError("This should never be reached")
 
 
-def mean_fill_pad(
+def mean_fill_pad(  # noqa: PLR0912
     df: SupportedBackendDataFrame,
     target_len: int,
     end: int,
@@ -575,6 +573,7 @@ def mean_fill_pad(
     .. note::
         Mean-fill padding is useful when you want to fill gaps in the data with the mean of the numeric columns.
         It is commonly used in time-series forecasting and analytics when you want to smooth over missing values.
+
     """
     validate_dataframe(df)
 
@@ -654,7 +653,7 @@ def mean_fill_pad(
         raise TypeError(f"Unsupported DataFrame type: {type(df)}")
 
     # This return statement satisfies MyPy's expectation, but should not actually be reachable.
-    assert False, "This should never be reached"
+    raise RuntimeError("This should never be reached")
 
 
 def pad_dataframe(
@@ -703,6 +702,7 @@ def pad_dataframe(
         1  2.0  4.0 2021-01-02
         2  1.5  3.5        NaT
         3  1.5  3.5        NaT
+
     """
     validate_dataframe(df)
 

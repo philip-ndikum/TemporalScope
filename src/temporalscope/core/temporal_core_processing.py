@@ -42,11 +42,9 @@ Example Usage:
     from temporal_core_processing import convert_to_tensorflow, convert_to_pandas
 
     # Example DataFrame
-    df = pd.DataFrame({
-        'time': pd.date_range(start='2023-01-01', periods=100, freq='D'),
-        'feature_1': range(100),
-        'target': range(100)
-    })
+    df = pd.DataFrame(
+        {"time": pd.date_range(start="2023-01-01", periods=100, freq="D"), "feature_1": range(100), "target": range(100)}
+    )
 
     # Convert DataFrame to TensorFlow Dataset
     tf_dataset = convert_to_tensorflow(df)
@@ -55,18 +53,14 @@ Example Usage:
     df_back = convert_to_pandas(tf_dataset)
 """
 
-from typing import Union
 import pandas as pd
-import polars as pl
-import modin.pandas as mpd
 import tensorflow as tf
 
 from temporalscope.core.core_utils import SupportedBackendDataFrame
 
 
 def convert_to_tensorflow(df: SupportedBackendDataFrame) -> tf.data.Dataset:
-    """
-    Stub: Convert a DataFrame to a TensorFlow Dataset.
+    """Stub: Convert a DataFrame to a TensorFlow Dataset.
 
     This function will convert Pandas, Modin, or Polars DataFrames into a TensorFlow Dataset
     to enable compatibility with deep learning frameworks like TensorFlow.
@@ -78,8 +72,7 @@ def convert_to_tensorflow(df: SupportedBackendDataFrame) -> tf.data.Dataset:
 
 
 def convert_to_pandas(df: SupportedBackendDataFrame) -> pd.DataFrame:
-    """
-    Stub: Convert a DataFrame or TensorFlow Dataset to a Pandas DataFrame.
+    """Stub: Convert a DataFrame or TensorFlow Dataset to a Pandas DataFrame.
 
     This function will handle converting Modin, Polars, or TensorFlow Datasets back to Pandas
     DataFrames to ensure interoperability across backends and downstream tasks.
@@ -91,8 +84,7 @@ def convert_to_pandas(df: SupportedBackendDataFrame) -> pd.DataFrame:
 
 
 def handle_multi_step_conversion(df: pd.DataFrame, sequence_length: int) -> pd.DataFrame:
-    """
-    Stub: Prepare DataFrame for multi-step forecasting.
+    """Stub: Prepare DataFrame for multi-step forecasting.
 
     This function will handle the preparation of multi-step targets by expanding the target
     column into sequences of the specified length, suitable for sequential models.
