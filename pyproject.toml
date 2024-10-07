@@ -152,6 +152,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "docs/conf.py" = ["A001", "D103"]
+"__init__.py" = ["F401"]  # Allow unused imports in __init__.py files.
 
 [tool.mypy]
 files = "src/temporalscope"

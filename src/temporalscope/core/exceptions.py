@@ -140,24 +140,10 @@ class MixedFrequencyWarning(UserWarning):
     pass
 
 
-class UnsupportedBackendError(Exception):
-    """Exception raised when an unsupported backend is encountered.
+class InterchangeProtocolNotSupported(Exception):
+    """Exception raised when a dataframe object does not support the dataframe interchange protocol.
 
-    This error is raised when a user attempts to use a backend that is not
-    supported by TemporalScope. It centralizes backend validation errors across the package.
-
-    Attributes:
-        backend (str): The invalid backend that caused the error.
-        message (str): Explanation of the error.
-
+    i.e., must have implemented the __dataframe__ method.
     """
 
-    def __init__(self, backend, message="Unsupported backend"):
-        """Initialize the UnsupportedBackendError.
-
-        :param backend: The invalid backend (e.g., 'pl', 'pd', 'mpd') that caused the error.
-        :param message: Optional; a custom error message. Defaults to "Unsupported backend".
-        """
-        self.backend = backend
-        self.message = f"{message}: {backend}. Supported backends are 'pd', 'mpd', 'pl'."
-        super().__init__(self.message)
+    pass
