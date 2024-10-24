@@ -6,7 +6,7 @@ ci:
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: check-ast # checks Python syntax
       - id: check-json # checks JSON syntax
@@ -22,7 +22,7 @@ repos:
         args: [--markdown-linebreak-ext=md]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.8
+    rev: v0.7.0
     hooks:
       - id: ruff
         # Exclude tests and tutorials
@@ -50,12 +50,12 @@ repos:
       additional_dependencies: ["bandit[toml]"]
 
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.17.0
+    rev: v3.18.0
     hooks:
       - id: pyupgrade
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.11.2'
+    rev: 'v1.12.1'
     hooks:
       - id: mypy
         files: temporalscope
@@ -67,7 +67,7 @@ repos:
       - id: shellcheck
 
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.19.3
+    rev: v8.21.1
     hooks:
       - id: gitleaks
 
@@ -76,4 +76,4 @@ repos:
     hooks:
       - id: commitizen
       - id: commitizen-branch
-        stages: [push]
+        stages: [pre-push]
