@@ -26,17 +26,18 @@ dependencies = [
     "statsmodels>=0.14.2",      # Statsmodels: Provides statistical models and hypothesis tests, useful for traditional time series analysis.
     
     # Data Manipulation and Storage
-    "polars>=1.5.0",            # Polars: High-performance DataFrame library, ideal for handling large datasets in memory.
+    "pandas>=1.5.0",            # Pandas: Core library for handling structured data in DataFrames.
+    "modin[all]>=0.31.0",       # Modin: Parallelizes Pandas operations for large datasets with Dask/Ray backend.
     "pyarrow>=17.0.0",          # PyArrow: Enables efficient columnar data format (Arrow) for fast data processing and storage, commonly used with Parquet files.
-    "modin[all]>=0.31.0",       # Modin: Parallelizes Pandas operations to handle large datasets efficiently with Dask/Ray backend.
+    "polars>=1.5.0",            # Polars: High-performance DataFrame library, ideal for handling large datasets in memory.
+    "dask[dataframe]>=2024.7",  # Dask DataFrame: Handles parallelized computations for very large datasets.
     
     # Specialized Computation
     "flax>=0.8.5",              # Flax: Neural network library for JAX, useful for building deep learning models.
     "jax>=0.4.31",              # JAX: Accelerated computation for machine learning research, supporting CPU/GPU/TPU backends.
-
-    # Backend-Agnostic and SQL-like Processing
+    
+    # Backend-Agnostic Processing
     "narwhals>=0.2.3",          # Narwhals: Ensures backend compatibility across Pandas, Polars, Modin, and other dataframes, optimizing performance.
-    "ibis-framework>=9.1.0",    # Ibis: Enables SQL-like operations on Pandas, Polars, and SQL engines like DuckDB, translating Pythonic syntax into SQL.
     
     # Environment Configuration
     "python-dotenv>=1.0.1",     # Python-Dotenv: Manages environment variables for secure and flexible configuration.
@@ -72,7 +73,6 @@ keywords = [
 ]
 
 [project.optional-dependencies]
-vaex = ["vaex<5.0"]
 docs = [
     "pydata-sphinx-theme",
     "myst-parser",
@@ -80,7 +80,7 @@ docs = [
     "sphinx-copybutton",
     "sphinx-autodoc-typehints",
     "sphinx-autodoc-annotation",
-    'sphinx-autoapi',
+    "sphinx-autoapi",
 ]
 
 [project.urls]

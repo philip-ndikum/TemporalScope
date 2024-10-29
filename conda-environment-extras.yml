@@ -1,0 +1,12 @@
+name: temporalscope-conda-extras
+channels:
+  - conda-forge
+  - rapidsai
+  - nvidia
+dependencies:
+  - python=3.11
+  - vaex<5.0
+  - cudf>=23.08.00
+  - pytorch
+  - cudatoolkit=11.3
+  - tensorflow

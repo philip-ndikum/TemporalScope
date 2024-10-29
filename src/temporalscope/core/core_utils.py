@@ -102,42 +102,104 @@ models, neural networks, etc.):
 
 import os
 import warnings
-from typing import Dict, Optional
-
-import narwhals as nw
+from typing import Dict, List, Union, Type, Set, Optional
 from dotenv import load_dotenv
 
-from temporalscope.core.exceptions import MixedFrequencyWarning, UnsupportedBackendError
+import narwhals as nw
+from narwhals.utils import Implementation
+from narwhals.typing import FrameT  # Import FrameT from Narwhals for unified type hinting
+from temporalscope.core.exceptions import UnsupportedBackendError, MixedFrequencyWarning
+
+import pandas as pd
+import modin.pandas as mpd
+import pyarrow as pa
+import polars as pl
+import dask.dataframe as dd
 
 # Load environment variables from the .env file
 load_dotenv()
 
+# Define constants for TemporalScope-supported modes
 MODE_SINGLE_STEP = "single_step"
 MODE_MULTI_STEP = "multi_step"
+VALID_MODES = [MODE_SINGLE_STEP, MODE_MULTI_STEP]
 
-# Define a type alias for Narwhals-compatible DataFrame backends
-SupportedBackendDataFrame = nw.NarwhalDataFrame
+# Backend constants for TemporalScope
+TEMPORALSCOPE_CORE_BACKENDS = {"pandas", "modin", "pyarrow", "polars", "dask"}
+# TODO: Add optional backend "cudf" when Conda setup is confirmed
+TEMPORALSCOPE_OPTIONAL_BACKENDS = {"cudf"}
 
-def get_default_backend_cfg() -> Dict[str, Dict[str, str]]:
-    """Retrieve the application configuration settings.
+# Define a type alias combining Narwhals' FrameT with the supported TemporalScope dataframes
+SupportedTemporalDataFrame = Union[FrameT, pd.DataFrame, mpd.DataFrame, pa.Table, pl.DataFrame, dd.DataFrame]
 
-    :return: A dictionary of configuration settings.
-    :rtype: Dict[str, Dict[str, str]]
+# Backend type classes for TemporalScope backends
+TEMPORALSCOPE_CORE_BACKEND_TYPES: Dict[str, Type] = {
+    "pandas": pd.DataFrame,
+    "modin": mpd.DataFrame,
+    "pyarrow": pa.Table,
+    "polars": pl.DataFrame,
+    "dask": dd.DataFrame,
+}
+
+def get_narwhals_backends() -> List[str]:
+    """Retrieve all backends available through Narwhals.
+
+    :return: List of Narwhals-supported backend names in lowercase.
+    :rtype: List[str]
     """
-    return {"BACKENDS": nw.available_backends()}
+    return [backend.name.lower() for backend in Implementation]
 
+def get_default_backend_cfg() -> Dict[str, List[str]]:
+    """Retrieve the default application configuration for available backends.
 
-def validate_mode(backend: str, mode: str) -> None:
-    """Validate if the backend supports the given mode.
-
-    :param backend: The backend type.
-    :type backend: str
-    :param mode: The mode type ('single_step' or 'multi_step').
-    :raises NotImplementedError: If the backend does not support the requested mode.
+    :return: Dictionary with a single key 'BACKENDS' containing a list of all Narwhals-supported backends.
+    :rtype: Dict[str, List[str]]
     """
-    supported_modes = nw.supported_modes(backend)
-    if mode not in supported_modes:
-        raise NotImplementedError(f"The '{backend}' backend does not support '{mode}' mode.")
+    available_backends = get_narwhals_backends()
+    return {"BACKENDS": available_backends}
+
+def get_temporalscope_backends() -> List[str]:
+    """Retrieve the subset of Narwhals-supported backends compatible with TemporalScope.
+
+    :return: List of backend names supported by TemporalScope.
+    :rtype: List[str]
+    """
+    available_backends = get_narwhals_backends()
+    return [backend for backend in available_backends if backend in TEMPORALSCOPE_CORE_BACKENDS]
+
+def validate_backend(backend_name: str) -> None:
+    """Validate that a backend is supported by TemporalScope and Narwhals.
+
+    :param backend_name: Name of the backend to validate.
+    :type backend_name: str
+    :raises UnsupportedBackendError: If the backend is not in supported or optional backends.
+    :raises UserWarning: If the backend is in the optional set, which requires additional setup.
+    """
+    # Retrieve Narwhals-supported backend names
+    narwhals_backends: Set[str] = {backend.name.lower() for backend in Implementation}
+
+    # Validate backend support in both TemporalScope and Narwhals
+    if backend_name in TEMPORALSCOPE_CORE_BACKENDS and backend_name in narwhals_backends:
+        return
+    elif backend_name in TEMPORALSCOPE_OPTIONAL_BACKENDS and backend_name in narwhals_backends:
+        warnings.warn(f"'{backend_name}' is optional and requires Conda.", UserWarning)
+    else:
+        raise UnsupportedBackendError(f"Backend '{backend_name}' is not supported by TemporalScope.")
+    
+def import_backend(backend_name: str):
+    """Dynamically import a backend module by name.
+
+    :param backend_name: Name of the backend to import.
+    :type backend_name: str
+    :return: Imported module if found.
+    :rtype: module
+    :raises ImportError: If the backend module cannot be loaded.
+    """
+    validate_backend(backend_name)
+    try:
+        return __import__(backend_name)
+    except ImportError:
+        print(f"Warning: Backend '{backend_name}' could not be loaded. Check installation.")
 
 
 def get_api_keys() -> Dict[str, Optional[str]]:
@@ -166,86 +228,51 @@ def print_divider(char: str = "=", length: int = 70) -> None:
     """
     print(char * length)
 
-def check_nulls(df: SupportedBackendDataFrame, backend: str) -> bool:
-    """Check for null values in the DataFrame using the specified backend.
 
-    :param df: The DataFrame to check for null values.
-    :type df: SupportedBackendDataFrame
-    :param backend: The backend used for the DataFrame.
-    :type backend: str
-    :return: True if there are null values, False otherwise.
-    :rtype: bool
-    :raises UnsupportedBackendError: If the backend is not supported.
-    """
-    validate_backend(backend)
-    return bool(nw.check_nulls(df))
-
-
-def check_nans(df: SupportedBackendDataFrame, backend: str) -> bool:
-    """Check for NaN values in the DataFrame using the specified backend.
-
-    :param df: The DataFrame to check for NaN values.
-    :type df: SupportedBackendDataFrame
-    :param backend: The backend used for the DataFrame.
-    :type backend: str
-    :return: True if there are NaN values, False otherwise.
-    :rtype: bool
-    :raises UnsupportedBackendError: If the backend is not supported.
-    """
-    validate_backend(backend)
-    return bool(nw.check_nans(df))
-
-
-def is_timestamp_like(df: SupportedBackendDataFrame, time_col: str) -> bool:
+@nw.narwhalify
+def is_timestamp_like(df: FrameT, time_col: str) -> bool:
     """Check if the specified column in the DataFrame is timestamp-like.
 
-    :param df: The DataFrame containing the time column.
-    :type df: SupportedBackendDataFrame
-    :param time_col: The name of the column representing time data.
+    :param df: Narwhals-compatible DataFrame containing the time column.
+    :type df: FrameT
+    :param time_col: Name of the column representing time data.
     :type time_col: str
     :return: True if the column is timestamp-like, otherwise False.
     :rtype: bool
-    :raises ValueError: If the time_col does not exist in the DataFrame.
+    :raises ValueError: If `time_col` does not exist in the DataFrame.
     """
     if time_col not in df.columns:
         raise ValueError(f"Column '{time_col}' not found in the DataFrame.")
     return nw.is_timestamp(df[time_col])
 
 
-def is_numeric(df: SupportedBackendDataFrame, time_col: str) -> bool:
-    """Check if the specified column in the DataFrame is numeric.
+@nw.narwhalify
+def has_mixed_frequencies(df: FrameT, time_col: str, min_non_null_values: int = 3) -> bool:
+    """Check if the time column contains mixed frequencies.
 
-    :param df: The DataFrame containing the time column.
-    :type df: SupportedBackendDataFrame
+    :param df: Narwhals-compatible DataFrame containing the time column.
+    :type df: FrameT
     :param time_col: The name of the column representing time data.
     :type time_col: str
-    :return: True if the column is numeric, otherwise False.
-    :rtype: bool
-    :raises ValueError: If the time_col does not exist in the DataFrame.
-    """
-    if time_col not in df.columns:
-        raise ValueError(f"Column '{time_col}' not found in the DataFrame.")
-    return nw.is_numeric(df[time_col])
-
-
-def has_mixed_frequencies(df: SupportedBackendDataFrame, time_col: str, min_non_null_values: int = 3) -> bool:
-    """Check if the given time column in the DataFrame contains mixed frequencies.
-
-    :param df: The DataFrame containing the time column.
-    :type df: SupportedBackendDataFrame
-    :param time_col: The name of the column representing time data.
-    :type time_col: str
-    :param min_non_null_values: Minimum number of non-null values for frequency inference.
+    :param min_non_null_values: Minimum count of non-null values required for frequency detection.
     :type min_non_null_values: int
-    :return: True if mixed frequencies are detected, otherwise False.
+    :return: True if mixed frequencies are detected, False otherwise.
     :rtype: bool
-    :raises ValueError: If the time_col does not exist in the DataFrame.
-    :raises UnsupportedBackendError: If the backend is unsupported.
+    :raises ValueError: If `time_col` does not exist in the DataFrame.
+    :raises MixedFrequencyWarning: If mixed frequencies are detected in the time column.
     """
     if time_col not in df.columns:
         raise ValueError(f"Column '{time_col}' not found in the DataFrame.")
-    mixed_freq = nw.has_mixed_frequencies(df[time_col], min_non_null_values)
-    if mixed_freq:
-        warnings.warn("Mixed timestamp frequencies detected in the time column.", MixedFrequencyWarning)
-    return mixed_freq
 
+    time_values = df[time_col].dropna()
+    if len(time_values) < min_non_null_values:
+        return False  # Not enough data to determine frequency consistency
+    
+    # Calculate differences and detect mixed frequencies
+    time_diffs = time_values.diff().dropna()
+    is_mixed = not (time_diffs == time_diffs.iloc[0]).all()  # Check consistency of intervals
+    
+    if is_mixed:
+        warnings.warn("Mixed timestamp frequencies detected in the time column.", MixedFrequencyWarning)
+    
+    return is_mixed
