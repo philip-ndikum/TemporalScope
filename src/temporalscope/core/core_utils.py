@@ -102,7 +102,7 @@ models, neural networks, etc.):
 
 import os
 import warnings
-from typing import Dict, List, Union, Type, Set, Optional
+from typing import Dict, List, Union, Type, Set, Optional, Any
 from dotenv import load_dotenv
 
 import narwhals as nw
@@ -141,6 +141,7 @@ TEMPORALSCOPE_CORE_BACKEND_TYPES: Dict[str, Type] = {
     "dask": dd.DataFrame,
 }
 
+
 def get_narwhals_backends() -> List[str]:
     """Retrieve all backends available through Narwhals.
 
@@ -148,6 +149,7 @@ def get_narwhals_backends() -> List[str]:
     :rtype: List[str]
     """
     return [backend.name.lower() for backend in Implementation]
+
 
 def get_default_backend_cfg() -> Dict[str, List[str]]:
     """Retrieve the default application configuration for available backends.
@@ -158,6 +160,7 @@ def get_default_backend_cfg() -> Dict[str, List[str]]:
     available_backends = get_narwhals_backends()
     return {"BACKENDS": available_backends}
 
+
 def get_temporalscope_backends() -> List[str]:
     """Retrieve the subset of Narwhals-supported backends compatible with TemporalScope.
 
@@ -167,6 +170,7 @@ def get_temporalscope_backends() -> List[str]:
     available_backends = get_narwhals_backends()
     return [backend for backend in available_backends if backend in TEMPORALSCOPE_CORE_BACKENDS]
 
+
 def validate_backend(backend_name: str) -> None:
     """Validate that a backend is supported by TemporalScope and Narwhals.
 
@@ -175,17 +179,21 @@ def validate_backend(backend_name: str) -> None:
     :raises UnsupportedBackendError: If the backend is not in supported or optional backends.
     :raises UserWarning: If the backend is in the optional set, which requires additional setup.
     """
-    # Retrieve Narwhals-supported backend names
-    narwhals_backends: Set[str] = {backend.name.lower() for backend in Implementation}
+    # Retrieve all supported backends
+    narwhals_backends = {backend.name.lower() for backend in Implementation}
+    available_backends = TEMPORALSCOPE_CORE_BACKENDS.union(TEMPORALSCOPE_OPTIONAL_BACKENDS)
 
-    # Validate backend support in both TemporalScope and Narwhals
-    if backend_name in TEMPORALSCOPE_CORE_BACKENDS and backend_name in narwhals_backends:
+    if backend_name in available_backends and backend_name in narwhals_backends:
         return
     elif backend_name in TEMPORALSCOPE_OPTIONAL_BACKENDS and backend_name in narwhals_backends:
         warnings.warn(f"'{backend_name}' is optional and requires Conda.", UserWarning)
     else:
-        raise UnsupportedBackendError(f"Backend '{backend_name}' is not supported by TemporalScope.")
-    
+        raise UnsupportedBackendError(
+            f"Backend '{backend_name}' is not supported by TemporalScope. "
+            f"Supported backends are: {', '.join(sorted(available_backends))}."
+        )
+
+
 def import_backend(backend_name: str):
     """Dynamically import a backend module by name.
 
@@ -229,50 +237,28 @@ def print_divider(char: str = "=", length: int = 70) -> None:
     print(char * length)
 
 
-@nw.narwhalify
-def is_timestamp_like(df: FrameT, time_col: str) -> bool:
-    """Check if the specified column in the DataFrame is timestamp-like.
+def convert_to_backend(df: pd.DataFrame, backend: str, npartitions: int = 1) -> Any:
+    """Convert a Pandas DataFrame to the specified backend format.
 
-    :param df: Narwhals-compatible DataFrame containing the time column.
-    :type df: FrameT
-    :param time_col: Name of the column representing time data.
-    :type time_col: str
-    :return: True if the column is timestamp-like, otherwise False.
-    :rtype: bool
-    :raises ValueError: If `time_col` does not exist in the DataFrame.
+    :param df: The DataFrame to convert.
+    :type df: pd.DataFrame
+    :param backend: The target backend ('pandas', 'modin', 'polars', 'pyarrow', 'dask').
+    :type backend: str
+    :param npartitions: Number of partitions to use if backend is Dask. Default is 1.
+    :type npartitions: int
+    :return: The DataFrame in the specified backend format.
+    :rtype: Backend-specific DataFrame type
+    :raises ValueError: If the backend is not supported or implemented.
     """
-    if time_col not in df.columns:
-        raise ValueError(f"Column '{time_col}' not found in the DataFrame.")
-    return nw.is_timestamp(df[time_col])
-
-
-@nw.narwhalify
-def has_mixed_frequencies(df: FrameT, time_col: str, min_non_null_values: int = 3) -> bool:
-    """Check if the time column contains mixed frequencies.
-
-    :param df: Narwhals-compatible DataFrame containing the time column.
-    :type df: FrameT
-    :param time_col: The name of the column representing time data.
-    :type time_col: str
-    :param min_non_null_values: Minimum count of non-null values required for frequency detection.
-    :type min_non_null_values: int
-    :return: True if mixed frequencies are detected, False otherwise.
-    :rtype: bool
-    :raises ValueError: If `time_col` does not exist in the DataFrame.
-    :raises MixedFrequencyWarning: If mixed frequencies are detected in the time column.
-    """
-    if time_col not in df.columns:
-        raise ValueError(f"Column '{time_col}' not found in the DataFrame.")
-
-    time_values = df[time_col].dropna()
-    if len(time_values) < min_non_null_values:
-        return False  # Not enough data to determine frequency consistency
-    
-    # Calculate differences and detect mixed frequencies
-    time_diffs = time_values.diff().dropna()
-    is_mixed = not (time_diffs == time_diffs.iloc[0]).all()  # Check consistency of intervals
-    
-    if is_mixed:
-        warnings.warn("Mixed timestamp frequencies detected in the time column.", MixedFrequencyWarning)
-    
-    return is_mixed
+    if backend == "pandas":
+        return df
+    elif backend == "modin":
+        return mpd.DataFrame(df)
+    elif backend == "polars":
+        return pl.from_pandas(df)
+    elif backend == "pyarrow":
+        return pa.Table.from_pandas(df)
+    elif backend == "dask":
+        return dd.from_pandas(df, npartitions=npartitions)
+    else:
+        raise ValueError(f"Backend '{backend}' is not supported or has not been implemented.")

@@ -1,114 +1,68 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+# Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.
+# See the NOTICE file for additional information regarding copyright ownership.
+# The ASF licenses this file under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License. You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
 
-import pandas as pd
 import pytest
-
-from temporalscope.core.core_utils import BACKEND_MODIN, BACKEND_PANDAS, BACKEND_POLARS
-from temporalscope.core.temporal_data_loader import TimeFrame
+import pandas as pd
 from temporalscope.datasets.datasets import DatasetLoader
+from temporalscope.core.core_utils import TEMPORALSCOPE_CORE_BACKEND_TYPES, validate_backend, convert_to_backend
+from temporalscope.core.exceptions import UnsupportedBackendError
+
+# Constants
+DEFAULT_DATASET_NAME = "macrodata"
+VALID_BACKENDS = list(TEMPORALSCOPE_CORE_BACKEND_TYPES.keys())
+INVALID_BACKEND = "unsupported_backend"
 
 
 @pytest.fixture
 def dataset_loader():
-    """Fixture to create a DatasetLoader instance for the macrodata dataset."""
-    return DatasetLoader(dataset_name="macrodata")
+    """Fixture to create DatasetLoader instance for the default dataset."""
+    return DatasetLoader(dataset_name=DEFAULT_DATASET_NAME)
 
 
-@pytest.mark.parametrize("backend", [BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS])
-def test_init_timeframes_for_backends_parametrized(dataset_loader, backend):
-    """Test initializing TimeFrame objects for different backends."""
-    df, target_col = dataset_loader._load_dataset_and_target()
-
-    timeframes = dataset_loader.init_timeframes_for_backends(df, target_col, backends=(backend,))
-
-    assert isinstance(timeframes[backend], TimeFrame)
-
-    # Check that the backend is correct
-    assert timeframes[backend].dataframe_backend == backend
+@pytest.fixture(params=VALID_BACKENDS)
+def backend(request):
+    """Parametrized fixture for all supported backends in TEMPORALSCOPE_CORE_BACKEND_TYPES."""
+    return request.param
 
 
-@pytest.mark.parametrize("backend", [BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS])
-def test_load_and_init_timeframes_parametrized(dataset_loader, backend):
-    """Test loading dataset and initializing TimeFrames for each backend."""
-    timeframes = dataset_loader.load_and_init_timeframes(backends=(backend,))
-
-    # Check if the returned TimeFrame object is valid for the backend
-    assert isinstance(timeframes[backend], TimeFrame)
-    assert timeframes[backend].dataframe_backend == backend
-
-
-def test_invalid_backend_raises_error(dataset_loader):
-    """Test that initializing with an invalid backend raises a ValueError."""
-    df, target_col = dataset_loader._load_dataset_and_target()
-
-    with pytest.raises(ValueError, match="Unsupported backend"):
-        dataset_loader.init_timeframes_for_backends(df, target_col, backends=("invalid_backend",))
-
-
+# ========================= Dataset Tests =========================
 def test_invalid_dataset_name():
     """Test that initializing DatasetLoader with an invalid dataset name raises a ValueError."""
     with pytest.raises(ValueError, match="Dataset 'invalid' is not supported"):
         DatasetLoader(dataset_name="invalid")
 
 
-@pytest.mark.parametrize("backend", [BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS])
-def test_init_timeframes_with_custom_backend(dataset_loader, backend):
-    """Test initializing TimeFrames with a custom backend selection."""
+def test_load_dataset_structure(dataset_loader):
+    """Test loading dataset and verifying structure."""
     df, target_col = dataset_loader._load_dataset_and_target()
-    timeframes = dataset_loader.init_timeframes_for_backends(df, target_col, backends=(backend,))
-
-    # Ensure only the requested backend is initialized
-    assert backend in timeframes
-    assert isinstance(timeframes[backend], TimeFrame)
-
-
-def test_load_dataset_internal_call(mocker):
-    """Test the internal call to _load_dataset_and_target and check the dataset loader function."""
-    mocker.patch("temporalscope.datasets.datasets._load_macrodata", return_value=(pd.DataFrame(), "realgdp"))
-    dataset_loader = DatasetLoader(dataset_name="macrodata")
-
-    df, target_col = dataset_loader._load_dataset_and_target()
-
-    assert target_col == "realgdp"
     assert isinstance(df, pd.DataFrame)
-
-
-def test_load_dataset_and_verify_time_column(dataset_loader):
-    """Test to ensure that the 'ds' column is created and of type datetime."""
-    df, target_col = dataset_loader._load_dataset_and_target()
-
-    # Ensure 'ds' column exists and is of datetime type
+    assert target_col == "realgdp"
     assert "ds" in df.columns
     assert pd.api.types.is_datetime64_any_dtype(df["ds"])
 
 
-@pytest.mark.parametrize(
-    "backends",
-    [(BACKEND_PANDAS,), (BACKEND_MODIN,), (BACKEND_POLARS,), (BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS)],
-)
-def test_load_and_init_timeframes_return(dataset_loader, backends):
-    """Test that the returned timeframes object is a dictionary and contains the expected backends."""
-    timeframes = dataset_loader.load_and_init_timeframes(backends=backends)
+# ========================= Backend Validation Tests =========================
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_valid_backends_with_load_data(dataset_loader, backend):
+    """Test loading data and converting to each backend specified in TEMPORALSCOPE_CORE_BACKEND_TYPES."""
+    validate_backend(backend)  # Ensure the backend is supported
+    data = dataset_loader.load_data(backend=backend)
+    expected_type = TEMPORALSCOPE_CORE_BACKEND_TYPES[backend]
+    assert isinstance(data, expected_type), f"Data is not of type {expected_type} for backend '{backend}'"
 
-    # Ensure the return value is a dictionary
-    assert isinstance(timeframes, dict)
 
-    # Check that the returned dictionary contains the expected backends
-    for backend in backends:
-        assert backend in timeframes
-        assert isinstance(timeframes[backend], TimeFrame)
+def test_invalid_backend_raises_error(dataset_loader):
+    """Test that using an invalid backend raises an UnsupportedBackendError."""
+    with pytest.raises(UnsupportedBackendError, match="is not supported"):
+        dataset_loader.load_data(backend=INVALID_BACKEND)
+
+
+def test_load_data_with_backend_conversion(mocker, dataset_loader):
+    """Test load_data conversion by mocking convert_to_backend function."""
+    mocker.patch("temporalscope.core.core_utils.convert_to_backend", side_effect=convert_to_backend)
+    backend = "pandas"
+    data = dataset_loader.load_data(backend=backend)
+    assert isinstance(data, pd.DataFrame)
