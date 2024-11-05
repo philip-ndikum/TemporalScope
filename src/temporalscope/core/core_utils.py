@@ -102,6 +102,7 @@ models, neural networks, etc.):
 
 import os
 import warnings
+import importlib
 from typing import Dict, List, Union, Type, Set, Optional, Any
 from dotenv import load_dotenv
 
@@ -177,37 +178,26 @@ def validate_backend(backend_name: str) -> None:
     :param backend_name: Name of the backend to validate.
     :type backend_name: str
     :raises UnsupportedBackendError: If the backend is not in supported or optional backends.
-    :raises UserWarning: If the backend is in the optional set, which requires additional setup.
+    :raises UserWarning: If the backend is in the optional set but not installed.
     """
-    # Retrieve all supported backends
-    narwhals_backends = {backend.name.lower() for backend in Implementation}
-    available_backends = TEMPORALSCOPE_CORE_BACKENDS.union(TEMPORALSCOPE_OPTIONAL_BACKENDS)
+    # Assume TEMPORALSCOPE_CORE_BACKENDS and TEMPORALSCOPE_OPTIONAL_BACKENDS are sets
+    available_backends = TEMPORALSCOPE_CORE_BACKENDS | TEMPORALSCOPE_OPTIONAL_BACKENDS
 
-    if backend_name in available_backends and backend_name in narwhals_backends:
+    if backend_name in available_backends:
+        if backend_name in TEMPORALSCOPE_OPTIONAL_BACKENDS:
+            # Check if the optional backend is installed
+            if importlib.util.find_spec(backend_name) is None:
+                warnings.warn(
+                    f"The '{backend_name}' backend is optional and requires additional setup. "
+                    f"Please install it (e.g., using Conda).",
+                    UserWarning,
+                )
         return
-    elif backend_name in TEMPORALSCOPE_OPTIONAL_BACKENDS and backend_name in narwhals_backends:
-        warnings.warn(f"'{backend_name}' is optional and requires Conda.", UserWarning)
     else:
         raise UnsupportedBackendError(
             f"Backend '{backend_name}' is not supported by TemporalScope. "
             f"Supported backends are: {', '.join(sorted(available_backends))}."
         )
-
-
-def import_backend(backend_name: str):
-    """Dynamically import a backend module by name.
-
-    :param backend_name: Name of the backend to import.
-    :type backend_name: str
-    :return: Imported module if found.
-    :rtype: module
-    :raises ImportError: If the backend module cannot be loaded.
-    """
-    validate_backend(backend_name)
-    try:
-        return __import__(backend_name)
-    except ImportError:
-        print(f"Warning: Backend '{backend_name}' could not be loaded. Check installation.")
 
 
 def get_api_keys() -> Dict[str, Optional[str]]:

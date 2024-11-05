@@ -46,14 +46,16 @@ def test_generate_synthetic_time_series_basic(backend, num_samples, num_features
         assert df.shape[0] == 0, f"Expected empty DataFrame, got {df.shape[0]} rows"
     else:
         assert df.shape[0] == num_samples, f"Expected {num_samples} rows, got {df.shape[0]}"
-        
+
         # Check feature columns based on backend
         if backend == "pyarrow":
             feature_columns = [col for col in df.schema.names if "feature_" in col]
         else:
             feature_columns = [col for col in df.columns if "feature_" in col]
-        
-        assert len(feature_columns) == num_features, f"Expected {num_features} feature columns, got {len(feature_columns)}"
+
+        assert (
+            len(feature_columns) == num_features
+        ), f"Expected {num_features} feature columns, got {len(feature_columns)}"
 
     # Verify DataFrame backend type
     expected_type = TEMPORALSCOPE_CORE_BACKEND_TYPES[backend]
@@ -72,7 +74,6 @@ def test_generate_synthetic_time_series_basic(backend, num_samples, num_features
             assert isinstance(df["target"][0], (float, int)), "Expected scalar target value in Polars"
         else:
             assert np.isscalar(df["target"].iloc[0]), "Expected scalar target value in Pandas-based backend"
-
 
 
 # ========================= Time Column Generation Tests =========================
@@ -125,11 +126,8 @@ def test_time_column_generation(backend, time_col_numeric):
 def test_invalid_backend(backend):
     """Test error handling for unsupported backends."""
     with pytest.raises(UnsupportedBackendError, match="is not supported"):
-        generate_synthetic_time_series(
-            backend=INVALID_BACKEND,
-            num_samples=100,     
-            num_features=5       
-        )
+        generate_synthetic_time_series(backend=INVALID_BACKEND, num_samples=100, num_features=5)
+
 
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
 def test_unsupported_mode(backend):
@@ -137,22 +135,19 @@ def test_unsupported_mode(backend):
     with pytest.raises(ValueError, match="Unsupported mode: multi_step. Only 'single_step' mode is supported."):
         generate_synthetic_time_series(
             backend=backend,
-            num_samples=100,       # Add num_samples
-            num_features=5,        # Add num_features
-            mode="multi_step"      # Use an unsupported mode
+            num_samples=100,  # Add num_samples
+            num_features=5,  # Add num_features
+            mode="multi_step",  # Use an unsupported mode
         )
 
 
 # ========================= Additional Edge Case Tests =========================
 
+
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
 def test_generate_synthetic_time_series_empty_data(backend):
     """Test generating synthetic data with zero samples to verify empty dataset handling."""
-    df = generate_synthetic_time_series(
-        backend=backend,
-        num_samples=0,
-        num_features=3
-    )
+    df = generate_synthetic_time_series(backend=backend, num_samples=0, num_features=3)
 
     # For Dask, compute to finalize DataFrame creation
     if backend == "dask":
@@ -166,11 +161,7 @@ def test_generate_synthetic_time_series_empty_data(backend):
 def test_generate_synthetic_time_series_with_nulls_and_nans(backend):
     """Test generating synthetic data with both nulls and NaNs introduced to feature columns."""
     df = generate_synthetic_time_series(
-        backend=backend,
-        num_samples=100,
-        num_features=5,
-        with_nulls=True,
-        with_nans=True
+        backend=backend, num_samples=100, num_features=5, with_nulls=True, with_nans=True
     )
 
     # For Dask, compute to finalize DataFrame creation
@@ -179,7 +170,9 @@ def test_generate_synthetic_time_series_with_nulls_and_nans(backend):
 
     # Validate that both None and NaN values are present in the feature columns
     if backend == "pyarrow":
-        assert df["feature_1"][0].as_py() is None or pd.isna(df["feature_1"][0].as_py()), "Expected None or NaN in PyArrow backend"
+        assert df["feature_1"][0].as_py() is None or pd.isna(
+            df["feature_1"][0].as_py()
+        ), "Expected None or NaN in PyArrow backend"
     elif backend == "polars":
         assert df["feature_1"].is_null().sum() > 0, "Expected None or NaN in Polars backend"
     else:
@@ -197,7 +190,9 @@ def test_generate_synthetic_time_series_defaults_only_backend(backend):
 
     # Check if the DataFrame matches the default values (100 samples, 3 features)
     assert df.shape[0] == 100, f"Expected 100 rows, got {df.shape[0]}"
-    assert len([col for col in (df.schema.names if backend == "pyarrow" else df.columns) if "feature_" in col]) == 3, "Expected 3 feature columns"
+    assert (
+        len([col for col in (df.schema.names if backend == "pyarrow" else df.columns) if "feature_" in col]) == 3
+    ), "Expected 3 feature columns"
 
 
 def test_generate_synthetic_time_series_negative_values():
@@ -206,11 +201,7 @@ def test_generate_synthetic_time_series_negative_values():
         generate_synthetic_time_series(
             backend="pandas",  # Using a simple backend for targeted error checking
             num_samples=-10,
-            num_features=5
+            num_features=5,
         )
     with pytest.raises(ValueError, match="`num_samples` and `num_features` must be non-negative."):
-        generate_synthetic_time_series(
-            backend="pandas",
-            num_samples=100,
-            num_features=-3
-        )
+        generate_synthetic_time_series(backend="pandas", num_samples=100, num_features=-3)

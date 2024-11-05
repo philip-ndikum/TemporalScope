@@ -103,8 +103,8 @@ from temporalscope.core.core_utils import validate_backend, convert_to_backend, 
 
 def generate_synthetic_time_series(
     backend: str,
-    num_samples: int = 100,    
-    num_features: int = 3,     
+    num_samples: int = 100,
+    num_features: int = 3,
     with_nulls: bool = False,
     with_nans: bool = False,
     mode: str = "single_step",
@@ -141,7 +141,9 @@ def generate_synthetic_time_series(
 
     # Generate initial DataFrame with Pandas
     time_column = (
-        np.arange(num_samples, dtype=np.float64) if time_col_numeric else pd.date_range("2023-01-01", periods=num_samples)
+        np.arange(num_samples, dtype=np.float64)
+        if time_col_numeric
+        else pd.date_range("2023-01-01", periods=num_samples)
     )
     df = pd.DataFrame(
         {
