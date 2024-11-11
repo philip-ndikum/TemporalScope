@@ -27,11 +27,6 @@ from temporalscope.core.core_utils import (
     UnsupportedBackendError,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
-import pandas as pd
-import modin.pandas as mpd
-import pyarrow as pa
-import polars as pl
-import dask.dataframe as dd
 
 # Constants
 VALID_BACKENDS = ["pandas", "modin", "pyarrow", "polars", "dask"]
@@ -144,15 +139,23 @@ def test_print_divider_custom(capsys):
 
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
 def test_convert_to_backend_valid(backend):
-    """Test DataFrame conversion to each backend."""
+    """Test DataFrame conversion to each valid backend."""
+    # Generate a Pandas DataFrame as input
     df = generate_synthetic_time_series(backend="pandas", num_samples=10, num_features=2)
+
+    # Convert the DataFrame to the target backend
     converted_df = convert_to_backend(df, backend)
+
+    # Validate the type of the converted DataFrame
     expected_type = TEMPORALSCOPE_CORE_BACKEND_TYPES[backend]
     assert isinstance(converted_df, expected_type), f"Expected {expected_type} for backend '{backend}'."
 
 
 def test_convert_to_backend_invalid():
-    """Test that convert_to_backend raises error with unsupported backend."""
+    """Test that convert_to_backend raises UnsupportedBackendError with unsupported backend."""
+    # Generate a Pandas DataFrame as input
     df = generate_synthetic_time_series(backend="pandas", num_samples=10, num_features=2)
-    with pytest.raises(ValueError):
+
+    # Ensure UnsupportedBackendError is raised for invalid backend
+    with pytest.raises(UnsupportedBackendError, match=f"Backend '{INVALID_BACKEND}' is not supported"):
         convert_to_backend(df, INVALID_BACKEND)

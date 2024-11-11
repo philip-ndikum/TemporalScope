@@ -10,154 +10,105 @@
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
 
 """TemporalScope/src/temporalscope/core/exceptions.py
 
-This module defines custom exceptions and warnings used throughout the TemporalScope package,
-specifically for handling errors and edge cases in the TimeFrame class. These custom error
-types and warnings are designed to provide clear and actionable feedback for developers
-when issues are encountered during time-series forecasting workflows.
-
-Use Cases:
-----------
-- **TimeColumnError**: Raised when there are validation issues with the `time_col` such as unsupported types.
-- **MixedTypesWarning**: Raised when mixed numeric and timestamp types are detected in `time_col`.
-- **MixedTimezonesWarning**: Raised when `time_col` contains a mixture of timezone-aware and naive timestamps.
-
-Classes:
---------
-- `TimeFrameError`: The base class for all custom exceptions in the TimeFrame module.
-- `TimeColumnError`: Raised when the time column has invalid values or types.
-- `MixedTypesWarning`: Warning issued when the `time_col` contains mixed numeric and timestamp-like types.
-- `MixedTimezonesWarning`: Warning issued when the `time_col` contains a mix of timezone-aware and naive timestamps.
-
-Example Usage:
---------------
-.. code-block:: python
-
-    from temporalscope.core.exceptions import TimeColumnError, MixedTypesWarning, MixedTimezonesWarning
-
-
-    def validate_time_column(df):
-        if df["time"].dtype == object:
-            raise TimeColumnError("Invalid time column data type.")
-        elif contains_mixed_types(df["time"]):
-            warnings.warn("Mixed numeric and timestamp types.", MixedTypesWarning)
-
+This module defines custom exceptions and warnings used throughout the TemporalScope package.
+These exceptions provide clear, actionable feedback for users during time-series forecasting workflows.
 """
+
+import narwhals as nw
 
 
 class TimeFrameError(Exception):
     """Base class for exceptions in the TimeFrame module.
 
-    This exception serves as the foundation for all errors related to the
-    `TimeFrame` class. It should be subclassed to create more specific
-    exceptions for different error conditions.
+    This serves as the foundation for all `TimeFrame`-related errors.
     """
 
     pass
 
 
 class TimeColumnError(TimeFrameError):
-    """Exception raised for errors related to the `time_col`.
+    """Exception raised for validation issues with `time_col`.
 
-    This error is raised when the `time_col` in the TimeFrame is either
-    missing, contains unsupported types (non-numeric or non-timestamp),
-    or has invalid data like null values.
-
-    Attributes:
-        message (str): Explanation of the error.
+    :param message: Explanation of the error.
+    :type message: str
 
     Example Usage:
     --------------
     .. code-block:: python
 
-        if not pd.api.types.is_numeric_dtype(df[time_col]) and \
-           not pd.api.types.is_datetime64_any_dtype(df[time_col]):
+        if not nw.is_numeric(df[time_col]) and not nw.is_timestamp(df[time_col]):
             raise TimeColumnError("`time_col` must be numeric or timestamp-like.")
-
     """
 
     pass
 
 
-class MixedTypesWarning(UserWarning):
-    """Warning raised when mixed numeric and timestamp-like types are detected in `time_col`.
+class TargetColumnWarning(UserWarning):
+    """Warning raised for potential issues with the target column.
 
-    This warning is issued when the time column contains both numeric and
-    timestamp-like types, which could lead to unpredictable behavior in time
-    series processing workflows.
+    This warning is issued when the target column appears to contain sequential or vectorized data,
+    which may require transformation depending on the selected mode (e.g., `MODE_MULTI_STEP`).
 
     Example Usage:
     --------------
     .. code-block:: python
 
-        if numeric_mask and timestamp_mask:
-            warnings.warn("`time_col` contains mixed numeric and timestamp-like types.", MixedTypesWarning)
+        if mode == "multi_step" and target_col_is_vectorized:
+            warnings.warn(
+                "`target_col` appears to contain sequential data. Ensure it is transformed appropriately for MODE_MULTI_STEP.",
+                TargetColumnWarning,
+            )
     """
 
     pass
 
 
-class MixedTimezonesWarning(UserWarning):
-    """Warning raised when mixed timezone-aware and naive timestamps are detected in `time_col`.
+class ModeValidationError(TimeFrameError):
+    """Exception raised when an invalid mode is specified.
 
-    This warning is issued when the time column contains a mix of timezone-aware
-    and timezone-naive timestamps, which could cause errors in models that
-    require consistent timestamp formats.
+    :param mode: The invalid mode that caused the error.
+    :type mode: str
+    :param message: Explanation of the error.
+    :type message: str
 
     Example Usage:
     --------------
     .. code-block:: python
 
-        if df[time_col].dt.tz is not None and df[time_col].dt.tz.hasnans:
-            warnings.warn("`time_col` contains mixed timezone-aware and naive timestamps.", MixedTimezonesWarning)
+        if mode not in VALID_MODES:
+            raise ModeValidationError(mode, f"Invalid mode: {mode}. Must be one of {VALID_MODES}.")
     """
 
-    pass
+    def __init__(self, mode, message="Invalid mode specified"):
+        self.mode = mode
+        self.message = f"{message}: {mode}."
+        super().__init__(self.message)
 
 
-class MixedFrequencyWarning(UserWarning):
-    """Warning raised when mixed timestamp frequencies are detected in `time_col`.
-
-    This warning is issued when the time column contains timestamps of mixed frequencies
-    (e.g., daily, monthly, and yearly timestamps), which can lead to inconsistent behavior
-    in time series operations that assume uniform frequency.
-
-    Example Usage:
-    --------------
-    .. code-block:: python
-
-        inferred_freq = pd.infer_freq(time_col.dropna())
-        if inferred_freq is None:
-            warnings.warn("`time_col` contains mixed timestamp frequencies.", MixedFrequencyWarning)
-    """
-
-    pass
-
-
-class UnsupportedBackendError(Exception):
+class UnsupportedBackendError(TimeFrameError):
     """Exception raised when an unsupported backend is encountered.
 
-    This error is raised when a user attempts to use a backend that is not
-    supported by TemporalScope. It centralizes backend validation errors across the package.
+    :param backend: The invalid backend that caused the error.
+    :type backend: str
+    :param message: Explanation of the error.
+    :type message: str
 
-    Attributes:
-        backend (str): The invalid backend that caused the error.
-        message (str): Explanation of the error.
+    Example Usage:
+    --------------
+    .. code-block:: python
 
+        if backend not in TEMPORALSCOPE_CORE_BACKENDS:
+            raise UnsupportedBackendError(backend)
     """
 
     def __init__(self, backend, message="Unsupported backend"):
-        """Initialize the UnsupportedBackendError.
-
-        :param backend: The invalid backend (e.g., 'pl', 'pd', 'mpd') that caused the error.
-        :param message: Optional; a custom error message. Defaults to "Unsupported backend".
-        """
         self.backend = backend
-        self.message = f"{message}: {backend}. Supported backends are 'pd', 'mpd', 'pl'."
+        self.message = f"{message}: {backend}."
         super().__init__(self.message)

@@ -10,7 +10,7 @@
 #
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
@@ -100,26 +100,35 @@ models, neural networks, etc.):
    to extract insights from any type of model.
 """
 
+# Standard Library Imports
 import os
 import warnings
-import importlib
-from typing import Dict, List, Union, Type, Set, Optional, Any
-from dotenv import load_dotenv
+from importlib import util
+from typing import Dict, List, Union, Type, Set, Optional, Any, TypeVar, Generic
 
-import narwhals as nw
-from narwhals.utils import Implementation
-from narwhals.typing import FrameT  # Import FrameT from Narwhals for unified type hinting
-from temporalscope.core.exceptions import UnsupportedBackendError, MixedFrequencyWarning
-
+# Third-Party Imports
 import pandas as pd
 import modin.pandas as mpd
 import pyarrow as pa
 import polars as pl
-import dask.dataframe as dd
+import dask.dataframe as dd  # Import dask.dataframe as dd again
+
+# Loading Environment variables
+from dotenv import load_dotenv
+
+# Narwhals Imports
+import narwhals as nw
+from narwhals.utils import Implementation
+from narwhals.typing import FrameT
+
+# TemporalScope Imports
+from temporalscope.core.exceptions import UnsupportedBackendError
 
 # Load environment variables from the .env file
 load_dotenv()
 
+# Constants
+# ---------
 # Define constants for TemporalScope-supported modes
 MODE_SINGLE_STEP = "single_step"
 MODE_MULTI_STEP = "multi_step"
@@ -131,16 +140,22 @@ TEMPORALSCOPE_CORE_BACKENDS = {"pandas", "modin", "pyarrow", "polars", "dask"}
 TEMPORALSCOPE_OPTIONAL_BACKENDS = {"cudf"}
 
 # Define a type alias combining Narwhals' FrameT with the supported TemporalScope dataframes
-SupportedTemporalDataFrame = Union[FrameT, pd.DataFrame, mpd.DataFrame, pa.Table, pl.DataFrame, dd.DataFrame]
+SupportedTemporalDataFrame = Union[
+    FrameT, pd.DataFrame, mpd.DataFrame, pa.Table, pl.DataFrame, Any  # Use Any for Dask DataFrame
+]
 
 # Backend type classes for TemporalScope backends
-TEMPORALSCOPE_CORE_BACKEND_TYPES: Dict[str, Type] = {
+TEMPORALSCOPE_CORE_BACKEND_TYPES: Dict[str, Any] = {
     "pandas": pd.DataFrame,
     "modin": mpd.DataFrame,
     "pyarrow": pa.Table,
     "polars": pl.DataFrame,
-    "dask": dd.DataFrame,
+    "dask": Any,  # Use Any for Dask DataFrame
 }
+
+
+# Functions
+# ---------
 
 
 def get_narwhals_backends() -> List[str]:
@@ -186,7 +201,7 @@ def validate_backend(backend_name: str) -> None:
     if backend_name in available_backends:
         if backend_name in TEMPORALSCOPE_OPTIONAL_BACKENDS:
             # Check if the optional backend is installed
-            if importlib.util.find_spec(backend_name) is None:
+            if util.find_spec(backend_name) is None:
                 warnings.warn(
                     f"The '{backend_name}' backend is optional and requires additional setup. "
                     f"Please install it (e.g., using Conda).",
@@ -238,17 +253,21 @@ def convert_to_backend(df: pd.DataFrame, backend: str, npartitions: int = 1) -> 
     :type npartitions: int
     :return: The DataFrame in the specified backend format.
     :rtype: Backend-specific DataFrame type
-    :raises ValueError: If the backend is not supported or implemented.
+    :raises UnsupportedBackendError: If the backend is not supported by TemporalScope.
     """
-    if backend == "pandas":
-        return df
-    elif backend == "modin":
-        return mpd.DataFrame(df)
-    elif backend == "polars":
-        return pl.from_pandas(df)
-    elif backend == "pyarrow":
-        return pa.Table.from_pandas(df)
-    elif backend == "dask":
-        return dd.from_pandas(df, npartitions=npartitions)
-    else:
-        raise ValueError(f"Backend '{backend}' is not supported or has not been implemented.")
+    validate_backend(backend)
+
+    # Map backends to their respective conversion functions
+    backend_mapping = {
+        "pandas": lambda df: df,
+        "modin": lambda df: mpd.DataFrame(df),
+        "polars": lambda df: pl.from_pandas(df),
+        "pyarrow": lambda df: pa.Table.from_pandas(df),
+        "dask": lambda df: dd.from_pandas(df, npartitions=npartitions),  # type: ignore[attr-defined]
+    }
+
+    # Return the converted DataFrame
+    if backend in backend_mapping:
+        return backend_mapping[backend](df)
+
+    raise UnsupportedBackendError(f"Backend '{backend}' is not supported.")

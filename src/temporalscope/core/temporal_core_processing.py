@@ -53,44 +53,44 @@ Example Usage:
     df_back = convert_to_pandas(tf_dataset)
 """
 
-import pandas as pd
-import tensorflow as tf
+# import pandas as pd
+# import tensorflow as tf
 
-from temporalscope.core.core_utils import SupportedBackendDataFrame
-
-
-def convert_to_tensorflow(df: SupportedBackendDataFrame) -> tf.data.Dataset:
-    """Stub: Convert a DataFrame to a TensorFlow Dataset.
-
-    This function will convert Pandas, Modin, or Polars DataFrames into a TensorFlow Dataset
-    to enable compatibility with deep learning frameworks like TensorFlow.
-
-    :param df: The input DataFrame to convert.
-    :return: A TensorFlow `tf.data.Dataset` object.
-    """
-    pass
+# from temporalscope.core.core_utils import SupportedBackendDataFrame
 
 
-def convert_to_pandas(df: SupportedBackendDataFrame) -> pd.DataFrame:
-    """Stub: Convert a DataFrame or TensorFlow Dataset to a Pandas DataFrame.
+# def convert_to_tensorflow(df: SupportedBackendDataFrame) -> tf.data.Dataset:
+#     """Stub: Convert a DataFrame to a TensorFlow Dataset.
 
-    This function will handle converting Modin, Polars, or TensorFlow Datasets back to Pandas
-    DataFrames to ensure interoperability across backends and downstream tasks.
+#     This function will convert Pandas, Modin, or Polars DataFrames into a TensorFlow Dataset
+#     to enable compatibility with deep learning frameworks like TensorFlow.
 
-    :param df: The input DataFrame or TensorFlow Dataset.
-    :return: A Pandas DataFrame.
-    """
-    pass
+#     :param df: The input DataFrame to convert.
+#     :return: A TensorFlow `tf.data.Dataset` object.
+#     """
+#     pass
 
 
-def handle_multi_step_conversion(df: pd.DataFrame, sequence_length: int) -> pd.DataFrame:
-    """Stub: Prepare DataFrame for multi-step forecasting.
+# def convert_to_pandas(df: SupportedBackendDataFrame) -> pd.DataFrame:
+#     """Stub: Convert a DataFrame or TensorFlow Dataset to a Pandas DataFrame.
 
-    This function will handle the preparation of multi-step targets by expanding the target
-    column into sequences of the specified length, suitable for sequential models.
+#     This function will handle converting Modin, Polars, or TensorFlow Datasets back to Pandas
+#     DataFrames to ensure interoperability across backends and downstream tasks.
 
-    :param df: The input DataFrame containing single-step targets.
-    :param sequence_length: The length of the target sequence for multi-step forecasting.
-    :return: A DataFrame with expanded target sequences.
-    """
-    pass
+#     :param df: The input DataFrame or TensorFlow Dataset.
+#     :return: A Pandas DataFrame.
+#     """
+#     pass
+
+
+# def handle_multi_step_conversion(df: pd.DataFrame, sequence_length: int) -> pd.DataFrame:
+#     """Stub: Prepare DataFrame for multi-step forecasting.
+
+#     This function will handle the preparation of multi-step targets by expanding the target
+#     column into sequences of the specified length, suitable for sequential models.
+
+#     :param df: The input DataFrame containing single-step targets.
+#     :param sequence_length: The length of the target sequence for multi-step forecasting.
+#     :return: A DataFrame with expanded target sequences.
+#     """
+#     pass
