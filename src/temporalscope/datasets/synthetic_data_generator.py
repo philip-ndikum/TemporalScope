@@ -98,6 +98,7 @@ Example Usage:
 
 import pandas as pd
 import numpy as np
+import dask.dataframe as dd
 from temporalscope.core.core_utils import validate_backend, convert_to_backend, SupportedTemporalDataFrame
 
 
@@ -160,4 +161,10 @@ def generate_synthetic_time_series(
         df.iloc[0:5, 2:] = np.nan
 
     # Convert to specified backend
-    return convert_to_backend(df, backend)
+    result = convert_to_backend(df, backend)
+
+    # Ensure Dask DataFrames are computed before returning
+    if isinstance(result, dd.DataFrame):
+        result = result.persist()
+
+    return result

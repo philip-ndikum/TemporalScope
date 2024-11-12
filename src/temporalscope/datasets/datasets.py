@@ -44,7 +44,10 @@ def _load_macrodata() -> Tuple[pd.DataFrame, str]:
     :return: Preprocessed DataFrame and default target column 'realgdp'.
     :rtype: Tuple[pd.DataFrame, str]
     """
-    dataset_df = macrodata.load_pandas().data.copy()
+    loaded_data = macrodata.load_pandas().data
+    if loaded_data is None:
+        raise ValueError("Failed to load macrodata dataset")
+    dataset_df = loaded_data.copy()
     dataset_df["year"] = dataset_df["year"].astype(int)
     dataset_df["quarter"] = dataset_df["quarter"].astype(int)
     dataset_df["ds"] = pd.to_datetime(

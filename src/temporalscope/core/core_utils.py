@@ -8,12 +8,10 @@
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+# Unless required by applicable law or agreed to in writing, software distributed under the License is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
 # KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+# specific language governing permissions and limitations under the License.
 
 """TemporalScope/src/temporalscope/core/core_utils.py.
 
@@ -98,6 +96,41 @@ models, neural networks, etc.):
    TemporalScope provides tools for integrating popular model-agnostic
    explainability techniques such as SHAP, Boruta-SHAP, and LIME, allowing users
    to extract insights from any type of model.
+
+.. seealso::
+
+Example Visualization:
+----------------------
+Here is a visual demonstration of the datasets generated for single-step and multi-step
+modes, including the shape of input (`X`) and target (`Y`) data compatible with most
+popular ML frameworks like TensorFlow, PyTorch, and SHAP.
+
+Single-step mode:
+    +------------+------------+------------+------------+-----------+
+    |   time     | feature_1  | feature_2  | feature_3  |  target   |
+    +============+============+============+============+===========+
+    | 2023-01-01 |   0.15     |   0.67     |   0.89     |   0.33    |
+    +------------+------------+------------+------------+-----------+
+    | 2023-01-02 |   0.24     |   0.41     |   0.92     |   0.28    |
+    +------------+------------+------------+------------+-----------+
+
+    Shape:
+    - `X`: (num_samples, num_features)
+    - `Y`: (num_samples, 1)  # Scalar target for each time step
+
+Multi-step mode (with vectorized targets):
+
+    +------------+------------+------------+------------+-------------+
+    |   time     | feature_1  | feature_2  | feature_3  |    target   |
+    +============+============+============+============+=============+
+    | 2023-01-01 |   0.15     |   0.67     |   0.89     |  [0.3, 0.4] |
+    +------------+------------+------------+------------+-------------+
+    | 2023-01-02 |   0.24     |   0.41     |   0.92     |  [0.5, 0.6] |
+    +------------+------------+------------+------------+-------------+
+
+    Shape:
+    - `X`: (num_samples, num_features)
+    - `Y`: (num_samples, sequence_length)  # Vectorized target for each input sequence
 """
 
 # Standard Library Imports
@@ -120,6 +153,7 @@ from dotenv import load_dotenv
 import narwhals as nw
 from narwhals.utils import Implementation
 from narwhals.typing import FrameT
+from narwhals.typing import IntoDataFrame
 
 # TemporalScope Imports
 from temporalscope.core.exceptions import UnsupportedBackendError
@@ -141,7 +175,7 @@ TEMPORALSCOPE_OPTIONAL_BACKENDS = {"cudf"}
 
 # Define a type alias combining Narwhals' FrameT with the supported TemporalScope dataframes
 SupportedTemporalDataFrame = Union[
-    FrameT, pd.DataFrame, mpd.DataFrame, pa.Table, pl.DataFrame, Any  # Use Any for Dask DataFrame
+    FrameT, pd.DataFrame, mpd.DataFrame, pa.Table, pl.DataFrame, dd.DataFrame  # Use dd.DataFrame for Dask DataFrame
 ]
 
 # Backend type classes for TemporalScope backends
@@ -150,7 +184,7 @@ TEMPORALSCOPE_CORE_BACKEND_TYPES: Dict[str, Any] = {
     "modin": mpd.DataFrame,
     "pyarrow": pa.Table,
     "polars": pl.DataFrame,
-    "dask": Any,  # Use Any for Dask DataFrame
+    "dask": dd.DataFrame,  # Use dd.DataFrame for Dask DataFrame
 }
 
 
@@ -242,32 +276,58 @@ def print_divider(char: str = "=", length: int = 70) -> None:
     print(char * length)
 
 
-def convert_to_backend(df: pd.DataFrame, backend: str, npartitions: int = 1) -> Any:
-    """Convert a Pandas DataFrame to the specified backend format.
+def convert_to_backend(df: IntoDataFrame, backend: str, npartitions: int = 1) -> IntoDataFrame:
+    """Convert a DataFrame to the specified backend format using Narwhals.
 
-    :param df: The DataFrame to convert.
-    :type df: pd.DataFrame
-    :param backend: The target backend ('pandas', 'modin', 'polars', 'pyarrow', 'dask').
+    Narwhals handles the conversion between supported backends (e.g., Pandas, Polars, PyArrow, Dask).
+    This function also ensures compatibility with TemporalScope-supported backends.
+
+    :param df: Input DataFrame in any Narwhals-compatible backend.
+    :type df: IntoDataFrame
+    :param backend: Target backend ('pandas', 'modin', 'polars', 'pyarrow', 'dask').
     :type backend: str
-    :param npartitions: Number of partitions to use if backend is Dask. Default is 1.
+    :param npartitions: Number of partitions for Dask backend. Default is 1.
     :type npartitions: int
-    :return: The DataFrame in the specified backend format.
-    :rtype: Backend-specific DataFrame type
-    :raises UnsupportedBackendError: If the backend is not supported by TemporalScope.
+    :return: DataFrame in the specified backend format.
+    :rtype: IntoDataFrame
+    :raises UnsupportedBackendError: If the backend is not supported by TemporalScope or if the DataFrame type is unsupported.
+
+    Example Usage:
+    --------------
+    .. code-block:: python
+
+        import pandas as pd
+        from temporalscope.core.core_utils import convert_to_backend
+
+        data = pd.DataFrame({"time": range(10), "value": range(10)})
+        df_modin = convert_to_backend(data, backend="modin")
+        print(type(df_modin))  # Output: <class 'modin.pandas.dataframe.DataFrame'>
     """
+    # Validate the backend
     validate_backend(backend)
 
-    # Map backends to their respective conversion functions
-    backend_mapping = {
-        "pandas": lambda df: df,
-        "modin": lambda df: mpd.DataFrame(df),
-        "polars": lambda df: pl.from_pandas(df),
-        "pyarrow": lambda df: pa.Table.from_pandas(df),
-        "dask": lambda df: dd.from_pandas(df, npartitions=npartitions),  # type: ignore[attr-defined]
-    }
+    # Ensure the input DataFrame type is supported
+    supported_types = (
+        pd.DataFrame,
+        mpd.DataFrame,
+        pa.Table,
+        pl.DataFrame,
+        dd.DataFrame,
+    )
+    if not isinstance(df, supported_types):
+        raise UnsupportedBackendError(f"Input DataFrame type '{type(df).__name__}' is not supported")
 
-    # Return the converted DataFrame
-    if backend in backend_mapping:
-        return backend_mapping[backend](df)
+    # Convert to a generic format using Narwhals
+    intermediate = nw.from_native(df)
 
-    raise UnsupportedBackendError(f"Backend '{backend}' is not supported.")
+    # Handle conversion based on the target backend
+    if backend == "pandas":
+        return intermediate.to_pandas()
+    elif backend == "modin":
+        return mpd.DataFrame(intermediate.to_pandas())
+    elif backend == "polars":
+        return pl.DataFrame(intermediate.to_arrow())
+    elif backend == "pyarrow":
+        return pa.Table.from_pandas(intermediate.to_pandas())
+    elif backend == "dask":
+        return dd.from_pandas(intermediate.to_pandas(), npartitions=npartitions)

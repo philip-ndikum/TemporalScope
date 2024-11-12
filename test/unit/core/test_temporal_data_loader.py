@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations under the License.
 
 import pytest
+import pandas as pd
 from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.core.exceptions import TimeColumnError, UnsupportedBackendError
 from temporalscope.core.core_utils import get_temporalscope_backends
@@ -93,6 +94,7 @@ def test_validation_edge_cases(backend):
         TimeFrame(data, time_col="time", target_col="target", dataframe_backend=backend)
 
     # Missing values in critical columns
-    data.loc[0, "time"] = None  # Missing value in time column
+    if isinstance(data, pd.DataFrame):
+        data.loc[0, "time"] = None  # Missing value in time column
     with pytest.raises(ValueError, match=r"Missing values detected in `time` or `target`."):
         TimeFrame(data, time_col="time", target_col="target", dataframe_backend=backend)

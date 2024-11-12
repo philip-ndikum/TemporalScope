@@ -159,3 +159,15 @@ def test_convert_to_backend_invalid():
     # Ensure UnsupportedBackendError is raised for invalid backend
     with pytest.raises(UnsupportedBackendError, match=f"Backend '{INVALID_BACKEND}' is not supported"):
         convert_to_backend(df, INVALID_BACKEND)
+
+
+def test_convert_to_backend_unsupported_dataframe_type():
+    """Test that convert_to_backend raises UnsupportedBackendError for unsupported DataFrame types."""
+
+    class UnsupportedDataFrame:
+        pass
+
+    df = UnsupportedDataFrame()
+
+    with pytest.raises(UnsupportedBackendError, match="Input DataFrame type 'UnsupportedDataFrame' is not supported"):
+        convert_to_backend(df, "pandas")
