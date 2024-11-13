@@ -21,8 +21,6 @@ This module defines custom exceptions and warnings used throughout the TemporalS
 These exceptions provide clear, actionable feedback for users during time-series forecasting workflows.
 """
 
-import narwhals as nw
-
 
 class TimeFrameError(Exception):
     """Base class for exceptions in the TimeFrame module.

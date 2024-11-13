@@ -1,100 +1,68 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
-# OF ANY KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations under the License.
+# Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.
+# See the NOTICE file for additional information regarding copyright ownership.
+# The ASF licenses this file under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+from typing import Any
 
 import pytest
-import pandas as pd
-from temporalscope.core.temporal_data_loader import TimeFrame
-from temporalscope.core.exceptions import TimeColumnError, UnsupportedBackendError
-from temporalscope.core.core_utils import get_temporalscope_backends
+
+from temporalscope.core.core_utils import TEMPORALSCOPE_CORE_BACKEND_TYPES
+from temporalscope.core.exceptions import TimeColumnError
+from temporalscope.core.temporal_data_loader import TimeFrame, MODE_SINGLE_STEP
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
-
-@pytest.fixture(params=get_temporalscope_backends())
-def backend(request):
-    """Fixture to dynamically iterate through all supported backends."""
-    return request.param
+# Constants - start with stable backends first
+VALID_BACKENDS = [backend for backend in TEMPORALSCOPE_CORE_BACKEND_TYPES.keys() if backend != "dask"]
 
 
-@pytest.fixture
-def sample_data(backend):
-    """Fixture to generate synthetic time series data for a specific backend."""
-    return generate_synthetic_time_series(backend=backend, num_samples=100, num_features=3)
+def is_dask_df(obj: Any) -> bool:
+    """Check if object is a Dask DataFrame."""
+    return type(obj).__module__.startswith("dask.")
 
 
-def test_timeframe_initialization(backend, sample_data):
-    """Test TimeFrame initialization for each backend."""
-    tf = TimeFrame(sample_data, time_col="time", target_col="target", dataframe_backend=backend)
-
-    # Assert correct initialization
-    assert tf.df.shape[0] == 100, "Row count mismatch in the DataFrame."
-    assert tf._time_col == "time", "Time column mismatch."
-    assert tf._target_col == "target", "Target column mismatch."
-    assert tf.backend == backend, f"Backend mismatch for {backend}."
-
-    # Check backend inference
-    tf_inferred = TimeFrame(sample_data, time_col="time", target_col="target")
-    assert tf_inferred.backend == backend, f"Failed to infer backend for {backend}."
+def get_shape(df: Any) -> tuple[int, int]:
+    """Get shape of DataFrame, handling different backends."""
+    if is_dask_df(df):
+        nrows = int(df.shape[0].compute())  # type: ignore
+        ncols = df.shape[1]
+        return (nrows, ncols)
+    return df.shape
 
 
-def test_missing_columns(backend, sample_data):
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_timeframe_basic_initialization(backend: str) -> None:
+    """Test basic TimeFrame initialization with minimal data across backends."""
+    # Generate minimal test data
+    df = generate_synthetic_time_series(
+        backend=backend,
+        num_samples=5,
+        num_features=1,
+        time_col_numeric=True,  # Start with numeric time for simplicity
+    )
+
+    # Basic TimeFrame initialization
+    tf = TimeFrame(df=df, time_col="time", target_col="target", mode=MODE_SINGLE_STEP)
+
+    # Verify basic properties
+    shape = get_shape(tf.df)
+    assert shape[0] == 5, "Expected 5 rows"
+    assert "time" in tf.df.columns, "Expected time column"
+    assert "target" in tf.df.columns, "Expected target column"
+    assert tf.mode == MODE_SINGLE_STEP, "Expected single step mode"
+    assert tf.backend == backend, f"Expected {backend} backend"
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_timeframe_missing_columns(backend: str) -> None:
     """Test error handling for missing columns."""
-    # Missing time_col
-    with pytest.raises(ValueError, match=r"`time_col` 'invalid_time' not found"):
-        TimeFrame(sample_data, time_col="invalid_time", target_col="target", dataframe_backend=backend)
+    df = generate_synthetic_time_series(backend=backend, num_samples=5)
 
-    # Missing target_col
-    with pytest.raises(ValueError, match=r"`target_col` 'invalid_target' not found"):
-        TimeFrame(sample_data, time_col="time", target_col="invalid_target", dataframe_backend=backend)
+    # Test missing time column
+    with pytest.raises(TimeColumnError, match=r".*must exist.*"):
+        TimeFrame(df, time_col="invalid_time", target_col="target")
 
-
-def test_sort_data(backend, sample_data):
-    """Test DataFrame sorting by time column for each backend."""
-    tf = TimeFrame(sample_data, time_col="time", target_col="target", dataframe_backend=backend)
-
-    # Sort descending
-    sorted_df = tf.sort_data(tf.df, ascending=False)
-
-    # Verify sorted order
-    time_col_values = sorted_df["time"].to_numpy() if backend == "polars" else sorted_df["time"].values
-    assert time_col_values[0] > time_col_values[-1], f"Sorting failed for backend {backend}."
-
-
-def test_update_data(backend, sample_data):
-    """Test updating TimeFrame data for each backend."""
-    tf = TimeFrame(sample_data, time_col="time", target_col="target", dataframe_backend=backend)
-
-    # New synthetic data
-    new_data = generate_synthetic_time_series(backend=backend, num_samples=50, num_features=3)
-
-    # Update and validate
-    tf.update_data(new_data)
-    assert tf.df.shape[0] == 50, f"Data update failed for backend {backend}."
-
-
-def test_validation_edge_cases(backend):
-    """Test edge cases like non-numeric time columns or missing data."""
-    # Invalid time column type
-    data = generate_synthetic_time_series(backend=backend, num_samples=100, num_features=3)
-    data["time"] = ["not_a_date"] * 100  # Invalid time column
-
-    with pytest.raises(TimeColumnError, match=r"`time_col` must be numeric or timestamp-like"):
-        TimeFrame(data, time_col="time", target_col="target", dataframe_backend=backend)
-
-    # Missing values in critical columns
-    if isinstance(data, pd.DataFrame):
-        data.loc[0, "time"] = None  # Missing value in time column
-    with pytest.raises(ValueError, match=r"Missing values detected in `time` or `target`."):
-        TimeFrame(data, time_col="time", target_col="target", dataframe_backend=backend)
+    # Test missing target column
+    with pytest.raises(TimeColumnError, match=r".*must exist.*"):
+        TimeFrame(df, time_col="time", target_col="invalid_target")

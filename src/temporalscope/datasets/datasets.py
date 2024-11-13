@@ -23,13 +23,15 @@ Example Usage:
     print(data.head())  # Example access
 """
 
-from typing import Tuple, Any
+from typing import Any, Tuple
+
 import pandas as pd
 from statsmodels.datasets import macrodata
+
 from temporalscope.core.core_utils import (
     convert_to_backend,
-    validate_backend,
     print_divider,
+    validate_backend,
 )
 
 # Dictionary of available datasets and their loaders
@@ -71,6 +73,7 @@ class DatasetLoader:
     -------
     load_data(backend: str = "pandas") -> Any
         Load the dataset and convert it to the specified backend format.
+
     """
 
     def __init__(self, dataset_name: str = "macrodata") -> None:

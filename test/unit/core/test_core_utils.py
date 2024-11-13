@@ -10,21 +10,20 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
+
 import pytest
-import warnings
-import os
-from dotenv import load_dotenv
+
 from temporalscope.core.core_utils import (
-    get_narwhals_backends,
-    get_default_backend_cfg,
-    get_temporalscope_backends,
-    validate_backend,
-    get_api_keys,
-    print_divider,
-    convert_to_backend,
     TEMPORALSCOPE_CORE_BACKEND_TYPES,
     TEMPORALSCOPE_OPTIONAL_BACKENDS,
     UnsupportedBackendError,
+    convert_to_backend,
+    get_api_keys,
+    get_default_backend_cfg,
+    get_narwhals_backends,
+    get_temporalscope_backends,
+    print_divider,
+    validate_backend,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 

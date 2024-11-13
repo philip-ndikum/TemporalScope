@@ -96,10 +96,11 @@ Example Usage:
     print(df.head())  # Shows the generated input sequence (`X`) and target sequence (`Y`).
 """
 
-import pandas as pd
-import numpy as np
 import dask.dataframe as dd
-from temporalscope.core.core_utils import validate_backend, convert_to_backend, SupportedTemporalDataFrame
+import numpy as np
+import pandas as pd
+
+from temporalscope.core.core_utils import SupportedTemporalDataFrame, convert_to_backend, validate_backend
 
 
 def generate_synthetic_time_series(

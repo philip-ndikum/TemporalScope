@@ -4,17 +4,18 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-from typing import Any, Union, TypeVar, cast
-import pytest
-import pandas as pd
-import numpy as np
-import pyarrow as pa
-import modin.pandas as mpd
-import polars as pl
-from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
-from temporalscope.core.core_utils import TEMPORALSCOPE_CORE_BACKEND_TYPES, MODE_SINGLE_STEP
-from temporalscope.core.exceptions import UnsupportedBackendError
 from datetime import datetime
+from typing import Any, TypeVar
+
+import numpy as np
+import pandas as pd
+import polars as pl
+import pyarrow as pa
+import pytest
+
+from temporalscope.core.core_utils import MODE_SINGLE_STEP, TEMPORALSCOPE_CORE_BACKEND_TYPES
+from temporalscope.core.exceptions import UnsupportedBackendError
+from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
 # Constants
 VALID_BACKENDS = [backend for backend in TEMPORALSCOPE_CORE_BACKEND_TYPES.keys() if backend != "dask"]

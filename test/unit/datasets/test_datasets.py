@@ -4,11 +4,12 @@
 # you may not use this file except in compliance with the License. You may obtain a copy of the License at
 # http://www.apache.org/licenses/LICENSE-2.0
 
-import pytest
 import pandas as pd
-from temporalscope.datasets.datasets import DatasetLoader
-from temporalscope.core.core_utils import TEMPORALSCOPE_CORE_BACKEND_TYPES, validate_backend, convert_to_backend
+import pytest
+
+from temporalscope.core.core_utils import TEMPORALSCOPE_CORE_BACKEND_TYPES, convert_to_backend, validate_backend
 from temporalscope.core.exceptions import UnsupportedBackendError
+from temporalscope.datasets.datasets import DatasetLoader
 
 # Constants
 DEFAULT_DATASET_NAME = "macrodata"
