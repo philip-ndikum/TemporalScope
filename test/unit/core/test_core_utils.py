@@ -24,6 +24,7 @@ from temporalscope.core.core_utils import (
     get_temporalscope_backends,
     print_divider,
     validate_backend,
+    get_dataframe_backend,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
@@ -170,3 +171,40 @@ def test_convert_to_backend_unsupported_dataframe_type():
 
     with pytest.raises(UnsupportedBackendError, match="Input DataFrame type 'UnsupportedDataFrame' is not supported"):
         convert_to_backend(df, "pandas")
+
+
+# ========================= Tests for get_dataframe_backend =========================
+
+
+@pytest.mark.parametrize(
+    "backend, expected_backend",
+    [
+        ("pandas", "pandas"),
+        ("modin", "modin"),
+        ("pyarrow", "pyarrow"),
+        ("polars", "polars"),
+        ("dask", "dask"),
+    ],
+)
+def test_get_dataframe_backend(backend, expected_backend):
+    """Test that get_dataframe_backend correctly identifies the backend."""
+    # Generate a DataFrame using the specified backend
+    df = generate_synthetic_time_series(backend=backend, num_samples=10, num_features=2)
+
+    # Get the backend name using the function
+    detected_backend = get_dataframe_backend(df)
+
+    # Assert that the detected backend matches the expected backend
+    assert detected_backend == expected_backend, f"Expected backend '{expected_backend}', but got '{detected_backend}'."
+
+
+def test_get_dataframe_backend_unsupported_type():
+    """Test that get_dataframe_backend raises UnsupportedBackendError for unsupported DataFrame types."""
+
+    class UnsupportedDataFrame:
+        pass
+
+    df = UnsupportedDataFrame()
+
+    with pytest.raises(UnsupportedBackendError, match="Unknown DataFrame type: UnsupportedDataFrame"):
+        get_dataframe_backend(df)

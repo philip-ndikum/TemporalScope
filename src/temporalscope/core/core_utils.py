@@ -331,3 +331,48 @@ def convert_to_backend(df: IntoDataFrame, backend: str, npartitions: int = 1) ->
         return pa.Table.from_pandas(intermediate.to_pandas())
     elif backend == "dask":
         return dd.from_pandas(intermediate.to_pandas(), npartitions=npartitions)
+
+
+def get_dataframe_backend(df: SupportedTemporalDataFrame) -> str:
+    """Get DataFrame backend name from any supported DataFrame type.
+
+    Uses type checks to detect the backend and validates using
+    the validate_backend function to ensure it's a supported backend.
+
+    :param df: Input DataFrame from any supported backend
+    :type df: SupportedTemporalDataFrame
+    :return: Lowercase backend name (e.g., 'pandas', 'polars', etc.)
+    :rtype: str
+    :raises UnsupportedBackendError: If DataFrame backend is not supported
+
+    Example Usage:
+    --------------
+    .. code-block:: python
+
+        import pandas as pd
+        from temporalscope.core.core_utils import get_dataframe_backend
+
+        # Create sample DataFrame
+        df = pd.DataFrame({"time": range(5), "value": range(5)})
+
+        # Get backend name
+        backend = get_dataframe_backend(df)
+        print(backend)  # Output: 'pandas'
+    """
+    if isinstance(df, pd.DataFrame):
+        backend = "pandas"
+    elif isinstance(df, mpd.DataFrame):
+        backend = "modin"
+    elif isinstance(df, pl.DataFrame):
+        backend = "polars"
+    elif isinstance(df, pa.Table):
+        backend = "pyarrow"
+    elif isinstance(df, dd.DataFrame):
+        backend = "dask"
+    else:
+        raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
+
+    # Validate the backend using the validate_backend function
+    validate_backend(backend)
+
+    return backend
