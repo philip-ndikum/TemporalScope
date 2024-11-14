@@ -244,14 +244,38 @@ class TimeFrame:
 
     @nw.narwhalify
     def _check_nulls(self, df: SupportedTemporalDataFrame, column_names: List[str]) -> Dict[str, int]:
-        """Check for null values in specified columns using Narwhals.
+        """Check for null values in specified DataFrame columns using Narwhals operations.
 
-        :param df: DataFrame to check
+        Performs backend-agnostic null checking for every specified column, handling both
+        lazy and eager evaluation patterns.
+
+        :param df: DataFrame to check for null values
         :type df: SupportedTemporalDataFrame
         :param column_names: List of column names to check
         :type column_names: List[str]
-        :return: Dictionary of column names and their null counts
+        :return: Dictionary mapping column names to their null value counts
         :rtype: Dict[str, int]
+
+        Example:
+        -------
+        .. code-block:: python
+
+            # Inside TimeFrame instance
+            null_counts = self._check_nulls(df, ["col1", "col2"])
+            # Returns: {'col1': 0, 'col2': 3}  # where col2 has 3 null values
+
+        .. note::
+            Key implementation patterns:
+            - Uses Narwhals expressions for backend-agnostic null checking
+            - Handles lazy evaluation through collect() checks
+            - Converts to pandas only for final count extraction
+            - Works with any Narwhals-supported backend
+            - Returns integer counts for consistent type handling
+
+        See Also:
+            - validate_data: Main validation method using this null checker
+            - Narwhals null checking operations documentation
+
         """
         result = {}
         for col in column_names:
@@ -372,22 +396,44 @@ class TimeFrame:
     def _setup_timeframe(
         self, df: SupportedTemporalDataFrame, sort: bool = True, ascending: bool = True
     ) -> SupportedTemporalDataFrame:
-        """Set up and validate the DataFrame.
+        """Initialize and validate a TimeFrame's DataFrame with proper sorting and validation.
 
-        This method ensures the DataFrame is compatible with TemporalScope requirements, validates critical columns,
-        and sorts the DataFrame if needed.
+        Ensures data meets TemporalScope requirements through validation and optional sorting,
+        handling both eager and lazy evaluation patterns.
 
-        :param df: The input DataFrame.
+        :param df: Input DataFrame to set up and validate
         :type df: SupportedTemporalDataFrame
-        :param sort: Whether to sort the DataFrame by the `time_col`. Default is True.
+        :param sort: Whether to sort by time_col, defaults to True
         :type sort: bool
-        :param ascending: Sorting order. True for ascending, False for descending. Default is True.
+        :param ascending: Sort order if sorting enabled, defaults to True
         :type ascending: bool
-        :return: The validated/sorted DataFrame.
+        :return: Validated and optionally sorted DataFrame
         :rtype: SupportedTemporalDataFrame
-        :raises TimeColumnError: If columns are missing, contain nulls, or have invalid types.
-        :raises ValueError: If non-time columns are not numeric.
-        :raises TypeError: If DataFrame type is not supported.
+        :raises TimeColumnError: If columns missing or invalid types
+        :raises ValueError: If non-numeric data in required columns
+        :raises TypeError: If unsupported DataFrame type
+
+        Example:
+        -------
+        .. code-block:: python
+
+            import polars as pl
+
+            df = pl.DataFrame({"time": range(3), "target": [1.0, 2.0, 3.0]})
+            sorted_df = self._setup_timeframe(df, sort=True, ascending=True)
+
+        .. note::
+            Key implementation patterns:
+            - Validates data before any transformations
+            - Handles lazy evaluation in sorting operations
+            - Preserves original data if no sorting needed
+            - Uses Narwhals operations for backend agnostic sorting
+            - Maintains time column ordering integrity
+
+        See Also:
+            - validate_data: Data validation method
+            - sort_data: Sorting utility method
+
         """
         # Step 1: Validate the DataFrame using validate_data
         self.validate_data(df)
@@ -406,15 +452,38 @@ class TimeFrame:
 
     @nw.narwhalify
     def sort_data(self, df: SupportedTemporalDataFrame, ascending: bool = True) -> SupportedTemporalDataFrame:
-        """Sort the DataFrame by the time column using Narwhals sort operation.
+        """Sort DataFrame by time column using backend-agnostic Narwhals operations.
 
-        :param df: Input DataFrame.
+        Provides consistent sorting behavior across all supported backends while handling
+        lazy evaluation appropriately.
+
+        :param df: DataFrame to sort
         :type df: SupportedTemporalDataFrame
-        :param ascending: If True, sort in ascending order; if False, sort in descending order.
+        :param ascending: Sort direction, defaults to True
         :type ascending: bool
-        :return: The sorted DataFrame.
+        :return: Sorted DataFrame
         :rtype: SupportedTemporalDataFrame
-        :raises TimeColumnError: If time column is missing (inherited from _setup_timeframe).
+        :raises TimeColumnError: If time_col missing or invalid
+
+        Example
+        -------
+        .. code-block:: python
+
+            sorted_df = self.sort_data(df, ascending=True)
+            # DataFrame is now sorted by time_col in ascending order
+
+        .. note::
+            Key implementation patterns:
+            - Uses Narwhals col expressions for backend agnostic sorting
+            - Handles lazy evaluation through collect()
+            - Preserves DataFrame backend type
+            - Uses class time_col configuration
+            - Supports both ascending and descending order
+
+        See Also:
+            - _setup_timeframe: Main setup method using this sorting
+            - Narwhals sorting operations documentation
+
         """
         sorted_df = df.sort(by=[nw.col(self._time_col)], descending=not ascending)
 
@@ -433,26 +502,44 @@ class TimeFrame:
         target_col: Optional[str] = None,
         sort: bool = True,
     ) -> None:
-        """Update the DataFrame and its columns with new data.
+        """Update TimeFrame's internal DataFrame with new data or column configurations.
 
-        This method updates the internal DataFrame and its associated metadata using the same validation
-        and setup process as initialization.
+        Provides flexible updating of both data and metadata while maintaining all
+        validation requirements and sorting preferences.
 
-        :param df: Input DataFrame to update.
+        :param df: New DataFrame to use
         :type df: SupportedTemporalDataFrame
-        :param new_target_col: Name of the new target column to use. Optional.
-        :type new_target_col: str, optional
-        :param time_col: New time column name. Optional.
-        :type time_col: str, optional
-        :param target_col: New target column name. Optional.
-        :type target_col: str, optional
-        :param sort: Whether to sort the DataFrame. Default is True.
+        :param new_target_col: New column to use as target, defaults to None
+        :type new_target_col: Optional[str]
+        :param time_col: New time column name, defaults to None
+        :type time_col: Optional[str]
+        :param target_col: New target column name, defaults to None
+        :type target_col: Optional[str]
+        :param sort: Whether to sort the new data, defaults to True
         :type sort: bool
-        :raises TimeColumnError: If columns are missing, contain nulls, or have invalid types.
-        :raises ValueError:
-            - If non-time columns are not numeric
-            - If new target column doesn't exist in DataFrame
-        :raises TypeError: If DataFrame type is not supported.
+        :raises TimeColumnError: If columns missing or invalid
+        :raises ValueError: If non-numeric data or missing columns
+        :raises TypeError: If unsupported DataFrame type
+
+        Example:
+        -------
+        .. code-block:: python
+
+            # Update data and change target column
+            tf.update_data(new_df, new_target_col="new_target", sort=True)
+
+        .. note::
+            Key implementation patterns:
+            - Updates metadata before data validation
+            - Maintains original configuration if no changes specified
+            - Validates data after column changes
+            - Uses Narwhals operations for column updates
+            - Preserves sorting preferences
+
+        See Also:
+            - _setup_timeframe: Setup method used for validation
+            - validate_data: Validation method used
+
         """
         # Step 1: Update column names if provided
         if time_col:
