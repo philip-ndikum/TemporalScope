@@ -31,7 +31,7 @@ from statsmodels.datasets import macrodata
 from temporalscope.core.core_utils import (
     convert_to_backend,
     print_divider,
-    validate_backend,
+    is_valid_temporal_backend,
 )
 
 # Dictionary of available datasets and their loaders
@@ -113,7 +113,7 @@ class DatasetLoader:
         :raises ValueError: If the backend is unsupported.
         """
         # Validate and load the dataset in pandas format
-        validate_backend(backend)
+        is_valid_temporal_backend(backend)
         df, _ = self._load_dataset_and_target()
 
         # Convert to specified backend

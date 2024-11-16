@@ -7,7 +7,11 @@
 import pandas as pd
 import pytest
 
-from temporalscope.core.core_utils import TEMPORALSCOPE_CORE_BACKEND_TYPES, convert_to_backend, validate_backend
+from temporalscope.core.core_utils import (
+    TEMPORALSCOPE_CORE_BACKEND_TYPES,
+    convert_to_backend,
+    is_valid_temporal_backend,
+)
 from temporalscope.core.exceptions import UnsupportedBackendError
 from temporalscope.datasets.datasets import DatasetLoader
 
@@ -49,7 +53,7 @@ def test_load_dataset_structure(dataset_loader):
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
 def test_valid_backends_with_load_data(dataset_loader, backend):
     """Test loading data and converting to each backend specified in TEMPORALSCOPE_CORE_BACKEND_TYPES."""
-    validate_backend(backend)  # Ensure the backend is supported
+    is_valid_temporal_backend(backend)  # Ensure the backend is supported
     data = dataset_loader.load_data(backend=backend)
     expected_type = TEMPORALSCOPE_CORE_BACKEND_TYPES[backend]
     assert isinstance(data, expected_type), f"Data is not of type {expected_type} for backend '{backend}'"

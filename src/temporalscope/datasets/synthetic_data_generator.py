@@ -100,7 +100,7 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 
-from temporalscope.core.core_utils import SupportedTemporalDataFrame, convert_to_backend, validate_backend
+from temporalscope.core.core_utils import SupportedTemporalDataFrame, convert_to_backend, is_valid_temporal_backend
 
 
 def generate_synthetic_time_series(
@@ -134,7 +134,7 @@ def generate_synthetic_time_series(
 
     :raises ValueError: If unsupported backend, mode, or invalid parameters.
     """
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     if num_samples < 0 or num_features < 0:
         raise ValueError("`num_samples` and `num_features` must be non-negative.")

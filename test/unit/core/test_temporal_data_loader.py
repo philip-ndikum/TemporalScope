@@ -46,6 +46,7 @@ See Also
 - TemporalScope documentation: https://temporalscope.readthedocs.io/
 - Narwhals API documentation: https://narwhals.readthedocs.io/
 - PyTest documentation: https://docs.pytest.org/
+
 """
 
 from datetime import datetime
@@ -53,8 +54,6 @@ from typing import Any, Callable, Dict, Generator
 
 import narwhals as nw
 import pandas as pd
-import polars as pl
-import pyarrow as pa
 import pytest
 
 from temporalscope.core.core_utils import (
@@ -298,3 +297,60 @@ def test_timeframe_rejects_non_numeric(df_with_non_numeric: SupportedTemporalDat
     """Test that TimeFrame properly rejects data with non-numeric values in feature columns."""
     with pytest.raises(ValueError, match=r"could not convert string to float: 'a'"):
         TimeFrame(df=df_with_non_numeric, time_col="time", target_col="target", mode=MODE_SINGLE_STEP)
+
+
+@nw.narwhalify
+def test_validate_data_with_invalid_datetime_string(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test validate_data with an invalid datetime string in the time column."""
+    # Create new DataFrame with invalid date using Narwhals operations
+    invalid_df = simple_df.select([
+        nw.lit("invalid_date").alias("time"),
+        *[nw.col(col) for col in simple_df.columns if col != "time"]
+    ])
+    
+    with pytest.raises(TimeColumnError, match=r"time_col must be numeric, datetime, or a valid datetime string"):
+        TimeFrame(df=invalid_df, time_col="time", target_col="target")
+
+
+@nw.narwhalify
+def test_setup_timeframe_calls_validate_data(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test that _setup_timeframe calls validate_data and handles exceptions."""
+    # Create new DataFrame with invalid date using Narwhals operations
+    invalid_df = simple_df.select([
+        nw.lit("invalid_date").alias("time"),
+        *[nw.col(col) for col in simple_df.columns if col != "time"]
+    ])
+    
+    with pytest.raises(TimeColumnError):
+        TimeFrame(df=invalid_df, time_col="time", target_col="target")
+
+
+def test_sort_data_method(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test the sort_data method to ensure it sorts correctly."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    
+    # Get initial time values
+    initial_df = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
+    initial_values = initial_df["time"].tolist()
+    
+    # Sort descending
+    sorted_df = tf.sort_data(tf.df, ascending=False)
+    sorted_df_pd = sorted_df.to_pandas() if hasattr(sorted_df, "to_pandas") else sorted_df
+    sorted_values = sorted_df_pd["time"].tolist()
+    
+    # Verify sorting
+    assert sorted_values == sorted(initial_values, reverse=True), "DataFrame not sorted correctly in descending order"
+
+
+def test_update_data_method(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test the update_data method to ensure it updates the DataFrame and column configurations correctly."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    
+    # Create new DataFrame with modified target using Narwhals operations
+    new_df = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
+    new_df["new_target"] = new_df["target"] * 2
+    
+    tf.update_data(new_df, new_target_col="new_target")
+    df_pd = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
+    assert "new_target" in df_pd.columns, "new_target column not found in updated DataFrame"
+    assert tf._target_col == "target"  # Original target column name should not change

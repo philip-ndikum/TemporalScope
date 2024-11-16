@@ -56,7 +56,7 @@ from temporalscope.core.core_utils import (
     BACKEND_PANDAS,
     BACKEND_POLARS,
     SupportedBackendDataFrame,
-    validate_backend,
+    is_valid_temporal_backend,
 )
 from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.partition.base_protocol import TemporalPartitionerProtocol
@@ -235,7 +235,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         :raises ValueError: If input parameters are invalid or columns (except `time_col`) are not numeric.
         """
         # Validate the backend and pad scheme
-        validate_backend(tf.dataframe_backend)
+        is_valid_temporal_backend(tf.dataframe_backend)
         if pad_scheme not in PAD_SCHEMES:
             raise ValueError(f"Invalid pad_scheme: {pad_scheme}. Supported schemes: {PAD_SCHEMES}")
 

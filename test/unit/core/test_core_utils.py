@@ -19,12 +19,13 @@ from temporalscope.core.core_utils import (
     UnsupportedBackendError,
     convert_to_backend,
     get_api_keys,
+    get_dataframe_backend,
     get_default_backend_cfg,
     get_narwhals_backends,
     get_temporalscope_backends,
     print_divider,
-    validate_backend,
-    get_dataframe_backend,
+    is_valid_temporal_backend,
+    is_valid_temporal_dataframe,  # Added new function
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
@@ -66,33 +67,57 @@ def test_get_temporalscope_backends():
     ), "Non-compatible backend found in TemporalScope backends."
 
 
-# ========================= Tests for validate_backend =========================
+# ========================= Tests for is_valid_temporal_backend =========================
 
 
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_validate_backend_supported(backend):
-    """Test that validate_backend passes for supported backends."""
+def test_is_valid_temporal_backend_supported(backend):
+    """Test that is_valid_temporal_backend passes for supported backends."""
     try:
-        validate_backend(backend)
+        is_valid_temporal_backend(backend)
     except UnsupportedBackendError:
-        pytest.fail(f"validate_backend raised UnsupportedBackendError for valid backend '{backend}'.")
+        pytest.fail(f"is_valid_temporal_backend raised UnsupportedBackendError for valid backend '{backend}'.")
 
 
-def test_validate_backend_unsupported():
-    """Test that validate_backend raises error for unsupported backend."""
+def test_is_valid_temporal_backend_unsupported():
+    """Test that is_valid_temporal_backend raises error for unsupported backend."""
     with pytest.raises(UnsupportedBackendError):
-        validate_backend(INVALID_BACKEND)
+        is_valid_temporal_backend(INVALID_BACKEND)
 
 
-def test_validate_backend_optional_warning():
-    """Test that validate_backend issues a warning for optional backends if available."""
+def test_is_valid_temporal_backend_optional_warning():
+    """Test that is_valid_temporal_backend issues a warning for optional backends if available."""
     # Check if "cudf" is optional in TemporalScope
     if "cudf" in TEMPORALSCOPE_OPTIONAL_BACKENDS:
         # Expect a warning if "cudf" is not installed
         with pytest.warns(UserWarning, match="optional and requires additional setup"):
-            validate_backend("cudf")
+            is_valid_temporal_backend("cudf")
     else:
         pytest.skip("Skipping test as 'cudf' is not an optional backend in this configuration.")
+
+
+# ========================= Tests for is_valid_temporal_dataframe =========================
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_is_valid_temporal_dataframe_supported(backend):
+    """Test that is_valid_temporal_dataframe returns True for supported DataFrame types."""
+    # Generate a DataFrame using the specified backend
+    df = generate_synthetic_time_series(backend=backend, num_samples=10, num_features=2)
+
+    # Check if the DataFrame is valid
+    assert is_valid_temporal_dataframe(df), f"Expected DataFrame to be valid for backend '{backend}'."
+
+
+def test_is_valid_temporal_dataframe_unsupported():
+    """Test that is_valid_temporal_dataframe returns False for unsupported DataFrame types."""
+
+    class UnsupportedDataFrame:
+        pass
+
+    df = UnsupportedDataFrame()
+
+    assert not is_valid_temporal_dataframe(df), "Expected DataFrame to be invalid for unsupported type."
 
 
 # ========================= Tests for get_api_keys =========================

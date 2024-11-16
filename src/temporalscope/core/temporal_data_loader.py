@@ -113,7 +113,7 @@ from temporalscope.core.core_utils import (
     SupportedTemporalDataFrame,
     convert_to_backend,
     get_dataframe_backend,
-    validate_backend,
+    is_valid_temporal_backend,
 )
 from temporalscope.core.exceptions import ModeValidationError, TimeColumnError
 
@@ -182,7 +182,7 @@ class TimeFrame:
         :type target_col: str
         :param dataframe_backend: The backend to use. If provided, the DataFrame will be converted to the appropriate backend.
                                 If not provided, it will be inferred from the DataFrame type. Supported backends are dynamically validated
-                                using Narwhals' `validate_backend`.
+                                using Narwhals' `is_valid_temporal_backend`.
         :type dataframe_backend: Optional[str]
         :param sort: If True, the data will be sorted by `time_col`. Default is True.
         :type sort: bool
@@ -233,7 +233,7 @@ class TimeFrame:
 
         # Detect or validate backend before any narwhalified functions
         if dataframe_backend:
-            validate_backend(dataframe_backend)  # Check if the backend is supported
+            is_valid_temporal_backend(dataframe_backend)  # Check if the backend is supported
             df = convert_to_backend(df, dataframe_backend)  # type: ignore[arg-type]
             self._original_backend = dataframe_backend
         else:
@@ -474,7 +474,7 @@ class TimeFrame:
 
         .. note::
             Key implementation patterns:
-            - Uses Narwhals col expressions for backend agnostic sorting
+            - Uses column name directly for backend agnostic sorting
             - Handles lazy evaluation through collect()
             - Preserves DataFrame backend type
             - Uses class time_col configuration
@@ -485,7 +485,7 @@ class TimeFrame:
             - Narwhals sorting operations documentation
 
         """
-        sorted_df = df.sort(by=[nw.col(self._time_col)], descending=not ascending)
+        sorted_df = df.sort(by=[self._time_col], descending=not ascending)
 
         # Handle lazy evaluation
         if hasattr(sorted_df, "collect"):

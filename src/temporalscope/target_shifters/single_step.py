@@ -15,17 +15,32 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""TemporalScope/src/temporalscope/core/temporal_target_shifter.py.
+"""TemporalScope/src/temporalscope/target_shifters/single_step.py.
 
 This module provides essential functionality for shifting target variables in time series data for
 single-step prediction tasks. It works in conjunction with the TimeFrame class to enable
 consistent target shifting operations across different DataFrame backends through Narwhals.
 
+Engineering Design
+------------------
+1. Lightweight scikit-learn integration enabling pipeline and grid search compatibility
+  while preserving Narwhals as the core transformation engine.
+
+2. Backend-agnostic design using Narwhals operations, supporting all DataFrame types
+  and TimeFrame operations with zero backend-specific optimizations.
+
+3. Type-safe unified interface with consistent handling of both DataFrame and TimeFrame
+  inputs through a familiar scikit-learn style API.
+
+.. note::
+   Currently implements single-step prediction only. For multi-step sequence prediction,
+   see the planned MultiStepTargetShifter in temporalscope.target_shifters.multi_step.
+
 .. seealso::
 
-    1. Torres, J.F., Hadjout, D., Sebaa, A., Martínez-Álvarez, F., & Troncoso, A. (2021). Deep learning for time series forecasting: a survey. Big Data, 9(1), 3-21. https://doi.org/10.1089/big.2020.0159
-    2. Lim, B., & Zohren, S. (2021). Time-series forecasting with deep learning: a survey. Philosophical Transactions of the Royal Society A, 379(2194), 20200209. https://doi.org/10.1098/rsta.2020.0209
-    3. Tang, Y., Song, Z., Zhu, Y., Yuan, H., Hou, M., Ji, J., Tang, C., & Li, J. (2022). A survey on machine learning models for financial time series forecasting. Neurocomputing, 512, 363-380. https://doi.org/10.1016/j.neucom.2022.09.078
+   1. Torres, J.F., Hadjout, D., Sebaa, A., Martínez-Álvarez, F., & Troncoso, A. (2021). Deep learning for time series forecasting: a survey. Big Data, 9(1), 3-21. https://doi.org/10.1089/big.2020.0159
+   2. Lim, B., & Zohren, S. (2021). Time-series forecasting with deep learning: a survey. Philosophical Transactions of the Royal Society A, 379(2194), 20200209. https://doi.org/10.1098/rsta.2020.0209
+   3. Tang, Y., Song, Z., Zhu, Y., Yuan, H., Hou, M., Ji, J., Tang, C., & Li, J. (2022). A survey on machine learning models for financial time series forecasting. Neurocomputing, 512, 363-380. https://doi.org/10.1016/j.neucom.2022.09.078
 """
 
 from typing import Optional, Union

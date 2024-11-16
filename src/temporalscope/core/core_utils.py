@@ -221,7 +221,7 @@ def get_temporalscope_backends() -> List[str]:
     return [backend for backend in available_backends if backend in TEMPORALSCOPE_CORE_BACKENDS]
 
 
-def validate_backend(backend_name: str) -> None:
+def is_valid_temporal_backend(backend_name: str) -> None:
     """Validate that a backend is supported by TemporalScope and Narwhals.
 
     :param backend_name: Name of the backend to validate.
@@ -304,7 +304,7 @@ def convert_to_backend(df: IntoDataFrame, backend: str, npartitions: int = 1) ->
         print(type(df_modin))  # Output: <class 'modin.pandas.dataframe.DataFrame'>
     """
     # Validate the backend
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     # Ensure the input DataFrame type is supported
     supported_types = (
@@ -337,7 +337,7 @@ def get_dataframe_backend(df: SupportedTemporalDataFrame) -> str:
     """Get DataFrame backend name from any supported DataFrame type.
 
     Uses type checks to detect the backend and validates using
-    the validate_backend function to ensure it's a supported backend.
+    the is_valid_temporal_backend function to ensure it's a supported backend.
 
     :param df: Input DataFrame from any supported backend
     :type df: SupportedTemporalDataFrame
@@ -372,7 +372,35 @@ def get_dataframe_backend(df: SupportedTemporalDataFrame) -> str:
     else:
         raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
 
-    # Validate the backend using the validate_backend function
-    validate_backend(backend)
+    # Validate the backend using the is_valid_temporal_backend function
+    is_valid_temporal_backend(backend)
 
     return backend
+
+
+def is_valid_temporal_dataframe(df: Any) -> bool:
+    """Check if object is a supported DataFrame type.
+
+    Uses TEMPORALSCOPE_CORE_BACKEND_TYPES to validate actual DataFrame instances.
+
+    :param df: Object to validate
+    :type df: Any
+    :return: True if DataFrame type is supported
+    :rtype: bool
+
+    Example Usage:
+    -------------
+    .. code-block:: python
+
+        import pandas as pd
+        from temporalscope.core.core_utils import is_valid_temporal_dataframe
+
+        df = pd.DataFrame({"col": [1, 2, 3]})
+        is_valid = is_valid_temporal_dataframe(df)
+        print(is_valid)  # True
+
+    .. note::
+        Complements is_valid_temporal_backend which works with strings.
+        This works with actual DataFrame instances.
+    """
+    return isinstance(df, tuple(TEMPORALSCOPE_CORE_BACKEND_TYPES.values()))

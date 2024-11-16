@@ -33,7 +33,7 @@ import modin.pandas as mpd
 import pandas as pd
 import polars as pl
 
-from temporalscope.core.core_utils import SupportedBackendDataFrame, validate_backend
+from temporalscope.core.core_utils import SupportedBackendDataFrame, is_valid_temporal_backend
 
 PandasLike = TypeVar("PandasLike", pd.DataFrame, mpd.DataFrame)
 
@@ -64,7 +64,7 @@ def check_sample_size(
     :return: True if the dataset meets the sample size requirements, otherwise False.
     :rtype: bool
     """
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     num_samples = df.shape[0]
 
@@ -114,7 +114,7 @@ def check_feature_count(
     :return: True if the dataset meets the feature count requirements, otherwise False.
     :rtype: bool
     """
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     num_features = df.shape[1]
 
@@ -160,7 +160,7 @@ def check_feature_to_sample_ratio(
     :return: True if the feature-to-sample ratio is within limits, otherwise False.
     :rtype: bool
     """
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     num_samples = df.shape[0]
     num_features = df.shape[1]
@@ -202,7 +202,7 @@ def check_categorical_feature_cardinality(
     :rtype: bool
     :raises: ValueError if backend is not supported.
     """
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     if backend == "pl":
         # Explicitly cast to Polars DataFrame
@@ -257,7 +257,7 @@ def check_numerical_feature_uniqueness(
     :return: True if all numerical features have at least `min_unique_values` unique values, otherwise False.
     :rtype: bool
     """
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     if backend in ["pd", "mpd"]:
         pandas_df = df  # Type narrowing for mypy
@@ -312,7 +312,7 @@ def check_binary_numerical_features(
     """
     BINARY_UNIQUE_VALUES = 2  # Constant for binary unique values
 
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     if backend in ["pd", "mpd"]:
         pandas_df = df  # Type narrowing for mypy
@@ -374,7 +374,7 @@ def check_class_balance(
     :rtype: bool
     :raises: ValueError if backend is not supported.
     """
-    validate_backend(backend)
+    is_valid_temporal_backend(backend)
 
     class_counts: Dict[Any, int] = {}
 
