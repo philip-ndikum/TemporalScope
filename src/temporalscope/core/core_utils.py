@@ -149,17 +149,17 @@ illustrates the supported DataFrame types and validation cases:
 +------------------------+-------------------------------------------------------+---------------------------+
 | Native DataFrames     | Core DataFrame implementations from supported          | pd.DataFrame,             |
 |                       | backends. These are validated directly against         | pl.DataFrame,             |
-|                       | TEMPORALSCOPE_CORE_BACKEND_TYPES.                     | pa.Table                   |
+|                       | TEMPORALSCOPE_CORE_BACKEND_TYPES.                      | pa.Table                  |
 +------------------------+-------------------------------------------------------+---------------------------+
-| DataFrame Subclasses  | Custom or specialized DataFrames that inherit from    | TimeSeriesDataFrame        |
-|                       | native types. Common in:                              | (pd.DataFrame),            |
+| DataFrame Subclasses  | Custom or specialized DataFrames that inherit from     | TimeSeriesDataFrame       |
+|                       | native types. Common in:                               | (pd.DataFrame),           |
 |                       | - Custom DataFrame implementations                     | dask.dataframe.DataFrame  |
-|                       | - Backend optimizations (e.g. lazy evaluation)        | (inherits from pandas)     |
-|                       | - Backend compatibility layers                        |                            |
+|                       | - Backend optimizations (e.g. lazy evaluation)         | (inherits from pandas)    |
+|                       | - Backend compatibility layers                         |                           |
 +------------------------+-------------------------------------------------------+---------------------------+
-| Intermediate States   | DataFrames in the middle of narwhalify operations     | LazyDataFrame during       |
-|                       | or backend conversions. These may be temporary        | backend conversion,        |
-|                       | subclasses used for optimization or compatibility.    | operation chaining         |
+| Intermediate States   | DataFrames in the middle of narwhalify operations      | LazyDataFrame during      |
+|                       | or backend conversions. These may be temporary         | backend conversion        |
+|                       | subclasses used for optimization or compatibility.     | operation chaining        |
 +------------------------+-------------------------------------------------------+---------------------------+
 
 .. note::
@@ -175,7 +175,7 @@ illustrates the supported DataFrame types and validation cases:
 import os
 import warnings
 from importlib import util
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import dask.dataframe as dd  # Import dask.dataframe as dd again
 import modin.pandas as mpd
@@ -237,6 +237,15 @@ TEMPORALSCOPE_MODULE_PATHS: Dict[str, Union[str, Tuple[str, ...]]] = {
     "pyarrow": "pyarrow.lib",
     "polars": "polars.dataframe.frame",
     "dask": ("dask.dataframe.core", "dask_expr._collection"),
+}
+
+# Backend converters for DataFrame conversion
+TEMPORALSCOPE_BACKEND_CONVERTERS: Dict[str, Callable[[pd.DataFrame, int], Any]] = {
+    "pandas": lambda df, _: df,
+    "modin": lambda df, _: mpd.DataFrame(df),
+    "polars": lambda df, _: pl.DataFrame(df),
+    "pyarrow": lambda df, _: pa.Table.from_pandas(df),
+    "dask": lambda df, npartitions: dd.from_pandas(df, npartitions=npartitions),
 }
 
 # ---------------------------------------------------------
@@ -406,11 +415,11 @@ def convert_to_backend(
 ) -> SupportedTemporalDataFrame:
     """Convert a DataFrame to the specified backend format using Narwhals.
 
-    Narwhals handles the conversion between supported backends (e.g., Pandas, Polars, PyArrow, Dask).
-    This function also ensures compatibility with TemporalScope-supported backends.
-    Handles both native DataFrame types and narwhalified (FrameT) DataFrames.
+    Primary purpose is handling DataFrame conversions through Narwhals. This function
+    ensures consistent backend handling by prioritizing narwhalified and native DataFrame
+    operations.
 
-    :param df: Input DataFrame in any supported format
+    :param df: Input DataFrame in any supported format (pandas, modin, polars, pyarrow, dask)
     :type df: Union[SupportedTemporalDataFrame, IntoDataFrame]
     :param backend: Target backend ('pandas', 'modin', 'polars', 'pyarrow', 'dask').
     :type backend: str
@@ -427,51 +436,78 @@ def convert_to_backend(
         import pandas as pd
         from temporalscope.core.core_utils import convert_to_backend
 
+        # Primary case: Converting narwhalified DataFrame
+        df_narwhals = nw.from_native(data)
+        df_polars = convert_to_backend(df_narwhals, backend="polars")
+
+        # Secondary case: Converting native DataFrame
         data = pd.DataFrame({"time": range(10), "value": range(10)})
         df_modin = convert_to_backend(data, backend="modin")
-        print(type(df_modin))  # Output: <class 'modin.pandas.dataframe.DataFrame'>
 
     .. note::
         While the DataFrame Interchange Protocol (DIP) aims to standardize DataFrame
         conversions, current implementations still require intermediate conversion steps.
         This function uses pandas as an interoperability layer due to its widespread
         support and reliable conversion methods across different DataFrame libraries.
+
+        The conversion process follows two main paths:
+
+        1. Narwhalified DataFrames (Primary Path):
+           - DataFrames that have been wrapped by @nw.narwhalify
+           - Already backend-agnostic through Narwhals
+           - Detected using is_valid_temporal_dataframe
+           - Converted directly to target backend
+
+        2. Native DataFrames (Secondary Path):
+           - Standard DataFrames from supported backends
+           - Require conversion through pandas as interop layer
+           - Converted using TEMPORALSCOPE_BACKEND_CONVERTERS
+           - Includes handling of LazyFrames (e.g., dask)
+
+        This dual-path approach ensures optimal handling of both narwhalified and
+        native DataFrames while maintaining consistent behavior across the data
+        processing pipeline.
     """
     # Validate the backend
     is_valid_temporal_backend(backend)
 
-    # Validate the input DataFrame
+    # First try to get a valid DataFrame
     is_valid, df_type = is_valid_temporal_dataframe(df)
     if not is_valid:
-        # Try to convert to pandas first if possible
+        # Try conversion methods in order
         if hasattr(df, "to_pandas"):
-            df = df.to_pandas()
+            intermediate_pd_df = df.to_pandas()
         elif hasattr(df, "__array__"):
-            df = pd.DataFrame(df.__array__())
+            intermediate_pd_df = pd.DataFrame(df.__array__())
         elif hasattr(df, "to_numpy"):
-            df = pd.DataFrame(df.to_numpy())
+            intermediate_pd_df = pd.DataFrame(df.to_numpy())
         else:
             raise UnsupportedBackendError(f"Input DataFrame type '{type(df).__name__}' is not supported")
 
-    # If narwhalified, get native form first
-    if df_type == "narwhals":
-        df = df.to_native()
+        # Return pandas DataFrame directly if that's our target
+        if backend == "pandas":
+            return intermediate_pd_df
 
-    # Handle LazyFrame from dask
-    if hasattr(df, "compute"):
-        df = df.compute()
+        # Otherwise use it as intermediate
+        df = intermediate_pd_df
 
-    # Convert to pandas intermediate using Narwhals
-    intermediate_pd_df = nw.from_native(df).to_pandas()
+    try:
+        # Handle special cases
+        if df_type == "narwhals":
+            df = df.to_native()
 
-    # Handle conversion based on target backend
-    if backend == "pandas":
-        return intermediate_pd_df
-    elif backend == "modin":
-        return mpd.DataFrame(intermediate_pd_df)
-    elif backend == "polars":
-        return pl.DataFrame(intermediate_pd_df)
-    elif backend == "pyarrow":
-        return pa.Table.from_pandas(intermediate_pd_df)
-    elif backend == "dask":
-        return dd.from_pandas(intermediate_pd_df, npartitions=npartitions)
+        if hasattr(df, "compute"):
+            df = df.compute()
+            # Re-validate after computation
+            is_valid, df_type = is_valid_temporal_dataframe(df)
+            if not is_valid:
+                raise UnsupportedBackendError(f"Failed to compute {type(df).__name__}")
+
+        # Convert through pandas using Narwhals
+        intermediate_pd_df = nw.from_native(df).to_pandas()
+
+        # Convert to target backend using converter map
+        return TEMPORALSCOPE_BACKEND_CONVERTERS[backend](intermediate_pd_df, npartitions)
+
+    except Exception as e:
+        raise UnsupportedBackendError(f"Failed to convert DataFrame: {str(e)}")
