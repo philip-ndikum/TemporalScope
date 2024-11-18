@@ -513,10 +513,28 @@ def test_check_nulls_with_dask_validation(simple_df: SupportedTemporalDataFrame,
         pytest.skip("Skipping test for non-dask backend")
 
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
-    # This should trigger compute() and validation in _check_nulls
+
+    # First test normal case
     null_counts = tf._check_nulls(tf.df, tf.df.columns)
     assert isinstance(null_counts, dict), "Result should be a dictionary"
     assert all(isinstance(count, int) for count in null_counts.values()), "All counts should be integers"
+
+    # Now test with invalid DataFrame type after compute
+    class InvalidDataFrame:
+        """Mock DataFrame that will fail validation"""
+
+        def compute(self):
+            return object()  # Returns an invalid type
+
+        def select(self, *args, **kwargs):
+            return self
+
+        @property
+        def columns(self):
+            return ["col"]
+
+    with pytest.raises(ValueError, match="Invalid DataFrame type after compute"):
+        tf._check_nulls(InvalidDataFrame(), ["col"])
 
 
 @nw.narwhalify
@@ -558,6 +576,7 @@ def test_sort_data_with_lazy_evaluation(simple_df: SupportedTemporalDataFrame) -
     assert sorted_values == sorted(sorted_values, reverse=True), "DataFrame not sorted correctly"
 
 
+@nw.narwhalify
 def test_ascending_property(simple_df: SupportedTemporalDataFrame) -> None:
     """Test the ascending property."""
     # Test ascending=True
@@ -569,3 +588,96 @@ def test_ascending_property(simple_df: SupportedTemporalDataFrame) -> None:
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target", ascending=False)
     assert tf.ascending is False
     assert_sorted_by_time(tf.df, ascending=False)
+
+    # Test ascending property is read-only
+    with pytest.raises(AttributeError):
+        tf.ascending = True  # This should raise an AttributeError
+
+
+def test_check_nulls_with_invalid_compute_result(simple_df: SupportedTemporalDataFrame, request) -> None:
+    """Test _check_nulls handles invalid DataFrame type after compute."""
+    # Skip for non-dask backends
+    if request.node.callspec.params["simple_df"] != "dask":
+        pytest.skip("Skipping test for non-dask backend")
+
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+
+    class MockInvalidCompute:
+        """Mock DataFrame that returns invalid type after compute"""
+
+        def select(self, *args, **kwargs):
+            return self
+
+        def compute(self):
+            # Return a type that will fail is_valid_temporal_dataframe
+            class InvalidType:
+                pass
+
+            return InvalidType()
+
+        @property
+        def columns(self):
+            return ["col"]
+
+    with pytest.raises(ValueError, match="Invalid DataFrame type after compute"):
+        tf._check_nulls(MockInvalidCompute(), ["col"])
+
+
+def test_ascending_property_getter(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test the ascending property getter."""
+    # Test default ascending value
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    assert tf.ascending is True
+
+    # Test explicit ascending=False
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target", ascending=False)
+    assert tf.ascending is False
+
+    # Test that ascending value persists after operations
+    tf.update_data(simple_df)  # Should maintain ascending value
+    assert tf.ascending is False
+
+
+def test_check_nulls_compute_validation(simple_df: SupportedTemporalDataFrame, request) -> None:
+    """Test _check_nulls validation after compute."""
+    # Skip for non-dask backends
+    if request.node.callspec.params["simple_df"] != "dask":
+        pytest.skip("Skipping test for non-dask backend")
+
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+
+    class MockNullCount:
+        """Mock DataFrame that returns invalid type after compute"""
+
+        def compute(self):
+            # Return a list which is not a valid DataFrame type
+            return [1, 2, 3]
+
+        def select(self, *args, **kwargs):
+            return self
+
+        @property
+        def columns(self):
+            return ["col"]
+
+    with pytest.raises(ValueError, match="Invalid DataFrame type after compute"):
+        tf._check_nulls(MockNullCount(), ["col"])
+
+
+def test_ascending_property_access(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test ascending property access."""
+    # Test ascending=True
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target", ascending=True)
+    assert tf.ascending is True
+
+    # Test ascending=False
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target", ascending=False)
+    assert tf.ascending is False
+
+    # Test ascending property after DataFrame operations
+    tf.validate_data(tf.df)  # Perform an operation
+    assert tf.ascending is False  # Property should remain unchanged
+
+    # Test ascending property after sort operation
+    tf.sort_data(tf.df, ascending=True)  # Sort with different ascending value
+    assert tf.ascending is False  # Property should still reflect instance value
