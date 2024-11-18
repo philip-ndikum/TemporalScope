@@ -18,7 +18,7 @@ from temporalscope.core.exceptions import UnsupportedBackendError
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
 # Constants
-VALID_BACKENDS = [backend for backend in TEMPORALSCOPE_CORE_BACKEND_TYPES.keys() if backend != "dask"]
+VALID_BACKENDS = [backend for backend in TEMPORALSCOPE_CORE_BACKEND_TYPES if backend != "dask"]
 INVALID_BACKEND = "unsupported_backend"
 
 # Type variables for better type handling

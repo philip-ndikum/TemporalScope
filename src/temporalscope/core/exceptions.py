@@ -85,8 +85,15 @@ class ModeValidationError(TimeFrameError):
     """
 
     def __init__(self, mode, message="Invalid mode specified"):
+        """Initialize ModeValidationError.
+
+        Args:
+            mode: The invalid mode that caused the error
+            message: Explanation of the error, defaults to "Invalid mode specified"
+
+        """
         self.mode = mode
-        self.message = f"{message}: {mode}."
+        self.message = f"{message}: {mode}"
         super().__init__(self.message)
 
 
@@ -107,6 +114,13 @@ class UnsupportedBackendError(TimeFrameError):
     """
 
     def __init__(self, backend, message="Unsupported backend"):
+        """Initialize UnsupportedBackendError.
+
+        Args:
+            backend: The invalid backend that caused the error.
+            message: Explanation of the error, defaults to "Unsupported backend".
+
+        """
         self.backend = backend
         self.message = f"{message}: {backend}."
         super().__init__(self.message)

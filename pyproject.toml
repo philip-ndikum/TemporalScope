@@ -19,29 +19,29 @@ dependencies = [
     "shap>=0.46.0",             # SHAP (SHapley Additive exPlanations): For model interpretability and feature importance in machine learning.
     "borutashap>=1.0.17",       # Boruta-SHAP: Combines SHAP with Boruta for feature selection, helping identify the most important features.
     "lime>=0.2.0.1",            # LIME (Local Interpretable Model-agnostic Explanations): Enables model-agnostic interpretability, focusing on local, instance-specific explanations.
-    
+
     # General Machine Learning and Statistics
     "scikit-learn>=1.5.1",      # Scikit-Learn: Essential machine learning library for classification, regression, and clustering.
     "lightgbm>=4.5.0",          # LightGBM: Gradient-boosted decision tree library that’s efficient for high-dimensional data.
     "statsmodels>=0.14.2",      # Statsmodels: Provides statistical models and hypothesis tests, useful for traditional time series analysis.
-    
+
     # Data Manipulation and Storage
     "pandas>=1.5.0",            # Pandas: Core library for handling structured data in DataFrames.
     "modin[all]>=0.31.0",       # Modin: Parallelizes Pandas operations for large datasets with Dask/Ray backend.
     "pyarrow>=17.0.0",          # PyArrow: Enables efficient columnar data format (Arrow) for fast data processing and storage, commonly used with Parquet files.
     "polars>=1.5.0",            # Polars: High-performance DataFrame library, ideal for handling large datasets in memory.
     "dask[dataframe]>=2024.7",  # Dask DataFrame: Handles parallelized computations for very large datasets.
-    
+
     # Specialized Computation
     "flax>=0.8.5",              # Flax: Neural network library for JAX, useful for building deep learning models.
     "jax>=0.4.31",              # JAX: Accelerated computation for machine learning research, supporting CPU/GPU/TPU backends.
-    
+
     # Backend-Agnostic Processing
     "narwhals>=0.2.3",          # Narwhals: Ensures backend compatibility across Pandas, Polars, Modin, and other dataframes, optimizing performance.
-    
+
     # Environment Configuration
     "python-dotenv>=1.0.1",     # Python-Dotenv: Manages environment variables for secure and flexible configuration.
-    
+
     # Markdown Table Display
     "tabulate>=0.9.0",          # Tabulate: Allows Markdown-friendly table formatting for DataFrames in Narwhals.
 ]
@@ -178,6 +178,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "docs/conf.py" = ["A001", "D103"]
+"test/*" = ["PLR2004"]  # Ignore magic number warnings in test files
 
 [tool.mypy]
 files = "src/temporalscope"

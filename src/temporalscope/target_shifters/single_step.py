@@ -257,10 +257,11 @@ class SingleStepTargetShifter:
         elif isinstance(X, np.ndarray):
             # Convert numpy array to DataFrame first
             cols = [f"feature_{i}" for i in range(X.shape[1] - 1)]
-            cols.append(self.target_col or f"feature_{X.shape[1] - 1}")
+            target_col = self.target_col if self.target_col is not None else f"feature_{X.shape[1] - 1}"
+            cols.append(target_col)
             X = pd.DataFrame(X, columns=cols)
             if self.target_col is None:
-                self.target_col = cols[-1]
+                self.target_col = target_col
         else:
             # Get native DataFrame for validation
             native_df = X.to_native() if hasattr(X, "to_native") else X
@@ -309,7 +310,8 @@ class SingleStepTargetShifter:
         if isinstance(X, np.ndarray):
             # Convert numpy array to DataFrame
             cols = [f"feature_{i}" for i in range(X.shape[1] - 1)]
-            cols.append(self.target_col)
+            cols.append(str(self.target_col))  # Ensure it's a string
+
             X = pd.DataFrame(X, columns=cols)
 
         # Get DataFrame to transform

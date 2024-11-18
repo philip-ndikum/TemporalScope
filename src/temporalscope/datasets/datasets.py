@@ -30,8 +30,8 @@ from statsmodels.datasets import macrodata
 
 from temporalscope.core.core_utils import (
     convert_to_backend,
-    print_divider,
     is_valid_temporal_backend,
+    print_divider,
 )
 
 # Dictionary of available datasets and their loaders
