@@ -57,6 +57,7 @@ import pandas as pd
 import pytest
 
 from temporalscope.core.core_utils import (
+    MODE_MULTI_STEP,
     MODE_SINGLE_STEP,
     TEMPORALSCOPE_CORE_BACKEND_TYPES,
     SupportedTemporalDataFrame,
@@ -289,8 +290,13 @@ def test_timeframe_accepts_datetime(df_with_datetime: SupportedTemporalDataFrame
 
 def test_timeframe_invalid_mode(simple_df: SupportedTemporalDataFrame) -> None:
     """Test that TimeFrame properly rejects invalid modes."""
+    # Test with explicit invalid mode
     with pytest.raises(ModeValidationError):
         TimeFrame(df=simple_df, time_col="time", target_col="target", mode="invalid_mode")
+
+    # Test with empty mode
+    with pytest.raises(ModeValidationError):
+        TimeFrame(df=simple_df, time_col="time", target_col="target", mode="")
 
 
 def test_timeframe_missing_columns(simple_df: SupportedTemporalDataFrame) -> None:
@@ -405,8 +411,12 @@ def test_check_nulls_with_lazy_evaluation(simple_df: SupportedTemporalDataFrame)
     assert all(count == 0 for count in null_counts.values()), "Expected no null values in any column"
 
 
-def test_validate_data_with_lazy_numeric_check(simple_df: SupportedTemporalDataFrame) -> None:
-    """Test validate_data with lazy numeric checking."""
+def test_validate_data_with_lazy_numeric_check(simple_df: SupportedTemporalDataFrame, request) -> None:
+    """Test validate_data handles lazy numeric checking."""
+    # Skip for non-lazy backends
+    if not hasattr(simple_df, "collect"):
+        pytest.skip("Skipping test for non-lazy backend")
+
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
     # This should not raise any exceptions
     tf.validate_data(tf.df)
@@ -430,3 +440,132 @@ def test_setup_timeframe_without_sorting(simple_df: SupportedTemporalDataFrame, 
 
     # Verify data is not sorted
     assert initial_values == final_values, "Data should not be sorted"
+
+
+def test_timeframe_invalid_mode_raises(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test that TimeFrame raises ModeValidationError for invalid mode."""
+    # Test with explicit invalid mode
+    with pytest.raises(ModeValidationError):
+        TimeFrame(df=simple_df, time_col="time", target_col="target", mode="invalid_mode")
+
+    # Test with empty mode
+    with pytest.raises(ModeValidationError):
+        TimeFrame(df=simple_df, time_col="time", target_col="target", mode="")
+
+
+def test_update_data_invalid_target_raises(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test that update_data raises ValueError for invalid target column."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+
+    # Test with non-existent column
+    with pytest.raises(ValueError, match="Column 'invalid_target' does not exist"):
+        tf.update_data(simple_df, new_target_col="invalid_target")
+
+    # Test with None target column
+    tf.update_data(simple_df, new_target_col=None)
+    assert tf._target_col == "target"
+
+
+def test_check_nulls_with_compute(simple_df: SupportedTemporalDataFrame, request) -> None:
+    """Test _check_nulls handles compute() properly."""
+    # Skip for non-dask backends
+    if request.node.callspec.params["simple_df"] != "dask":
+        pytest.skip("Skipping test for non-dask backend")
+
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    null_counts = tf._check_nulls(tf.df, tf.df.columns)
+    assert all(count == 0 for count in null_counts.values())
+
+
+def test_update_data_none_target(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test that update_data handles None target column correctly."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+
+    # Test with None target column - should not change anything
+    tf.update_data(simple_df, new_target_col=None)
+    assert tf._target_col == "target"
+
+
+@pytest.mark.parametrize("mode", [MODE_MULTI_STEP])
+def test_timeframe_multi_step_mode(simple_df: SupportedTemporalDataFrame, mode: str, request) -> None:
+    """Test TimeFrame initialization with multi-step mode."""
+    # Should raise ValueError since multi-step is not implemented yet
+    with pytest.raises(ValueError, match="Unsupported mode: multi_step"):
+        generate_synthetic_time_series(backend=request.node.callspec.params["simple_df"], mode=mode)
+
+
+def test_check_nulls_with_dask_compute(simple_df: SupportedTemporalDataFrame, request) -> None:
+    """Test _check_nulls handles compute() for dask."""
+    # Skip for non-dask backends
+    if request.node.callspec.params["simple_df"] != "dask":
+        pytest.skip("Skipping test for non-dask backend")
+
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    # This should trigger compute() in _check_nulls
+    null_counts = tf._check_nulls(tf.df, tf.df.columns)
+    assert all(count == 0 for count in null_counts.values())
+
+
+def test_check_nulls_with_dask_validation(simple_df: SupportedTemporalDataFrame, request) -> None:
+    """Test _check_nulls handles validation after dask compute."""
+    # Skip for non-dask backends
+    if request.node.callspec.params["simple_df"] != "dask":
+        pytest.skip("Skipping test for non-dask backend")
+
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    # This should trigger compute() and validation in _check_nulls
+    null_counts = tf._check_nulls(tf.df, tf.df.columns)
+    assert isinstance(null_counts, dict), "Result should be a dictionary"
+    assert all(isinstance(count, int) for count in null_counts.values()), "All counts should be integers"
+
+
+@nw.narwhalify
+def test_validate_data_time_column_types(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test validate_data handles different time column types."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+
+    # Create test DataFrames with different time column types using Narwhals
+    df_nw = nw.from_native(simple_df)
+
+    # Test with numeric time values
+    numeric_df = df_nw.select([nw.lit(1.5).alias("time"), *[nw.col(col) for col in df_nw.columns if col != "time"]])
+    tf.validate_data(numeric_df)  # Should not raise exception
+
+    # Test with datetime values
+    datetime_df = df_nw.select(
+        [nw.lit(pd.Timestamp("2021-01-01")).alias("time"), *[nw.col(col) for col in df_nw.columns if col != "time"]]
+    )
+    tf.validate_data(datetime_df)  # Should not raise exception
+
+    # Test with valid datetime string
+    valid_date_df = df_nw.select(
+        [nw.lit("2021-01-01").alias("time"), *[nw.col(col) for col in df_nw.columns if col != "time"]]
+    )
+    tf.validate_data(valid_date_df)  # Should not raise exception
+
+
+def test_sort_data_with_lazy_evaluation(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test sort_data handles lazy evaluation."""
+    # Skip for non-lazy backends
+    if not hasattr(simple_df, "collect"):
+        pytest.skip("Skipping test for non-lazy backend")
+
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    sorted_df = tf.sort_data(tf.df, ascending=False)
+
+    # Verify the DataFrame is properly sorted
+    sorted_values = sorted_df.select(nw.col("time")).to_pandas()["time"].tolist()
+    assert sorted_values == sorted(sorted_values, reverse=True), "DataFrame not sorted correctly"
+
+
+def test_ascending_property(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test the ascending property."""
+    # Test ascending=True
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target", ascending=True)
+    assert tf.ascending is True
+    assert_sorted_by_time(tf.df, ascending=True)
+
+    # Test ascending=False
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target", ascending=False)
+    assert tf.ascending is False
+    assert_sorted_by_time(tf.df, ascending=False)
