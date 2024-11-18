@@ -195,7 +195,7 @@ def assert_sorted_by_time(df: SupportedTemporalDataFrame, ascending: bool = True
 
 # Tests
 @pytest.mark.parametrize("mode", TEST_MODES)
-def test_timeframe_basic_initialization(simple_df: SupportedTemporalDataFrame, mode: str, request) -> None:
+def test_timeframe_basic_initialization(simple_df: SupportedTemporalDataFrame, mode: str, backend: str) -> None:
     """Test basic TimeFrame initialization with clean data."""
     # Initialize TimeFrame
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target", mode=mode)
@@ -207,31 +207,27 @@ def test_timeframe_basic_initialization(simple_df: SupportedTemporalDataFrame, m
 
     # Verify TimeFrame properties
     assert tf.mode == mode
-    assert tf.backend == request.param  # Use param from fixture
+    assert tf.backend == backend  # Use backend parameter directly
     assert tf.ascending is True
 
 
-def test_timeframe_backend_inference(simple_df: SupportedTemporalDataFrame) -> None:
+def test_timeframe_backend_inference(simple_df: SupportedTemporalDataFrame, backend: str) -> None:
     """Test that TimeFrame correctly infers backend when none is specified."""
-    # Get expected backend name
-    expected_backend = get_backend_name(simple_df)
-
     # Initialize TimeFrame
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
-    assert tf.backend == expected_backend, f"Expected backend {expected_backend}, got {tf.backend}"
+    assert tf.backend == backend, f"Expected backend {backend}, got {tf.backend}"
     assert_df_properties(tf.df, expected_rows=5, expected_cols=5)
 
 
 @pytest.mark.parametrize("target_backend", ["pandas", "polars"])
-def test_timeframe_explicit_backend_conversion(simple_df: SupportedTemporalDataFrame, target_backend: str) -> None:
+def test_timeframe_explicit_backend_conversion(
+    simple_df: SupportedTemporalDataFrame, target_backend: str, backend: str
+) -> None:
     """Test TimeFrame initialization with backend conversion."""
-    # Get current backend name
-    current_backend = get_backend_name(simple_df)
-
     # Skip problematic backend combinations
-    if current_backend == target_backend:
+    if backend == target_backend:
         pytest.skip(f"Current backend is already {target_backend}")
-    if current_backend == "dask":
+    if backend == "dask":
         pytest.skip("Skipping conversion test for dask source due to conversion limitations")
 
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target", dataframe_backend=target_backend)
@@ -239,17 +235,14 @@ def test_timeframe_explicit_backend_conversion(simple_df: SupportedTemporalDataF
     assert_df_properties(tf.df, expected_rows=5, expected_cols=5)
 
 
-def test_timeframe_explicit_backend_same(simple_df: SupportedTemporalDataFrame) -> None:
+def test_timeframe_explicit_backend_same(simple_df: SupportedTemporalDataFrame, backend: str) -> None:
     """Test TimeFrame initialization with explicitly specified same backend."""
-    # Get current backend name
-    current_backend = get_backend_name(simple_df)
-
     # Skip for dask backend due to known conversion limitations
-    if current_backend == "dask":
+    if backend == "dask":
         pytest.skip("Skipping same-backend test for dask due to conversion limitations")
 
-    tf = TimeFrame(df=simple_df, time_col="time", target_col="target", dataframe_backend=current_backend)
-    assert tf.backend == current_backend, f"Backend should remain {current_backend}"
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target", dataframe_backend=backend)
+    assert tf.backend == backend, f"Backend should remain {backend}"
     assert_df_properties(tf.df, expected_rows=5, expected_cols=5)
 
 
@@ -326,7 +319,7 @@ def df_with_non_numeric(request, data_config: DataConfigType) -> Generator[Suppo
 
 def test_timeframe_rejects_non_numeric(df_with_non_numeric: SupportedTemporalDataFrame) -> None:
     """Test that TimeFrame properly rejects data with non-numeric values in feature columns."""
-    with pytest.raises(ValueError, match=r"could not convert string to float: 'a'"):
+    with pytest.raises(ValueError, match=r"Column 'feature_1' must be numeric"):
         TimeFrame(df=df_with_non_numeric, time_col="time", target_col="target", mode=MODE_SINGLE_STEP)
 
 
@@ -383,3 +376,33 @@ def test_update_data_method(simple_df: SupportedTemporalDataFrame) -> None:
     df_pd = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
     assert "new_target" in df_pd.columns, "new_target column not found in updated DataFrame"
     assert tf._target_col == "target"  # Original target column name should not change
+
+
+def test_update_data_with_invalid_target(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test update_data with an invalid target column."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    with pytest.raises(ValueError, match="Column 'invalid_target' does not exist"):
+        tf.update_data(simple_df, new_target_col="invalid_target")
+
+
+def test_check_nulls_with_lazy_evaluation(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test _check_nulls method with lazy evaluation."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    null_counts = tf._check_nulls(tf.df, tf.df.columns)
+    assert all(count == 0 for count in null_counts.values()), "Expected no null values in any column"
+
+
+def test_validate_data_with_lazy_numeric_check(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test validate_data with lazy numeric checking."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
+    # This should not raise any exceptions
+    tf.validate_data(tf.df)
+
+
+def test_setup_timeframe_without_sorting(simple_df: SupportedTemporalDataFrame) -> None:
+    """Test _setup_timeframe without sorting."""
+    tf = TimeFrame(df=simple_df, time_col="time", target_col="target", sort=False)
+    # Verify data is not sorted
+    initial_df = simple_df.to_pandas() if hasattr(simple_df, "to_pandas") else simple_df
+    final_df = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
+    assert initial_df["time"].tolist() == final_df["time"].tolist(), "Data should not be sorted"

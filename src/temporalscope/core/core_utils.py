@@ -410,6 +410,32 @@ def is_valid_temporal_dataframe(df: Union[SupportedTemporalDataFrame, Any]) -> T
         return False, None
 
 
+def get_dataframe_backend(df: Union[SupportedTemporalDataFrame, Any]) -> str:
+    """Get the backend name for a DataFrame.
+
+    :param df: DataFrame to get backend for
+    :type df: Union[SupportedTemporalDataFrame, Any]
+    :return: Backend name ('pandas', 'modin', 'polars', 'pyarrow', 'dask')
+    :rtype: str
+    :raises UnsupportedBackendError: If DataFrame type not supported
+    """
+    # First validate DataFrame type
+    is_valid, df_type = is_valid_temporal_dataframe(df)
+    if not is_valid:
+        raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
+
+    # If narwhalified, get native form
+    if df_type == "narwhals":
+        df = df.to_native()
+
+    # Get backend from type
+    for name, cls in TEMPORALSCOPE_CORE_BACKEND_TYPES.items():
+        if isinstance(df, cls):
+            return name
+
+    raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
+
+
 def convert_to_backend(
     df: Union[SupportedTemporalDataFrame, IntoDataFrame], backend: str, npartitions: int = 1
 ) -> SupportedTemporalDataFrame:
@@ -474,13 +500,9 @@ def convert_to_backend(
     # First try to get a valid DataFrame
     is_valid, df_type = is_valid_temporal_dataframe(df)
     if not is_valid:
-        # Try conversion methods in order
+        # Only try to_pandas conversion as we only work with DataFrames
         if hasattr(df, "to_pandas"):
             intermediate_pd_df = df.to_pandas()
-        elif hasattr(df, "__array__"):
-            intermediate_pd_df = pd.DataFrame(df.__array__())
-        elif hasattr(df, "to_numpy"):
-            intermediate_pd_df = pd.DataFrame(df.to_numpy())
         else:
             raise UnsupportedBackendError(f"Input DataFrame type '{type(df).__name__}' is not supported")
 
