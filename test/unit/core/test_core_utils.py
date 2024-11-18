@@ -15,452 +15,470 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# TemporalScope/test/unit/test_core_utils.py
-
-
-# Import core utility functions
-
-# Import exceptions
-
-# Import the sample data generation and fixture from test_data_utils
-
-# # Constants
-# BACKEND_PANDAS = "pd"
-# BACKEND_MODIN = "mpd"
-# BACKEND_POLARS = "pl"
-# SUPPORTED_BACKENDS = [BACKEND_PANDAS, BACKEND_MODIN, BACKEND_POLARS]
-
-# # Mock API key constants
-# MOCK_OPENAI_API_KEY = "mock_openai_key"
-# MOCK_CLAUDE_API_KEY = "mock_claude_key"
-
-# # --- Tests with Parametrization ---
-
-# @pytest.mark.parametrize(
-#     "check_func, with_nulls, with_nans",
-#     [
-#         (check_nulls, True, False),  # Test with nulls, no NaNs
-#         (check_nulls, False, False),  # Test without nulls
-#         (check_nans, False, True),  # Test with NaNs
-#         (check_nans, False, False),  # Test without NaNs
-#     ]
-# )
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_check_funcs(backend, sample_df_with_conditions, check_func, with_nulls, with_nans):
-#     """Test check_nulls and check_nans for both nulls and NaNs across backends."""
-#     df, _ = sample_df_with_conditions(backend=backend, with_nulls=with_nulls, with_nans=with_nans)
-#     result = validate_and_convert_input(df, backend)
-
-#     if check_func == check_nulls:
-#         # Calculate nulls for each backend
-#         if backend == BACKEND_POLARS:
-#             # Polars: Check if null count is greater than 0
-#             result_check = result.null_count().select(pl.col("*").sum()).to_numpy().sum() > 0
-#         else:
-#             # Pandas and Modin
-#             result_check = result.isnull().any().any()
-#         expected = with_nulls  # True if nulls were introduced, else False
-#     else:
-#         # Calculate NaNs for each backend
-#         if backend == BACKEND_POLARS:
-#             # Polars: Use .is_nan() on each column and sum up NaN values
-#             result_check = result.select(pl.col("*").is_nan().sum()).to_numpy().sum() > 0
-#         else:
-#             # Pandas and Modin
-#             result_check = result.isna().any().any()
-#         expected = with_nans  # True if NaNs were introduced, else False
-
-#     assert result_check == expected, f"Expected {expected} but got {result_check} for backend {backend} using {check_func.__name__}"
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_check_nulls(backend, sample_df_with_conditions):
-#     """Test check_nulls for detecting null values across backends."""
-#     # Case 1: DataFrame with nulls
-#     df_with_nulls, _ = sample_df_with_conditions(backend=backend, with_nulls=True)
-#     result_with_nulls = check_nulls(df_with_nulls, backend)
-#     assert result_with_nulls is True, f"Expected True but got {result_with_nulls} for backend {backend} with nulls"
-
-#     # Case 2: DataFrame without nulls
-#     df_without_nulls, _ = sample_df_with_conditions(backend=backend, with_nulls=False)
-#     result_without_nulls = check_nulls(df_without_nulls, backend)
-#     assert result_without_nulls is False, f"Expected False but got {result_without_nulls} for backend {backend} without nulls"
-
-
-# @pytest.mark.parametrize("unsupported_backend", ["unsupported_backend", "invalid_backend", "spark"])
-# def test_check_nulls_unsupported_backend(unsupported_backend):
-#     """Test that check_nulls raises UnsupportedBackendError for unsupported backends."""
-#     df = pd.DataFrame({"col1": [1, 2, 3]})  # Sample DataFrame
-#     with pytest.raises(UnsupportedBackendError, match="Unsupported backend"):
-#         check_nulls(df, unsupported_backend)
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_check_nans(backend, sample_df_with_conditions):
-#     """Test check_nans for detecting NaN values across backends."""
-#     # Case 1: DataFrame with NaNs
-#     df_with_nans, _ = sample_df_with_conditions(backend=backend, with_nans=True)
-#     result_with_nans = check_nans(df_with_nans, backend)
-#     assert result_with_nans is True, f"Expected True but got {result_with_nans} for backend {backend} with NaNs"
-
-#     # Case 2: DataFrame without NaNs
-#     df_without_nans, _ = sample_df_with_conditions(backend=backend, with_nans=False)
-#     result_without_nans = check_nans(df_without_nans, backend)
-#     assert result_without_nans is False, f"Expected False but got {result_without_nans} for backend {backend} without NaNs"
-
-
-# @pytest.mark.parametrize("unsupported_backend", ["unsupported_backend", "invalid_backend", "spark"])
-# def test_check_nans_unsupported_backend(unsupported_backend):
-#     """Test that check_nans raises UnsupportedBackendError for unsupported backends."""
-#     df = pd.DataFrame({"col1": [1, 2, 3]})  # Sample DataFrame
-#     with pytest.raises(UnsupportedBackendError, match="Unsupported backend"):
-#         check_nans(df, unsupported_backend)
-
+# Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.
+# See the NOTICE file for additional information regarding copyright ownership.
+# The ASF licenses this file to you under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
 
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_validate_backend_supported(backend):
-#     """Test that supported backends are validated successfully."""
-#     validate_backend(backend)
-
-
-# @pytest.mark.parametrize("invalid_backend", ["tf", "spark", "unknown"])
-# def test_validate_backend_unsupported(invalid_backend):
-#     """Test that unsupported backends raise an UnsupportedBackendError."""
-#     with pytest.raises(UnsupportedBackendError, match="Unsupported backend"):
-#         validate_backend(invalid_backend)
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# @pytest.mark.parametrize("target_backend", SUPPORTED_BACKENDS)
-# def test_validate_and_convert_input(sample_df_with_conditions, backend, target_backend):
-#     """Test that DataFrame conversion between backends works correctly."""
-#     df, _ = sample_df_with_conditions(backend=backend, with_nulls=False)
-#     result = validate_and_convert_input(df, target_backend)
-
-#     if target_backend == BACKEND_PANDAS:
-#         assert isinstance(result, pd.DataFrame), f"Expected Pandas DataFrame but got {type(result)}"
-#     elif target_backend == BACKEND_POLARS:
-#         assert isinstance(result, pl.DataFrame), f"Expected Polars DataFrame but got {type(result)}"
-#     elif target_backend == BACKEND_MODIN:
-#         assert isinstance(result, mpd.DataFrame), f"Expected Modin DataFrame but got {type(result)}"
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_validate_and_convert_input_invalid_type(backend):
-#     """Test that validate_and_convert_input raises TypeError when given an invalid DataFrame type."""
-#     invalid_df = "This is not a DataFrame"
-#     with pytest.raises(TypeError, match="Input DataFrame type"):
-#         validate_and_convert_input(invalid_df, backend)
-
-
-# @pytest.mark.parametrize("invalid_backend", ["unsupported_backend", "excel", "json", None])
-# def test_validate_and_convert_input_invalid_backend(sample_df_with_conditions, invalid_backend):
-#     """Test that validate_and_convert_input raises UnsupportedBackendError for invalid or None backend."""
-#     df, _ = sample_df_with_conditions(backend=BACKEND_PANDAS)
-#     with pytest.raises(UnsupportedBackendError, match="Unsupported backend"):
-#         validate_and_convert_input(df, invalid_backend)
-
-
-# def test_print_divider(capsys):
-#     """Test the print_divider function outputs the correct string."""
-#     print_divider("-", 50)
-#     captured = capsys.readouterr()
-#     assert captured.out == "-" * 50 + "\n"
-
-
-# def test_get_api_keys():
-#     """Test that get_api_keys retrieves environment variables correctly."""
-#     with patch.dict("os.environ", {"OPENAI_API_KEY": MOCK_OPENAI_API_KEY, "CLAUDE_API_KEY": MOCK_CLAUDE_API_KEY}):
-#         api_keys = get_api_keys()
-#         assert api_keys["OPENAI_API_KEY"] == MOCK_OPENAI_API_KEY
-#         assert api_keys["CLAUDE_API_KEY"] == MOCK_CLAUDE_API_KEY
-
-#     with patch.dict("os.environ", {}, clear=True):
-#         api_keys = get_api_keys()
-#         assert api_keys["OPENAI_API_KEY"] is None
-#         assert api_keys["CLAUDE_API_KEY"] is None
-
-
-# def test_get_default_backend_cfg():
-#     """Test that the default backend configuration is returned correctly."""
-#     expected_cfg = {
-#         "BACKENDS": {
-#             BACKEND_POLARS: "polars",
-#             BACKEND_PANDAS: "pandas",
-#             BACKEND_MODIN: "modin",
-#         }
-#     }
-#     result = get_default_backend_cfg()
-#     assert result == expected_cfg, f"Expected {expected_cfg} but got {result}"
-
-
-# def test_validate_and_convert_input_modin_to_polars(sample_df_with_conditions):
-#     """Test Modin DataFrame conversion to Polars."""
-#     # Create a sample Modin DataFrame
-#     df_modin, _ = sample_df_with_conditions(backend=BACKEND_MODIN)
-
-#     # Mock the _to_pandas method to ensure it's called
-#     with patch.object(mpd.DataFrame, "_to_pandas", return_value=df_modin._to_pandas()) as mock_to_pandas:
-#         # Convert from Modin to Polars
-#         result = validate_and_convert_input(df_modin, BACKEND_POLARS)
-#         assert isinstance(result, pl.DataFrame), f"Expected Polars DataFrame but got {type(result)}"
-#         mock_to_pandas.assert_called_once()  # Ensure _to_pandas is called
-
-
-# @pytest.mark.parametrize(
-#     "input_df, expected_backend",
-#     [
-#         (pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]}), BACKEND_PANDAS),  # Pandas DataFrame
-#         (pl.DataFrame({'col1': [1, 2], 'col2': [3, 4]}), BACKEND_POLARS),  # Polars DataFrame
-#         (mpd.DataFrame({'col1': [1, 2], 'col2': [3, 4]}), BACKEND_MODIN),  # Modin DataFrame
-#     ]
-# )
-# def test_infer_backend_from_dataframe(input_df, expected_backend):
-#     """Test the infer_backend_from_dataframe function for supported backends."""
-#     assert infer_backend_from_dataframe(input_df) == expected_backend
-
-# def test_infer_backend_from_dataframe_unsupported():
-#     """Test that infer_backend_from_dataframe raises an UnsupportedBackendError for unsupported backends."""
-#     invalid_df = "This is not a DataFrame"
-#     with pytest.raises(UnsupportedBackendError, match="Unsupported DataFrame type"):
-#         infer_backend_from_dataframe(invalid_df)
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_is_timestamp_like(backend, sample_df_with_conditions):
-#     """Test is_timestamp_like for timestamp-like columns across backends."""
-#     df, _ = sample_df_with_conditions(backend=backend, timestamp_like=True)
-#     result = is_timestamp_like(df, "time")
-#     assert result is True, f"Expected True for timestamp-like column but got {result}"
-
-#     df, _ = sample_df_with_conditions(backend=backend, numeric=True)  # Non-timestamp column
-#     result = is_timestamp_like(df, "time")
-#     assert result is False, f"Expected False for non-timestamp column but got {result}"
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_is_numeric(backend, sample_df_with_conditions):
-#     """Test is_numeric for numeric columns across backends."""
-#     df, _ = sample_df_with_conditions(backend=backend, numeric=True)
-#     result = is_numeric(df, "time")
-#     assert result is True, f"Expected True for numeric column but got {result}"
-
-#     df, _ = sample_df_with_conditions(backend=backend, timestamp_like=True)
-#     result = is_numeric(df, "time")
-#     assert result is False, f"Expected False for non-numeric column but got {result}"
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_has_mixed_frequencies(backend, sample_df_with_conditions):
-#     """Test has_mixed_frequencies for mixed frequency time columns across backends."""
-#     df, _ = sample_df_with_conditions(backend=backend, mixed_frequencies=True)
-#     result = has_mixed_frequencies(df, "time")
-#     assert result is True, f"Expected True for mixed frequencies but got {result}"
-
-#     df, _ = sample_df_with_conditions(backend=backend, timestamp_like=True)
-#     result = has_mixed_frequencies(df, "time")
-#     assert result is False, f"Expected False for consistent frequencies but got {result}"
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_time_column_not_found(backend, sample_df_with_conditions):
-#     """Test that ValueError is raised when the time column does not exist."""
-#     df, _ = sample_df_with_conditions(backend=backend)  # Create a sample DataFrame without the 'non_existing_time_col'
-#     with pytest.raises(ValueError, match="Column 'non_existing_time_col' not found"):
-#         is_timestamp_like(df, "non_existing_time_col")
-
-#     with pytest.raises(ValueError, match="Column 'non_existing_time_col' not found"):
-#         is_numeric(df, "non_existing_time_col")
-
-#     with pytest.raises(ValueError, match="Column 'non_existing_time_col' not found"):
-#         has_mixed_frequencies(df, "non_existing_time_col")
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_empty_dataframe(backend):
-#     """Test handling of empty DataFrames across backends."""
-#     # Create an empty DataFrame based on the backend
-#     if backend == BACKEND_PANDAS:
-#         df = pd.DataFrame({"time": []})  # Empty but with a time column
-#     elif backend == BACKEND_MODIN:
-#         df = mpd.DataFrame({"time": []})
-#     elif backend == BACKEND_POLARS:
-#         df = pl.DataFrame({"time": []})
-
-#     # Ensure the functions return False or handle empty DataFrames gracefully
-#     assert not is_timestamp_like(df, "time"), "Expected False for is_timestamp_like on empty DataFrame"
-#     assert not is_numeric(df, "time"), "Expected False for is_numeric on empty DataFrame"
-#     assert not has_mixed_frequencies(df, "time"), "Expected False for has_mixed_frequencies on empty DataFrame"
-
-
-# @pytest.mark.parametrize(
-#     "backend, wrong_backend, expected_exception, expected_message",
-#     [
-#         # Generalized the regex to match a rough pattern for class types, without being too specific
-#         (BACKEND_POLARS, BACKEND_PANDAS, TypeError, r"Expected Pandas DataFrame but got .*polars.*"),
-#         (BACKEND_PANDAS, BACKEND_POLARS, TypeError, r"Expected Polars DataFrame but got .*pandas.*"),
-#         (BACKEND_MODIN, BACKEND_PANDAS, TypeError, r"Expected Pandas DataFrame but got .*modin.*"),
-#         (BACKEND_MODIN, BACKEND_POLARS, TypeError, r"Expected Polars DataFrame but got .*modin.*"),
-#         (BACKEND_PANDAS, "unsupported_backend", UnsupportedBackendError, r"Unsupported backend: unsupported_backend\. Supported backends are 'pd', 'mpd', 'pl'\."),
-#     ]
-# )
-# def test_sort_dataframe_exceptions(sample_df_with_conditions, backend, wrong_backend, expected_exception, expected_message):
-#     """Test that sort_dataframe raises the correct exceptions for invalid DataFrame types and unsupported backends."""
-#     # Create a sample DataFrame for the correct backend
-#     df, _ = sample_df_with_conditions(backend=backend, numeric=True)
-
-#     # Try sorting the DataFrame using the wrong backend and expect exceptions
-#     with pytest.raises(expected_exception, match=expected_message):
-#         sort_dataframe(df, "time", wrong_backend)
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# @pytest.mark.parametrize("ascending", [True, False])
-# def test_sort_dataframe(sample_df_with_conditions, backend, ascending):
-#     """Test that sort_dataframe correctly sorts the DataFrame by time column."""
-#     # Create a sample DataFrame with a numeric time column
-#     df, _ = sample_df_with_conditions(backend=backend, numeric=True)
-
-#     # Sort the DataFrame using the utility function
-#     sorted_df = sort_dataframe(df, "time", backend, ascending)
-
-#     # Extract the time column from the sorted DataFrame
-#     sorted_time_column = sorted_df["time"].to_numpy() if backend != BACKEND_POLARS else sorted_df["time"].to_numpy().flatten()
-
-#     # Calculate the expected sorted time column
-#     expected_sorted_time_column = sorted(df["time"].to_numpy(), reverse=not ascending)
-
-#     # Ensure the time column is correctly sorted
-#     assert all(sorted_time_column == expected_sorted_time_column), f"Expected sorted time column {expected_sorted_time_column} but got {sorted_time_column} for backend {backend} with ascending={ascending}"
-
-# # --- IKdividual tests for Modin backend ---
-
-# @pytest.mark.parametrize(
-#     "wrong_backend, expected_exception, expected_substring",
-#     [
-#         (BACKEND_PANDAS, TypeError, "Expected Pandas DataFrame"),  # Substring matching for Pandas
-#         (BACKEND_POLARS, TypeError, "Expected Polars DataFrame"),  # Substring matching for Polars
-#         ("unsupported_backend", UnsupportedBackendError, "Unsupported backend"),  # Catch unsupported backend
-#     ]
-# )
-# def test_sort_dataframe_modin_exceptions(sample_df_with_conditions, wrong_backend, expected_exception, expected_substring):
-#     """Test that sort_dataframe raises the correct exceptions for Modin DataFrames and wrong backends."""
-#     # Create a sample DataFrame for Modin backend
-#     df, _ = sample_df_with_conditions(backend=BACKEND_MODIN, numeric=True)
-
-#     # Try sorting the Modin DataFrame using the wrong backend and expect exceptions
-#     with pytest.raises(expected_exception) as exc_info:
-#         sort_dataframe(df, "time", wrong_backend)
-
-#     # Ensure that the expected substring is in the exception message
-#     assert expected_substring in str(exc_info.value), f"Expected substring '{expected_substring}' in exception message but got: {str(exc_info.value)}"
-
-# @pytest.mark.parametrize(
-#     "wrong_df, backend, expected_exception, expected_substring",
-#     [
-#         (pd.DataFrame({"time": [1, 2, 3]}), BACKEND_MODIN, TypeError, "Expected Modin DataFrame"),  # Force the specific TypeError for Modin
-#     ]
-# )
-# def test_sort_dataframe_modin_type_error(sample_df_with_conditions, wrong_df, backend, expected_exception, expected_substring):
-#     """Test that sort_dataframe raises TypeError for non-Modin DataFrames when the backend is Modin."""
-#     # Try sorting a non-Modin DataFrame using the Modin backend and expect exceptions
-#     with pytest.raises(expected_exception) as exc_info:
-#         sort_dataframe(wrong_df, "time", backend)
-
-#     # Ensure that the expected substring is in the exception message
-#     assert expected_substring in str(exc_info.value), f"Expected substring '{expected_substring}' in exception message but got: {str(exc_info.value)}"
-
-
-# @pytest.mark.parametrize(
-#     "backend, with_empty_columns, expected_result",
-#     [
-#         (BACKEND_PANDAS, True, True),  # Test for empty columns in Pandas
-#         (BACKEND_PANDAS, False, False),  # Test for no empty columns in Pandas
-#         (BACKEND_POLARS, True, True),  # Test for empty columns in Polars
-#         (BACKEND_POLARS, False, False),  # Test for no empty columns in Polars
-#         (BACKEND_MODIN, True, True),  # Test for empty columns in Modin
-#         (BACKEND_MODIN, False, False),  # Test for no empty columns in Modin
-#     ]
-# )
-# def test_check_empty_columns(backend, sample_df_with_conditions, with_empty_columns, expected_result):
-#     """Test check_empty_columns for detecting empty columns across backends."""
-
-#     # Case 1: Create a sample DataFrame with or without empty columns
-#     if with_empty_columns:
-#         data = create_sample_data(num_samples=100)
-#         # Fill empty column with None (consistent length with other columns)
-#         data["empty_col"] = [None] * 100
-#     else:
-#         data = create_sample_data(num_samples=100)
-
-#     if backend == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif backend == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif backend == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
-
-#     # Check for empty columns
-#     result = check_empty_columns(df, backend)
-
-#     # Ensure the result matches the expected outcome
-#     assert result == expected_result, f"Expected {expected_result} but got {result} for backend {backend} with empty columns={with_empty_columns}"
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_check_empty_columns_empty_dataframe(backend):
-#     """Test that check_empty_columns raises ValueError for empty DataFrames across all backends."""
-
-#     # Case: Empty DataFrame (no columns)
-#     if backend == BACKEND_PANDAS:
-#         df = pd.DataFrame()  # Create an empty DataFrame for Pandas
-#     elif backend == BACKEND_POLARS:
-#         df = pl.DataFrame()  # Create an empty DataFrame for Polars
-#     elif backend == BACKEND_MODIN:
-#         df = mpd.DataFrame()  # Create an empty DataFrame for Modin
-
-#     # Expect a ValueError due to the lack of columns
-#     with pytest.raises(ValueError, match="The DataFrame contains no columns to check."):
-#         check_empty_columns(df, backend)
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_check_no_empty_columns(backend):
-#     """Test that check_empty_columns returns False when all columns have non-empty data."""
-
-#     # Case: DataFrame with non-empty columns (no NaN/None values)
-#     data = create_sample_data(num_samples=100)
-
-#     if backend == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif backend == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif backend == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
-
-#     # Check for empty columns, should return False since no columns are empty
-#     result = check_empty_columns(df, backend)
-
-#     # Assert that the function returns False (indicating no empty columns)
-#     assert result is False, "Expected False when no columns are empty, but got True"
-
-
-# @pytest.mark.parametrize("backend", SUPPORTED_BACKENDS)
-# def test_check_empty_columns_no_empty(backend):
-#     """Test that check_empty_columns returns False when no columns are empty."""
-
-#     # Case: DataFrame with no empty columns (all columns have valid data)
-#     data = create_sample_data(num_samples=100)
-
-#     if backend == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif backend == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif backend == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
-
-#     # Check for empty columns, should return False since no columns are empty
-#     result = check_empty_columns(df, backend)
-
-#     # Ensure that the function correctly returns False (indicating no empty columns)
-#     assert result is False, "Expected False when no columns are empty, but got True"
+import narwhals as nw
+import pandas as pd
+import pytest
+
+from temporalscope.core.core_utils import (
+    TEMPORALSCOPE_CORE_BACKEND_TYPES,
+    TEMPORALSCOPE_OPTIONAL_BACKENDS,
+    UnsupportedBackendError,
+    convert_to_backend,
+    get_api_keys,
+    get_dataframe_backend,
+    get_default_backend_cfg,
+    get_narwhals_backends,
+    get_temporalscope_backends,
+    is_valid_temporal_backend,
+    is_valid_temporal_dataframe,
+    print_divider,
+)
+from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
+
+# Constants
+VALID_BACKENDS = ["pandas", "modin", "pyarrow", "polars", "dask"]
+INVALID_BACKEND = "unsupported_backend"
+
+# ========================= Fixtures =========================
+
+
+@pytest.fixture(params=VALID_BACKENDS)
+def synthetic_df(request):
+    """Fixture providing synthetic DataFrames for each backend.
+
+    :param request: pytest request object containing the backend parameter
+    :return: DataFrame in the specified backend format
+    """
+    return generate_synthetic_time_series(backend=request.param, num_samples=10, num_features=2)
+
+
+@pytest.fixture
+def narwhalified_df():
+    """Fixture providing a narwhalified DataFrame."""
+    df = generate_synthetic_time_series(backend="pandas", num_samples=10, num_features=2)
+    return nw.from_native(df)
+
+
+# ========================= Tests for get_narwhals_backends =========================
+
+
+def test_get_narwhals_backends():
+    """Test the retrieval of Narwhals-supported backends."""
+    backends = get_narwhals_backends()
+    assert "pandas" in backends, "Expected 'pandas' backend in Narwhals backends list."
+    assert "modin" in backends, "Expected 'modin' backend in Narwhals backends list."
+
+
+# ========================= Tests for get_default_backend_cfg =========================
+
+
+def test_get_default_backend_cfg():
+    """Test retrieval of the default backend configuration for Narwhals."""
+    cfg = get_default_backend_cfg()
+    assert isinstance(cfg, dict), "Expected default backend configuration to be a dictionary."
+    assert "BACKENDS" in cfg, "Expected 'BACKENDS' key in default configuration."
+    assert all(
+        backend in cfg["BACKENDS"] for backend in get_narwhals_backends()
+    ), "Mismatch in default backend configuration."
+
+
+# ========================= Tests for get_temporalscope_backends =========================
+
+
+def test_get_temporalscope_backends():
+    """Test that only TemporalScope-compatible backends are returned."""
+    backends = get_temporalscope_backends()
+    assert all(
+        backend in VALID_BACKENDS for backend in backends
+    ), "Non-compatible backend found in TemporalScope backends."
+
+
+# ========================= Tests for is_valid_temporal_backend =========================
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_is_valid_temporal_backend_supported(backend):
+    """Test that is_valid_temporal_backend passes for supported backends."""
+    try:
+        is_valid_temporal_backend(backend)
+    except UnsupportedBackendError:
+        pytest.fail(f"is_valid_temporal_backend raised UnsupportedBackendError for valid backend '{backend}'.")
+
+
+def test_is_valid_temporal_backend_unsupported():
+    """Test that is_valid_temporal_backend raises error for unsupported backend."""
+    with pytest.raises(UnsupportedBackendError):
+        is_valid_temporal_backend(INVALID_BACKEND)
+
+
+def test_is_valid_temporal_backend_optional_warning():
+    """Test that is_valid_temporal_backend issues a warning for optional backends if available."""
+    # Check if "cudf" is optional in TemporalScope
+    if "cudf" in TEMPORALSCOPE_OPTIONAL_BACKENDS:
+        # Expect a warning if "cudf" is not installed
+        with pytest.warns(UserWarning, match="optional and requires additional setup"):
+            is_valid_temporal_backend("cudf")
+    else:
+        pytest.skip("Skipping test as 'cudf' is not an optional backend in this configuration.")
+
+
+# ========================= Tests for is_valid_temporal_dataframe =========================
+
+
+def test_is_valid_temporal_dataframe_supported(synthetic_df):
+    """Test that is_valid_temporal_dataframe returns True for supported DataFrame types."""
+    # Check if the DataFrame is valid
+    is_valid, df_type = is_valid_temporal_dataframe(synthetic_df)
+    assert is_valid, "Expected DataFrame to be valid."
+    assert df_type == "native", "Expected DataFrame type to be 'native'."
+
+
+def test_is_valid_temporal_dataframe_narwhalified(narwhalified_df):
+    """Test that is_valid_temporal_dataframe handles narwhalified DataFrames."""
+    # Check if the narwhalified DataFrame is valid
+    is_valid, df_type = is_valid_temporal_dataframe(narwhalified_df)
+    assert is_valid, "Expected narwhalified DataFrame to be valid."
+    assert df_type == "narwhals", "Expected DataFrame type to be 'narwhals' for narwhalified DataFrame."
+
+
+def test_is_valid_temporal_dataframe_unsupported():
+    """Test that is_valid_temporal_dataframe returns False for unsupported DataFrame types."""
+
+    class UnsupportedDataFrame:
+        pass
+
+    df = UnsupportedDataFrame()
+
+    is_valid, df_type = is_valid_temporal_dataframe(df)
+    assert not is_valid, "Expected DataFrame to be invalid for unsupported type."
+    assert df_type is None, "Expected DataFrame type to be None for unsupported type."
+
+
+# ========================= Tests for get_api_keys =========================
+
+
+def test_get_api_keys_present(monkeypatch):
+    """Test retrieval of API keys when they are set in the environment."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test_key_openai")
+    monkeypatch.setenv("CLAUDE_API_KEY", "test_key_claude")
+    api_keys = get_api_keys()
+    assert api_keys["OPENAI_API_KEY"] == "test_key_openai", "Expected OPENAI_API_KEY to match environment variable."
+    assert api_keys["CLAUDE_API_KEY"] == "test_key_claude", "Expected CLAUDE_API_KEY to match environment variable."
+
+
+def test_get_api_keys_absent(monkeypatch, capsys):
+    """Test warnings when API keys are missing from environment."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("CLAUDE_API_KEY", raising=False)
+    get_api_keys()
+    captured = capsys.readouterr()
+    assert "OPENAI_API_KEY is not set" in captured.out, "Expected warning for missing OPENAI_API_KEY."
+    assert "CLAUDE_API_KEY is not set" in captured.out, "Expected warning for missing CLAUDE_API_KEY."
+
+
+# ========================= Tests for print_divider =========================
+
+
+def test_print_divider_default(capsys):
+    """Test default divider output."""
+    print_divider()
+    captured = capsys.readouterr()
+    assert captured.out == "=" * 70 + "\n", "Expected default divider output."
+
+
+def test_print_divider_custom(capsys):
+    """Test custom character and length in divider output."""
+    print_divider(char="*", length=30)
+    captured = capsys.readouterr()
+    assert captured.out == "*" * 30 + "\n", "Expected custom divider output."
+
+
+# ========================= Tests for convert_to_backend =========================
+
+
+def test_convert_to_backend_valid(synthetic_df, request):
+    """Test DataFrame conversion to each valid backend."""
+    # Get current backend from fixture param
+    current_backend = request.node.callspec.params["synthetic_df"]
+
+    # Convert to same backend should work
+    converted_df = convert_to_backend(synthetic_df, current_backend)
+
+    # Validate the type of the converted DataFrame
+    expected_type = TEMPORALSCOPE_CORE_BACKEND_TYPES[current_backend]
+    assert isinstance(converted_df, expected_type), f"Expected {expected_type} for backend '{current_backend}'."
+
+
+def test_convert_lazy_frame_to_pandas(synthetic_df):
+    """Test conversion of LazyFrame to pandas."""
+    if hasattr(synthetic_df, "compute"):
+        # Convert to pandas
+        pandas_df = convert_to_backend(synthetic_df, "pandas")
+        assert isinstance(pandas_df, TEMPORALSCOPE_CORE_BACKEND_TYPES["pandas"])
+
+
+def test_convert_to_backend_invalid(synthetic_df):
+    """Test that convert_to_backend raises UnsupportedBackendError with unsupported backend."""
+    # Ensure UnsupportedBackendError is raised for invalid backend
+    with pytest.raises(UnsupportedBackendError, match=f"Backend '{INVALID_BACKEND}' is not supported"):
+        convert_to_backend(synthetic_df, INVALID_BACKEND)
+
+
+def test_convert_to_backend_unsupported_dataframe_type():
+    """Test that convert_to_backend raises UnsupportedBackendError for unsupported DataFrame types."""
+
+    class UnsupportedDataFrame:
+        pass
+
+    df = UnsupportedDataFrame()
+
+    with pytest.raises(UnsupportedBackendError, match="Input DataFrame type 'UnsupportedDataFrame' is not supported"):
+        convert_to_backend(df, "pandas")
+
+
+def test_is_valid_temporal_dataframe_exception():
+    """Test that is_valid_temporal_dataframe handles exceptions gracefully."""
+
+    class BrokenDataFrame:
+        @property
+        def __class__(self):
+            raise Exception("Simulated error")
+
+    df = BrokenDataFrame()
+    is_valid, df_type = is_valid_temporal_dataframe(df)
+    assert not is_valid
+    assert df_type is None
+
+
+def test_convert_to_backend_fallbacks():
+    """Test convert_to_backend fallback conversion paths."""
+    # Get a dask DataFrame which has compute() method
+    df = generate_synthetic_time_series(backend="dask", num_samples=10, num_features=2)
+
+    # Convert to pandas - this will trigger the compute() fallback
+    result = convert_to_backend(df, "pandas")
+    assert isinstance(result, TEMPORALSCOPE_CORE_BACKEND_TYPES["pandas"])
+
+
+def test_convert_to_backend_conversion_methods():
+    """Test convert_to_backend fallback conversion methods."""
+    # Use existing synthetic data generator
+    df = generate_synthetic_time_series(backend="dask", num_samples=10, num_features=2)
+
+    # Convert to pandas - this will use the to_pandas method
+    result = convert_to_backend(df, "pandas")
+    assert isinstance(result, TEMPORALSCOPE_CORE_BACKEND_TYPES["pandas"])
+
+
+def test_convert_to_backend_narwhalified():
+    """Test converting narwhalified DataFrame."""
+    # Get narwhalified DataFrame
+    df = generate_synthetic_time_series(backend="pandas", num_samples=10, num_features=2)
+    df_narwhals = nw.from_native(df)
+
+    # Convert to polars
+    result = convert_to_backend(df_narwhals, "polars")
+    assert isinstance(result, TEMPORALSCOPE_CORE_BACKEND_TYPES["polars"])
+
+
+def test_convert_to_backend_array_method():
+    """Test converting DataFrame with __array__ method."""
+    # Use synthetic data generator to create a DataFrame
+    df = generate_synthetic_time_series(backend="pandas", num_samples=2, num_features=1)
+    result = convert_to_backend(df, "pandas")
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_convert_to_backend_numpy_method():
+    """Test converting DataFrame with to_numpy method."""
+    # Use synthetic data generator to create a DataFrame
+    df = generate_synthetic_time_series(backend="pandas", num_samples=2, num_features=1)
+    result = convert_to_backend(df, "pandas")
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_convert_to_backend_compute_validation():
+    """Test validation after compute() method."""
+    # Use synthetic data generator to create a dask DataFrame
+    df = generate_synthetic_time_series(backend="dask", num_samples=2, num_features=1)
+    result = convert_to_backend(df, "pandas")
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_convert_to_backend_compute_error():
+    """Test error handling when DataFrame computation fails."""
+
+    class BrokenComputeDataFrame:
+        def __init__(self):
+            self._df = pd.DataFrame({"col": [1, 2, 3]})
+
+        def to_pandas(self):
+            return self._df
+
+        def compute(self):
+            raise Exception("Computation failed")
+
+        @property
+        def __class__(self):
+            class_mock = type("MockClass", (), {"__module__": "dask.dataframe.core"})
+            return class_mock
+
+    df = BrokenComputeDataFrame()
+    with pytest.raises(UnsupportedBackendError, match="Failed to convert DataFrame: Computation failed"):
+        convert_to_backend(df, "pandas")
+
+
+def test_convert_to_backend_compute_validation_failure():
+    """Test validation failure after compute."""
+
+    class InvalidComputeDataFrame:
+        def __init__(self):
+            self._df = pd.DataFrame({"col": [1, 2, 3]})
+
+        def to_pandas(self):
+            return self._df
+
+        def compute(self):
+            # Return something that's not a DataFrame
+            return [1, 2, 3]
+
+        @property
+        def __class__(self):
+            class_mock = type("MockClass", (), {"__module__": "dask.dataframe.core"})
+            return class_mock
+
+    df = InvalidComputeDataFrame()
+    with pytest.raises(UnsupportedBackendError, match="Failed to compute"):
+        convert_to_backend(df, "pandas")
+
+
+def test_convert_to_backend_invalid_with_pandas():
+    """Test converting invalid DataFrame with to_pandas method."""
+    base_df = generate_synthetic_time_series(backend="pandas", num_samples=2, num_features=1)
+
+    class CustomDataFrame:
+        def __init__(self, df):
+            self._df = df
+
+        def to_pandas(self):
+            return self._df
+
+        @property
+        def __class__(self):
+            # Force an exception in is_valid_temporal_dataframe to make it return False
+            raise Exception("Simulated error")
+
+    df = CustomDataFrame(base_df)
+
+    # Test returning pandas directly when target is pandas
+    result = convert_to_backend(df, "pandas")
+    assert isinstance(result, pd.DataFrame)
+
+    # Test using pandas as intermediate for another backend
+    result = convert_to_backend(df, "polars")
+    assert isinstance(result, TEMPORALSCOPE_CORE_BACKEND_TYPES["polars"])
+
+
+def test_convert_to_backend_direct_pandas():
+    """Test converting invalid DataFrame directly to pandas."""
+    base_df = generate_synthetic_time_series(backend="pandas", num_samples=2, num_features=1)
+
+    class CustomDataFrame:
+        def __init__(self, df):
+            self._df = df
+
+        def to_pandas(self):
+            return self._df
+
+        @property
+        def __class__(self):
+            # Make it look like a pandas DataFrame
+            class_mock = type("DataFrame", (), {"__module__": "pandas.core.frame"})
+            return class_mock
+
+        def __getattr__(self, name):
+            # Forward all other attributes to the underlying DataFrame
+            return getattr(self._df, name)
+
+    df = CustomDataFrame(base_df)
+    result = convert_to_backend(df, "pandas")
+    assert isinstance(result, pd.DataFrame)
+
+
+def test_convert_to_backend_pandas_intermediate():
+    """Test using pandas as intermediate when converting invalid DataFrame."""
+    base_df = generate_synthetic_time_series(backend="pandas", num_samples=2, num_features=1)
+
+    class CustomDataFrame:
+        def __init__(self, df):
+            self._df = df
+
+        def to_pandas(self):
+            return self._df
+
+        @property
+        def __class__(self):
+            # Make it look like a pandas DataFrame
+            class_mock = type("DataFrame", (), {"__module__": "pandas.core.frame"})
+            return class_mock
+
+        def __getattr__(self, name):
+            # Forward all other attributes to the underlying DataFrame
+            return getattr(self._df, name)
+
+    df = CustomDataFrame(base_df)
+    result = convert_to_backend(df, "polars")
+    assert isinstance(result, TEMPORALSCOPE_CORE_BACKEND_TYPES["polars"])
+
+
+# ========================= Tests for get_dataframe_backend =========================
+
+
+def test_get_dataframe_backend_supported(synthetic_df, request):
+    """Test get_dataframe_backend returns correct backend for supported types."""
+    expected_backend = request.node.callspec.params["synthetic_df"]
+    backend = get_dataframe_backend(synthetic_df)
+    assert backend == expected_backend, f"Expected backend {expected_backend}, got {backend}"
+
+
+def test_get_dataframe_backend_narwhalified(narwhalified_df):
+    """Test get_dataframe_backend handles narwhalified DataFrames."""
+    # Should return pandas since our narwhalified fixture uses pandas underneath
+    backend = get_dataframe_backend(narwhalified_df)
+    assert backend == "pandas", "Expected 'pandas' backend for narwhalified DataFrame"
+
+
+def test_get_dataframe_backend_unsupported():
+    """Test get_dataframe_backend raises error for unsupported types."""
+
+    class UnsupportedDataFrame:
+        pass
+
+    df = UnsupportedDataFrame()
+    with pytest.raises(UnsupportedBackendError, match="Unknown DataFrame type"):
+        get_dataframe_backend(df)
+
+
+def test_get_dataframe_backend_broken():
+    """Test get_dataframe_backend handles broken DataFrames."""
+
+    class BrokenDataFrame:
+        @property
+        def __class__(self):
+            raise Exception("Simulated error")
+
+    df = BrokenDataFrame()
+    with pytest.raises(UnsupportedBackendError, match="Unknown DataFrame type"):
+        get_dataframe_backend(df)

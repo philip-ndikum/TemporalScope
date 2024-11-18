@@ -1,0 +1,57 @@
+Channels:
+ - conda-forge
+ - rapidsai
+ - nvidia
+ - defaults
+Platform: linux-64
+Collecting package metadata (repodata.json): ...working... info     libmamba Reading cache files '/tmp/tmp_uf77cyt.json.*' for repo index 'installed'
+info     libmamba Reading repodata.json file "/tmp/tmp_uf77cyt.json" for repo installed
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/497deca9.json.*' for repo index 'https://conda.anaconda.org/conda-forge/linux-64'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/497deca9.json" for repo https://conda.anaconda.org/conda-forge/linux-64
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/497deca9.solv" for repo https://conda.anaconda.org/conda-forge/linux-64
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/09cdf8bf.json.*' for repo index 'https://conda.anaconda.org/conda-forge/noarch'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/09cdf8bf.json" for repo https://conda.anaconda.org/conda-forge/noarch
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/09cdf8bf.solv" for repo https://conda.anaconda.org/conda-forge/noarch
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/c6f2354e.json.*' for repo index 'https://conda.anaconda.org/rapidsai/linux-64'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/c6f2354e.json" for repo https://conda.anaconda.org/rapidsai/linux-64
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/c6f2354e.solv" for repo https://conda.anaconda.org/rapidsai/linux-64
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/86b0f08d.json.*' for repo index 'https://conda.anaconda.org/rapidsai/noarch'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/86b0f08d.json" for repo https://conda.anaconda.org/rapidsai/noarch
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/86b0f08d.solv" for repo https://conda.anaconda.org/rapidsai/noarch
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/c9ddbd6b.json.*' for repo index 'https://conda.anaconda.org/nvidia/linux-64'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/c9ddbd6b.json" for repo https://conda.anaconda.org/nvidia/linux-64
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/c9ddbd6b.solv" for repo https://conda.anaconda.org/nvidia/linux-64
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/b121c3e7.json.*' for repo index 'https://conda.anaconda.org/nvidia/noarch'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/b121c3e7.json" for repo https://conda.anaconda.org/nvidia/noarch
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/b121c3e7.solv" for repo https://conda.anaconda.org/nvidia/noarch
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/47929eba.json.*' for repo index 'https://repo.anaconda.com/pkgs/main/linux-64'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/47929eba.json" for repo https://repo.anaconda.com/pkgs/main/linux-64
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/47929eba.solv" for repo https://repo.anaconda.com/pkgs/main/linux-64
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/3e39a7aa.json.*' for repo index 'https://repo.anaconda.com/pkgs/main/noarch'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/3e39a7aa.json" for repo https://repo.anaconda.com/pkgs/main/noarch
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/3e39a7aa.solv" for repo https://repo.anaconda.com/pkgs/main/noarch
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/2ce54b42.json.*' for repo index 'https://repo.anaconda.com/pkgs/r/linux-64'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/2ce54b42.json" for repo https://repo.anaconda.com/pkgs/r/linux-64
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/2ce54b42.solv" for repo https://repo.anaconda.com/pkgs/r/linux-64
+info     libmamba Reading cache files '/home/philip-research/.conda/pkgs/cache/4ea078d6.json.*' for repo index 'https://repo.anaconda.com/pkgs/r/noarch'
+info     libmamba Reading repodata.json file "/home/philip-research/.conda/pkgs/cache/4ea078d6.json" for repo https://repo.anaconda.com/pkgs/r/noarch
+info     libmamba Writing libsolv solv file "/home/philip-research/.conda/pkgs/cache/4ea078d6.solv" for repo https://repo.anaconda.com/pkgs/r/noarch
+done
+Solving environment: ...working... info     libmamba Parsing MatchSpec cudatoolkit=11.3
+info     libmamba Parsing MatchSpec cudatoolkit=11.3
+info     libmamba Adding job: cudatoolkit=11.3
+info     libmamba Parsing MatchSpec cudf[version='>=23.08.00']
+info     libmamba Parsing MatchSpec cudf[version='>=23.08.00']
+info     libmamba Adding job: cudf[version='>=23.08.00']
+info     libmamba Parsing MatchSpec python=3.11
+info     libmamba Parsing MatchSpec python=3.11
+info     libmamba Adding job: python=3.11
+info     libmamba Parsing MatchSpec pytorch
+info     libmamba Parsing MatchSpec pytorch
+info     libmamba Adding job: pytorch
+info     libmamba Parsing MatchSpec tensorflow
+info     libmamba Parsing MatchSpec tensorflow
+info     libmamba Adding job: tensorflow
+info     libmamba Parsing MatchSpec vaex[version='<5.0']
+info     libmamba Parsing MatchSpec vaex[version='<5.0']
+info     libmamba Adding job: vaex[version='<5.0']

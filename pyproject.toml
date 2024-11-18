@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.8.0"]
+requires = ["hatchling>=1.8.0",  "uv>=0.5.1"]
 build-backend = "hatchling.build"
 
 [project]
@@ -13,19 +13,37 @@ authors = [
 ]
 license = "Apache-2.0"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12"
 dependencies = [
-    "shap>=0.46.0",
-    "borutashap>=1.0.17",
-    "scikit-learn>=1.5.1",
-    "polars>=1.5.0",
-    "statsmodels>=0.14.2",
-    "pyarrow>=17.0.0",
-    "lightgbm>=4.5.0",
-    "flax>=0.8.5",
-    "jax>=0.4.31",
-    "modin[all]>=0.31.0",
-    "python-dotenv>=1.0.1",
+    # Core Explainability Libraries
+    "shap>=0.46.0",             # SHAP (SHapley Additive exPlanations): For model interpretability and feature importance in machine learning.
+    "borutashap>=1.0.17",       # Boruta-SHAP: Combines SHAP with Boruta for feature selection, helping identify the most important features.
+    "lime>=0.2.0.1",            # LIME (Local Interpretable Model-agnostic Explanations): Enables model-agnostic interpretability, focusing on local, instance-specific explanations.
+
+    # General Machine Learning and Statistics
+    "scikit-learn>=1.5.1",      # Scikit-Learn: Essential machine learning library for classification, regression, and clustering.
+    "lightgbm>=4.5.0",          # LightGBM: Gradient-boosted decision tree library that’s efficient for high-dimensional data.
+    "statsmodels>=0.14.2",      # Statsmodels: Provides statistical models and hypothesis tests, useful for traditional time series analysis.
+
+    # Data Manipulation and Storage
+    "pandas>=1.5.0",            # Pandas: Core library for handling structured data in DataFrames.
+    "modin[all]>=0.31.0",       # Modin: Parallelizes Pandas operations for large datasets with Dask/Ray backend.
+    "pyarrow>=17.0.0",          # PyArrow: Enables efficient columnar data format (Arrow) for fast data processing and storage, commonly used with Parquet files.
+    "polars>=1.5.0",            # Polars: High-performance DataFrame library, ideal for handling large datasets in memory.
+    "dask[dataframe]>=2024.7",  # Dask DataFrame: Handles parallelized computations for very large datasets.
+
+    # Specialized Computation
+    "flax>=0.8.5",              # Flax: Neural network library for JAX, useful for building deep learning models.
+    "jax>=0.4.31",              # JAX: Accelerated computation for machine learning research, supporting CPU/GPU/TPU backends.
+
+    # Backend-Agnostic Processing
+    "narwhals>=0.2.3",          # Narwhals: Ensures backend compatibility across Pandas, Polars, Modin, and other dataframes, optimizing performance.
+
+    # Environment Configuration
+    "python-dotenv>=1.0.1",     # Python-Dotenv: Manages environment variables for secure and flexible configuration.
+
+    # Markdown Table Display
+    "tabulate>=0.9.0",          # Tabulate: Allows Markdown-friendly table formatting for DataFrames in Narwhals.
 ]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
@@ -62,7 +80,7 @@ docs = [
     "sphinx-copybutton",
     "sphinx-autodoc-typehints",
     "sphinx-autodoc-annotation",
-    'sphinx-autoapi',
+    "sphinx-autoapi",
 ]
 
 [project.urls]
@@ -85,6 +103,14 @@ serve = "python -m http.server --directory _build"
 [tool.hatch.envs.test.scripts]
 unit = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "not integration" {args:test}'
 integration = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "integration" {args:test}'
+quality-assurance = """
+pytest &&
+docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
+docformatter --in-place --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope &&
+ruff check src/temporalscope --output-format=full --show-files --show-fixes &&
+mypy src/temporalscope --ignore-missing-imports --show-error-codes --warn-unreachable &&
+bandit -r src/temporalscope
+"""
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -152,6 +178,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "docs/conf.py" = ["A001", "D103"]
+"test/*" = ["PLR2004"]  # Ignore magic number warnings in test files
 
 [tool.mypy]
 files = "src/temporalscope"
@@ -184,15 +211,6 @@ docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 sr
 docformatter --in-place --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope
 """
 clear-coverage = "coverage erase"
-# Automated developer Q&A script
-quality-assurance = """
-pytest &&
-docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
-docformatter --in-place --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope
-ruff check src/temporalscope --output-format=full --show-files --show-fixes &&
-mypy src/temporalscope --ignore-missing-imports --show-error-codes --warn-unreachable &&
-bandit -r src/temporalscope
-"""
 generate-kernel = """
 python -m ipykernel install --user --name temporalscope-kernel --display-name "TemporalScope"
 echo "Jupyter kernel 'TemporalScope' created. You can now use it in Jupyter notebooks."
