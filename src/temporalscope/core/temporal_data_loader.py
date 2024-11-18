@@ -112,10 +112,10 @@ from temporalscope.core.core_utils import (
     MODE_SINGLE_STEP,
     SupportedTemporalDataFrame,
     convert_to_backend,
-    get_dataframe_backend,
     is_valid_temporal_backend,
+    is_valid_temporal_dataframe,
 )
-from temporalscope.core.exceptions import ModeValidationError, TimeColumnError
+from temporalscope.core.exceptions import ModeValidationError, TimeColumnError, UnsupportedBackendError
 
 
 class TimeFrame:
@@ -218,7 +218,7 @@ class TimeFrame:
             tf = TimeFrame(data, time_col="time", target_col="value", mode=MODE_SINGLE_STEP)
             print(tf.get_data().head())
         """
-        # Validate mode
+        # Validate mode first
         if mode not in [MODE_SINGLE_STEP, MODE_MULTI_STEP]:
             raise ModeValidationError(mode)
 
@@ -226,21 +226,27 @@ class TimeFrame:
         self._time_col = time_col
         self._target_col = target_col
         self._mode = mode
-        self._ascending = ascending  # Store the ascending parameter
+        self._ascending = ascending
+        self._sort = sort
 
-        # Get the native DataFrame format for backend detection
-        native_df = df.to_native() if hasattr(df, "to_native") else df
+        # Validate optional backend string first if provided
+        if dataframe_backend is not None:
+            is_valid_temporal_backend(dataframe_backend)
 
-        # Detect or validate backend before any narwhalified functions
+        # Then validate DataFrame type
+        is_valid, df_type = is_valid_temporal_dataframe(df)
+        if not is_valid:
+            raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
+
+        # Handle backend conversion
         if dataframe_backend:
-            is_valid_temporal_backend(dataframe_backend)  # Check if the backend is supported
-            df = convert_to_backend(df, dataframe_backend)  # type: ignore[arg-type]
+            df = convert_to_backend(df, dataframe_backend)
             self._original_backend = dataframe_backend
         else:
-            self._original_backend = get_dataframe_backend(native_df)
+            self._original_backend = df_type
 
         # Call setup method to validate and initialize the DataFrame
-        self._df = self._setup_timeframe(df, sort, ascending)
+        self._df = self._setup_timeframe(df, sort=sort, ascending=ascending)
 
     @nw.narwhalify
     def _check_nulls(self, df: SupportedTemporalDataFrame, column_names: List[str]) -> Dict[str, int]:
@@ -465,7 +471,7 @@ class TimeFrame:
         :rtype: SupportedTemporalDataFrame
         :raises TimeColumnError: If time_col missing or invalid
 
-        Example
+        Example:
         -------
         .. code-block:: python
 

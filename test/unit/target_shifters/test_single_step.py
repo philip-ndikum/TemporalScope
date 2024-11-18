@@ -15,210 +15,250 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# TemporalScope/test/unit/test_core_temporal_target_shifter.py
+"""Unit Test Design for TemporalScope's SingleStepTargetShifter.
 
-# import modin.pandas as mpd
-# import numpy as np
-# import pandas as pd
-# import polars as pl
-# import pytest
+This module implements a systematic approach to testing the SingleStepTargetShifter class
+across multiple DataFrame backends while maintaining consistency and reliability.
 
-# from temporalscope.core.core_utils import (
-#     BACKEND_MODIN,
-#     BACKEND_PANDAS,
-#     BACKEND_POLARS,
-#     MODE_MACHINE_LEARNING,
-#     MODE_DEEP_LEARNING,
-# )
-# from temporalscope.core.temporal_data_loader import TimeFrame
-# from temporalscope.core.temporal_target_shifter import TemporalTargetShifter
+Testing Philosophy
+-----------------
+The testing strategy follows three core principles:
 
+1. Backend-Agnostic Operations:
+   - All DataFrame manipulations use the Narwhals API (@nw.narwhalify)
+   - Operations are written once and work across all supported backends
+   - Backend-specific code is avoided to maintain test uniformity
 
-# # Fixture to generate sample dataframes for different data_formats
-# @pytest.fixture(params=[BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
-# def sample_dataframe(request):
-#     """Fixture to generate sample dataframes for different data_formats."""
-#     data = {
-#         "time": pd.date_range(start="2022-01-01", periods=100),
-#         "target": np.random.rand(100),
-#         "feature_1": np.random.rand(100),
-#         "feature_2": np.random.rand(100),
-#     }
-#     data_format = request.param
-#     if data_format == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif data_format == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif data_format == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
-#     return df, data_format, "target"
+2. Fine-Grained Data Generation:
+   - PyTest fixtures provide flexible, parameterized test data
+   - Base configuration fixture allows easy overrides
+   - Each test case specifies exact data characteristics needed
 
+3. Consistent Validation Pattern:
+   - All validation steps convert to Pandas for reliable comparisons
+   - Complex validations use reusable helper functions
+   - Assertions focus on business logic rather than implementation
 
-# # Parametrized Test for data_format Inference, n_lags, and Modes
-# @pytest.mark.parametrize(
-#     "n_lags, mode, sequence_length",
-#     [
-#         (1, MODE_MACHINE_LEARNING, None),
-#         (3, MODE_MACHINE_LEARNING, None),
-#         (1, MODE_DEEP_LEARNING, 5),
-#     ],
-# )
-# @pytest.mark.parametrize("data_format", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])  # Parametrizing data_formats as well
-# def test_data_format_inference(data_format, n_lags, mode, sequence_length):
-#     """Test data_format inference and shifting functionality across all data_formats."""
-#     # Generate data for the current data_format
-#     data = {
-#         "time": pd.date_range(start="2022-01-01", periods=100),
-#         "target": np.random.rand(100),
-#         "feature_1": np.random.rand(100),
-#         "feature_2": np.random.rand(100),
-#     }
+.. note::
+   - The sample_df fixture handles backend conversion through data_config
+   - Tests should use DataFrames as-is without additional conversion
+   - Narwhals operations are used only for validation helpers
+"""
 
-#     if data_format == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif data_format == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif data_format == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
+from typing import Any, Callable, Dict, Generator, Tuple
 
-#     # Initialize shifter
-#     shifter = TemporalTargetShifter(n_lags=n_lags, mode=mode, sequence_length=sequence_length, target_col="target")
+import narwhals as nw
+import numpy as np
+import pandas as pd
+import pytest
 
-#     # Test fitting the dataframe and checking the inferred data_format
-#     shifter.fit(df)
-#     assert shifter.data_format == data_format
+from temporalscope.core.core_utils import (
+    MODE_SINGLE_STEP,
+    SupportedTemporalDataFrame,
+    get_temporalscope_backends,
+)
+from temporalscope.core.temporal_data_loader import TimeFrame
+from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
+from temporalscope.target_shifters.single_step import SingleStepTargetShifter
 
-#     # Test transformation (ensure no crashes)
-#     transformed = shifter.transform(df)
-#     assert transformed is not None
+# Test Configuration Types
+DataConfigType = Callable[..., Dict[str, Any]]
 
 
-# # Parametrized test for invalid data and expected errors across data_formats
-# @pytest.mark.parametrize(
-#     "invalid_data",
-#     [
-#         None,  # Null input should raise an error
-#         pd.DataFrame(),  # Empty DataFrame should raise an error
-#     ],
-# )
-# @pytest.mark.parametrize("data_format", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
-# def test_invalid_data_handling(data_format, invalid_data):
-#     """Test invalid data handling for empty or None DataFrames across data_formats."""
-#     shifter = TemporalTargetShifter(n_lags=1, target_col="target")
-
-#     with pytest.raises(ValueError):
-#         shifter.fit(invalid_data)
+@pytest.fixture(params=get_temporalscope_backends())
+def backend(request) -> str:
+    """Fixture providing all supported backends for testing."""
+    return request.param
 
 
-# # Parametrized test for TimeFrame inputs and transformation across all data_formats
-# @pytest.mark.parametrize("n_lags", [1, 2])
-# @pytest.mark.parametrize("data_format", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
-# def test_time_frame_input(data_format, n_lags):
-#     """Test TimeFrame input handling and transformation across all data_formats."""
-#     # Generate data for the current data_format
-#     data = {
-#         "time": pd.date_range(start="2022-01-01", periods=100),
-#         "target": np.random.rand(100),
-#         "feature_1": np.random.rand(100),
-#         "feature_2": np.random.rand(100),
-#     }
+@pytest.fixture
+def data_config(backend: str) -> DataConfigType:
+    """Base fixture for data generation configuration."""
 
-#     if data_format == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif data_format == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif data_format == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
+    def _config(**kwargs) -> Dict[str, Any]:
+        default_config = {
+            "num_samples": 10,
+            "num_features": 2,
+            "with_nulls": False,
+            "with_nans": False,
+            "mode": MODE_SINGLE_STEP,
+            "time_col_numeric": True,
+            "backend": backend,
+        }
+        default_config.update(kwargs)
+        return default_config
 
-#     # Ensure TimeFrame uses dataframe_backend
-#     tf = TimeFrame(df, time_col="time", target_col="target", dataframe_backend=data_format)
-#     shifter = TemporalTargetShifter(n_lags=n_lags, target_col="target")
-
-#     # Test fitting and transforming TimeFrame
-#     shifter.fit(tf)
-#     transformed = shifter.transform(tf)
-#     assert transformed is not None
+    return _config
 
 
-# # Parametrized test for deep learning mode with different sequence lengths across all data_formats
-# @pytest.mark.parametrize("sequence_length", [3, 5])
-# @pytest.mark.parametrize("data_format", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
-# def test_deep_learning_mode(data_format, sequence_length):
-#     """Test deep learning mode sequence generation across all data_formats."""
-#     # Generate data for the current data_format
-#     data = {
-#         "time": pd.date_range(start="2022-01-01", periods=100),
-#         "target": np.random.rand(100),
-#         "feature_1": np.random.rand(100),
-#         "feature_2": np.random.rand(100),
-#     }
-
-#     if data_format == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif data_format == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif data_format == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
-
-#     shifter = TemporalTargetShifter(
-#         n_lags=1, mode=MODE_DEEP_LEARNING, sequence_length=sequence_length, target_col="target"
-#     )
-
-#     shifter.fit(df)
-#     transformed = shifter.transform(df)
-#     assert transformed is not None
+@pytest.fixture
+def sample_df(data_config: DataConfigType) -> Generator[Tuple[SupportedTemporalDataFrame, str], None, None]:
+    """Generate sample DataFrame for testing."""
+    config = data_config()
+    df = generate_synthetic_time_series(**config)
+    yield df, "target"
 
 
-# # Test verbose mode with stdout capture
-# @pytest.mark.parametrize("data_format", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
-# def test_verbose_mode(data_format, capfd):
-#     """Test verbose mode output and row dropping information."""
-#     # Generate data for the current data_format
-#     data = {
-#         "time": pd.date_range(start="2022-01-01", periods=100),
-#         "target": np.random.rand(100),
-#         "feature_1": np.random.rand(100),
-#         "feature_2": np.random.rand(100),
-#     }
-
-#     if data_format == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif data_format == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif data_format == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
-
-#     shifter = TemporalTargetShifter(n_lags=1, target_col="target", verbose=True)
-
-#     shifter.fit(df)
-#     shifter.transform(df)
-
-#     # Capture stdout and check for printed verbose information
-#     captured = capfd.readouterr()
-#     assert "Rows before shift" in captured.out
+@pytest.fixture
+def sample_timeframe(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> TimeFrame:
+    """Create TimeFrame instance for testing."""
+    df, target_col = sample_df
+    return TimeFrame(df=df, time_col="time", target_col=target_col)
 
 
-# # Parametrized test for fit_transform method for all data_formats
-# @pytest.mark.parametrize("n_lags", [1, 2])
-# @pytest.mark.parametrize("data_format", [BACKEND_POLARS, BACKEND_PANDAS, BACKEND_MODIN])
-# def test_fit_transform(data_format, n_lags):
-#     """Test fit_transform() method for all data_formats."""
-#     # Generate data for the current data_format
-#     data = {
-#         "time": pd.date_range(start="2022-01-01", periods=100),
-#         "target": np.random.rand(100),
-#         "feature_1": np.random.rand(100),
-#         "feature_2": np.random.rand(100),
-#     }
+# Assertion Helpers
+@nw.narwhalify
+def assert_shifted_columns(df: SupportedTemporalDataFrame, target_col: str, n_lags: int, drop_target: bool) -> None:
+    """Verify shifted columns using Narwhals operations."""
+    # Check shifted column exists
+    shifted_col = f"{target_col}_shift_{n_lags}"
+    assert shifted_col in df.columns, f"Shifted column {shifted_col} not found"
 
-#     if data_format == BACKEND_POLARS:
-#         df = pl.DataFrame(data)
-#     elif data_format == BACKEND_PANDAS:
-#         df = pd.DataFrame(data)
-#     elif data_format == BACKEND_MODIN:
-#         df = mpd.DataFrame(data)
+    # Check original target column based on drop_target
+    if drop_target:
+        assert target_col not in df.columns, f"Target column {target_col} should be dropped"
+    else:
+        assert target_col in df.columns, f"Target column {target_col} should be kept"
 
-#     shifter = TemporalTargetShifter(n_lags=n_lags, target_col="target")
 
-#     transformed = shifter.fit_transform(df)
-#     assert transformed is not None
+@nw.narwhalify
+def assert_row_reduction(df: SupportedTemporalDataFrame, original_df: SupportedTemporalDataFrame, n_lags: int) -> None:
+    """Verify row count reduction using Narwhals operations."""
+    # Get row counts using Narwhals
+    count_expr = nw.col(df.columns[0]).count().alias("count")
+    original_count = original_df.select([count_expr])["count"][0]
+    transformed_count = df.select([count_expr])["count"][0]
+
+    # Verify row reduction
+    assert (
+        transformed_count == original_count - n_lags
+    ), f"Expected {original_count - n_lags} rows, got {transformed_count}"
+
+
+def test_transform_dataframe(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+    """Test transformation of raw DataFrame."""
+    df, target_col = sample_df
+    shifter = SingleStepTargetShifter(target_col=target_col, n_lags=1)
+
+    # Transform DataFrame
+    transformed_df = shifter.fit_transform(df)
+
+    # Verify transformation
+    assert_shifted_columns(transformed_df, target_col, 1, True)
+    assert_row_reduction(transformed_df, df, 1)
+
+
+def test_transform_timeframe(sample_timeframe: TimeFrame) -> None:
+    """Test transformation of TimeFrame instance."""
+    shifter = SingleStepTargetShifter(target_col="target", n_lags=1)
+
+    # Transform TimeFrame
+    transformed_tf = shifter.fit_transform(sample_timeframe)
+
+    # Verify TimeFrame type preservation
+    assert isinstance(transformed_tf, TimeFrame)
+
+    # Verify metadata preservation
+    assert transformed_tf.mode == sample_timeframe.mode
+    assert transformed_tf.backend == sample_timeframe.backend
+    assert transformed_tf.ascending == sample_timeframe.ascending
+
+    # Verify transformation
+    assert_shifted_columns(transformed_tf.df, "target", 1, True)
+    assert_row_reduction(transformed_tf.df, sample_timeframe.df, 1)
+
+
+def test_verbose_output(sample_df: Tuple[SupportedTemporalDataFrame, str], capfd: Any) -> None:
+    """Test verbose mode output."""
+    df, target_col = sample_df
+    shifter = SingleStepTargetShifter(target_col=target_col, n_lags=1, verbose=True)
+
+    # Transform with verbose output
+    shifter.fit_transform(df)
+
+    # Check captured output
+    captured = capfd.readouterr()
+    assert "Rows before:" in captured.out
+    assert "Rows after:" in captured.out
+
+
+def test_multiple_lags(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+    """Test transformation with different lag values."""
+    df, target_col = sample_df
+    n_lags = 3
+    shifter = SingleStepTargetShifter(target_col=target_col, n_lags=n_lags)
+
+    # Transform DataFrame
+    transformed_df = shifter.fit_transform(df)
+
+    # Verify transformation
+    assert_shifted_columns(transformed_df, target_col, n_lags, True)
+    assert_row_reduction(transformed_df, df, n_lags)
+
+
+def test_empty_dataframe() -> None:
+    """Test handling of empty DataFrame."""
+    empty_df = pd.DataFrame(columns=["time", "target", "feature"])
+    shifter = SingleStepTargetShifter(target_col="target")
+
+    with pytest.raises(ValueError, match="Cannot transform empty DataFrame"):
+        shifter.fit_transform(empty_df)
+
+
+def test_target_column_inference(sample_timeframe: TimeFrame) -> None:
+    """Test target column inference from TimeFrame."""
+    # Initialize without target_col
+    shifter = SingleStepTargetShifter(n_lags=1)
+
+    # Fit should infer target_col from TimeFrame
+    shifter.fit(sample_timeframe)
+    assert shifter.target_col == sample_timeframe._target_col
+
+
+def test_drop_target_option(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+    """Test drop_target parameter behavior."""
+    df, target_col = sample_df
+
+    # Test with drop_target=True
+    shifter_drop = SingleStepTargetShifter(target_col=target_col, drop_target=True)
+    transformed_drop = shifter_drop.fit_transform(df)
+    assert_shifted_columns(transformed_drop, target_col, 1, True)
+
+    # Test with drop_target=False
+    shifter_keep = SingleStepTargetShifter(target_col=target_col, drop_target=False)
+    transformed_keep = shifter_keep.fit_transform(df)
+    assert_shifted_columns(transformed_keep, target_col, 1, False)
+
+
+def test_fit_transform_equivalence(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+    """Test fit_transform equivalence to separate fit and transform."""
+    df, target_col = sample_df
+    shifter1 = SingleStepTargetShifter(target_col=target_col)
+    shifter2 = SingleStepTargetShifter(target_col=target_col)
+
+    # Compare fit_transform vs separate fit/transform
+    result1 = shifter1.fit_transform(df)
+    result2 = shifter2.fit(df).transform(df)
+
+    # Convert both to pandas for comparison
+    result1_pd = nw.from_native(result1).to_pandas()
+    result2_pd = nw.from_native(result2).to_pandas()
+
+    pd.testing.assert_frame_equal(result1_pd, result2_pd)
+
+
+def test_numpy_array_handling() -> None:
+    """Test handling of numpy array inputs."""
+    # Create sample numpy array
+    X = np.random.rand(10, 4)  # 10 samples, 3 features + 1 target
+
+    # Initialize shifter
+    shifter = SingleStepTargetShifter(n_lags=1)
+
+    # Fit and transform
+    transformed = shifter.fit_transform(X)
+
+    # Verify output
+    assert isinstance(transformed, np.ndarray)
+    assert transformed.shape[0] == X.shape[0] - 1  # One row less due to shifting
+    assert transformed.shape[1] == X.shape[1]  # Same number of columns

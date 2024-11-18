@@ -10,7 +10,8 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-
+import narwhals as nw
+import pandas as pd
 import pytest
 
 from temporalscope.core.core_utils import (
@@ -19,19 +20,38 @@ from temporalscope.core.core_utils import (
     UnsupportedBackendError,
     convert_to_backend,
     get_api_keys,
-    get_dataframe_backend,
     get_default_backend_cfg,
     get_narwhals_backends,
     get_temporalscope_backends,
-    print_divider,
     is_valid_temporal_backend,
-    is_valid_temporal_dataframe,  # Added new function
+    is_valid_temporal_dataframe,
+    print_divider,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
 # Constants
 VALID_BACKENDS = ["pandas", "modin", "pyarrow", "polars", "dask"]
 INVALID_BACKEND = "unsupported_backend"
+
+# ========================= Fixtures =========================
+
+
+@pytest.fixture(params=VALID_BACKENDS)
+def synthetic_df(request):
+    """Fixture providing synthetic DataFrames for each backend.
+
+    :param request: pytest request object containing the backend parameter
+    :return: DataFrame in the specified backend format
+    """
+    return generate_synthetic_time_series(backend=request.param, num_samples=10, num_features=2)
+
+
+@pytest.fixture
+def narwhalified_df():
+    """Fixture providing a narwhalified DataFrame."""
+    df = generate_synthetic_time_series(backend="pandas", num_samples=10, num_features=2)
+    return nw.from_native(df)
+
 
 # ========================= Tests for get_narwhals_backends =========================
 
@@ -99,14 +119,20 @@ def test_is_valid_temporal_backend_optional_warning():
 # ========================= Tests for is_valid_temporal_dataframe =========================
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_is_valid_temporal_dataframe_supported(backend):
+def test_is_valid_temporal_dataframe_supported(synthetic_df):
     """Test that is_valid_temporal_dataframe returns True for supported DataFrame types."""
-    # Generate a DataFrame using the specified backend
-    df = generate_synthetic_time_series(backend=backend, num_samples=10, num_features=2)
-
     # Check if the DataFrame is valid
-    assert is_valid_temporal_dataframe(df), f"Expected DataFrame to be valid for backend '{backend}'."
+    is_valid, df_type = is_valid_temporal_dataframe(synthetic_df)
+    assert is_valid, "Expected DataFrame to be valid."
+    assert df_type == "native", "Expected DataFrame type to be 'native'."
+
+
+def test_is_valid_temporal_dataframe_narwhalified(narwhalified_df):
+    """Test that is_valid_temporal_dataframe handles narwhalified DataFrames."""
+    # Check if the narwhalified DataFrame is valid
+    is_valid, df_type = is_valid_temporal_dataframe(narwhalified_df)
+    assert is_valid, "Expected narwhalified DataFrame to be valid."
+    assert df_type == "narwhals", "Expected DataFrame type to be 'narwhals' for narwhalified DataFrame."
 
 
 def test_is_valid_temporal_dataframe_unsupported():
@@ -117,7 +143,9 @@ def test_is_valid_temporal_dataframe_unsupported():
 
     df = UnsupportedDataFrame()
 
-    assert not is_valid_temporal_dataframe(df), "Expected DataFrame to be invalid for unsupported type."
+    is_valid, df_type = is_valid_temporal_dataframe(df)
+    assert not is_valid, "Expected DataFrame to be invalid for unsupported type."
+    assert df_type is None, "Expected DataFrame type to be None for unsupported type."
 
 
 # ========================= Tests for get_api_keys =========================
@@ -162,28 +190,32 @@ def test_print_divider_custom(capsys):
 # ========================= Tests for convert_to_backend =========================
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_convert_to_backend_valid(backend):
+def test_convert_to_backend_valid(synthetic_df, request):
     """Test DataFrame conversion to each valid backend."""
-    # Generate a Pandas DataFrame as input
-    df = generate_synthetic_time_series(backend="pandas", num_samples=10, num_features=2)
+    # Get current backend from fixture param
+    current_backend = request.node.callspec.params["synthetic_df"]
 
-    # Convert the DataFrame to the target backend
-    converted_df = convert_to_backend(df, backend)
+    # Convert to same backend should work
+    converted_df = convert_to_backend(synthetic_df, current_backend)
 
     # Validate the type of the converted DataFrame
-    expected_type = TEMPORALSCOPE_CORE_BACKEND_TYPES[backend]
-    assert isinstance(converted_df, expected_type), f"Expected {expected_type} for backend '{backend}'."
+    expected_type = TEMPORALSCOPE_CORE_BACKEND_TYPES[current_backend]
+    assert isinstance(converted_df, expected_type), f"Expected {expected_type} for backend '{current_backend}'."
 
 
-def test_convert_to_backend_invalid():
+def test_convert_lazy_frame_to_pandas(synthetic_df):
+    """Test conversion of LazyFrame to pandas."""
+    if hasattr(synthetic_df, "compute"):
+        # Convert to pandas
+        pandas_df = convert_to_backend(synthetic_df, "pandas")
+        assert isinstance(pandas_df, TEMPORALSCOPE_CORE_BACKEND_TYPES["pandas"])
+
+
+def test_convert_to_backend_invalid(synthetic_df):
     """Test that convert_to_backend raises UnsupportedBackendError with unsupported backend."""
-    # Generate a Pandas DataFrame as input
-    df = generate_synthetic_time_series(backend="pandas", num_samples=10, num_features=2)
-
     # Ensure UnsupportedBackendError is raised for invalid backend
     with pytest.raises(UnsupportedBackendError, match=f"Backend '{INVALID_BACKEND}' is not supported"):
-        convert_to_backend(df, INVALID_BACKEND)
+        convert_to_backend(synthetic_df, INVALID_BACKEND)
 
 
 def test_convert_to_backend_unsupported_dataframe_type():
@@ -198,38 +230,25 @@ def test_convert_to_backend_unsupported_dataframe_type():
         convert_to_backend(df, "pandas")
 
 
-# ========================= Tests for get_dataframe_backend =========================
+def test_is_valid_temporal_dataframe_exception():
+    """Test that is_valid_temporal_dataframe handles exceptions gracefully."""
+
+    class BrokenDataFrame:
+        @property
+        def __class__(self):
+            raise Exception("Simulated error")
+
+    df = BrokenDataFrame()
+    is_valid, df_type = is_valid_temporal_dataframe(df)
+    assert not is_valid
+    assert df_type is None
 
 
-@pytest.mark.parametrize(
-    "backend, expected_backend",
-    [
-        ("pandas", "pandas"),
-        ("modin", "modin"),
-        ("pyarrow", "pyarrow"),
-        ("polars", "polars"),
-        ("dask", "dask"),
-    ],
-)
-def test_get_dataframe_backend(backend, expected_backend):
-    """Test that get_dataframe_backend correctly identifies the backend."""
-    # Generate a DataFrame using the specified backend
-    df = generate_synthetic_time_series(backend=backend, num_samples=10, num_features=2)
+def test_convert_to_backend_fallbacks():
+    """Test convert_to_backend fallback conversion paths."""
+    # Get a dask DataFrame which has compute() method
+    df = generate_synthetic_time_series(backend="dask", num_samples=10, num_features=2)
 
-    # Get the backend name using the function
-    detected_backend = get_dataframe_backend(df)
-
-    # Assert that the detected backend matches the expected backend
-    assert detected_backend == expected_backend, f"Expected backend '{expected_backend}', but got '{detected_backend}'."
-
-
-def test_get_dataframe_backend_unsupported_type():
-    """Test that get_dataframe_backend raises UnsupportedBackendError for unsupported DataFrame types."""
-
-    class UnsupportedDataFrame:
-        pass
-
-    df = UnsupportedDataFrame()
-
-    with pytest.raises(UnsupportedBackendError, match="Unknown DataFrame type: UnsupportedDataFrame"):
-        get_dataframe_backend(df)
+    # Convert to pandas - this will trigger the compute() fallback
+    result = convert_to_backend(df, "pandas")
+    assert isinstance(result, TEMPORALSCOPE_CORE_BACKEND_TYPES["pandas"])

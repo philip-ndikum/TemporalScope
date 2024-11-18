@@ -23,6 +23,9 @@ including support for:
 - Managing different modes (Single-step vs. Multi-step) for machine learning and
   deep learning workflows.
 
+Type safety and validation follow Linux Foundation security standards to ensure
+robust backend interoperability.
+
 Engineering Design Assumptions:
 -------------------------------
 TemporalScope is designed around two core modes for time series workflows, based
@@ -131,13 +134,48 @@ Multi-step mode (with vectorized targets):
     Shape:
     - `X`: (num_samples, num_features)
     - `Y`: (num_samples, sequence_length)  # Vectorized target for each input sequence
+
+DataFrame Types:
+----------------
+TemporalScope handles various DataFrame types throughout the data processing pipeline. The following table
+illustrates the supported DataFrame types and validation cases:
+
++------------------------+-------------------------------------------------------+---------------------------+
+| DataFrame Type         | Description                                           | Example                   |
++------------------------+-------------------------------------------------------+---------------------------+
+| Narwhalified          | DataFrames wrapped by Narwhals for backend-agnostic   | @nw.narwhalify decorated   |
+| (FrameT)              | operations. These are validated first to ensure        | functions create these    |
+|                       | consistent handling across backends.                   | during operations.        |
++------------------------+-------------------------------------------------------+---------------------------+
+| Native DataFrames     | Core DataFrame implementations from supported          | pd.DataFrame,             |
+|                       | backends. These are validated directly against         | pl.DataFrame,             |
+|                       | TEMPORALSCOPE_CORE_BACKEND_TYPES.                     | pa.Table                   |
++------------------------+-------------------------------------------------------+---------------------------+
+| DataFrame Subclasses  | Custom or specialized DataFrames that inherit from    | TimeSeriesDataFrame        |
+|                       | native types. Common in:                              | (pd.DataFrame),            |
+|                       | - Custom DataFrame implementations                     | dask.dataframe.DataFrame  |
+|                       | - Backend optimizations (e.g. lazy evaluation)        | (inherits from pandas)     |
+|                       | - Backend compatibility layers                        |                            |
++------------------------+-------------------------------------------------------+---------------------------+
+| Intermediate States   | DataFrames in the middle of narwhalify operations     | LazyDataFrame during       |
+|                       | or backend conversions. These may be temporary        | backend conversion,        |
+|                       | subclasses used for optimization or compatibility.    | operation chaining         |
++------------------------+-------------------------------------------------------+---------------------------+
+
+.. note::
+   The validation system (is_valid_temporal_dataframe) handles all these cases to ensure consistent
+   behavior across the entire data processing pipeline. This is particularly important when:
+   - Converting between backends
+   - Applying narwhalified operations
+   - Working with custom DataFrame implementations
+   - Handling intermediate states during operations
 """
 
 # Standard Library Imports
 import os
 import warnings
 from importlib import util
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import dask.dataframe as dd  # Import dask.dataframe as dd again
 import modin.pandas as mpd
@@ -175,21 +213,67 @@ TEMPORALSCOPE_OPTIONAL_BACKENDS = {"cudf"}
 
 # Define a type alias combining Narwhals' FrameT with the supported TemporalScope dataframes
 SupportedTemporalDataFrame = Union[
-    FrameT, pd.DataFrame, mpd.DataFrame, pa.Table, pl.DataFrame, dd.DataFrame  # Use dd.DataFrame for Dask DataFrame
+    FrameT,  # narwhals.typing.FrameT - narwhals DataFrame wrapper
+    pd.DataFrame,  # pandas.core.frame.DataFrame - actual pandas DataFrame class
+    mpd.DataFrame,  # modin.pandas.dataframe.DataFrame - actual modin DataFrame class
+    pa.Table,  # pyarrow.lib.Table - actual pyarrow Table class
+    pl.DataFrame,  # polars.dataframe.frame.DataFrame - actual polars DataFrame class
+    dd.DataFrame,  # dask.dataframe.core.DataFrame - actual dask DataFrame class
 ]
 
 # Backend type classes for TemporalScope backends
-TEMPORALSCOPE_CORE_BACKEND_TYPES: Dict[str, Any] = {
-    "pandas": pd.DataFrame,
-    "modin": mpd.DataFrame,
-    "pyarrow": pa.Table,
-    "polars": pl.DataFrame,
-    "dask": dd.DataFrame,  # Use dd.DataFrame for Dask DataFrame
+TEMPORALSCOPE_CORE_BACKEND_TYPES: Dict[str, Type] = {
+    "pandas": pd.DataFrame,  # Main pandas DataFrame class
+    "modin": mpd.DataFrame,  # Main modin DataFrame class
+    "pyarrow": pa.Table,  # Main pyarrow Table class
+    "polars": pl.DataFrame,  # Main polars DataFrame class
+    "dask": dd.DataFrame,  # Main dask DataFrame class
 }
 
+# Module paths for DataFrame validation
+TEMPORALSCOPE_MODULE_PATHS: Dict[str, Union[str, Tuple[str, ...]]] = {
+    "pandas": "pandas.core.frame",
+    "modin": "modin.pandas.dataframe",
+    "pyarrow": "pyarrow.lib",
+    "polars": "polars.dataframe.frame",
+    "dask": ("dask.dataframe.core", "dask_expr._collection"),
+}
 
-# Functions
-# ---------
+# ---------------------------------------------------------
+# Utility Functions
+# ---------------------------------------------------------
+
+
+def get_api_keys() -> Dict[str, Optional[str]]:
+    """Retrieve API keys from environment variables.
+
+    :return: A dictionary containing the API keys, or None if not found.
+    :rtype: Dict[str, Optional[str]]
+    """
+    api_keys = {
+        "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
+        "CLAUDE_API_KEY": os.getenv("CLAUDE_API_KEY"),
+    }
+    for key, value in api_keys.items():
+        if value is None:
+            print(f"Warning: {key} is not set in the environment variables.")
+    return api_keys
+
+
+def print_divider(char: str = "=", length: int = 70) -> None:
+    """Prints a divider line made of a specified character and length.
+
+    :param char: The character to use for the divider, defaults to '='
+    :type char: str, optional
+    :param length: The length of the divider, defaults to 70
+    :type length: int, optional
+    """
+    print(char * length)
+
+
+# ---------------------------------------------------------
+# Main Functions
+# ---------------------------------------------------------
 
 
 def get_narwhals_backends() -> List[str]:
@@ -249,41 +333,85 @@ def is_valid_temporal_backend(backend_name: str) -> None:
         )
 
 
-def get_api_keys() -> Dict[str, Optional[str]]:
-    """Retrieve API keys from environment variables.
+def is_valid_temporal_dataframe(df: Union[SupportedTemporalDataFrame, Any]) -> Tuple[bool, Optional[str]]:
+    """Validate that a DataFrame is supported by TemporalScope and Narwhals.
 
-    :return: A dictionary containing the API keys, or None if not found.
-    :rtype: Dict[str, Optional[str]]
+    Uses TEMPORALSCOPE_CORE_BACKEND_TYPES to validate actual DataFrame instances.
+    Handles both native DataFrame types and narwhalified (FrameT) DataFrames.
+
+    :param df: Object to validate, can be any supported DataFrame type or arbitrary object
+    :type df: Union[SupportedTemporalDataFrame, Any]
+    :return: Tuple of (is_valid, df_type) where df_type is:
+            - "narwhals" for FrameT DataFrames
+            - "native" for supported DataFrame types
+            - None if not valid
+    :rtype: Tuple[bool, Optional[str]]
+
+    Example Usage:
+    -------------
+    .. code-block:: python
+
+        import pandas as pd
+        from temporalscope.core.core_utils import is_valid_temporal_dataframe
+
+        df = pd.DataFrame({"col": [1, 2, 3]})
+        is_valid, df_type = is_valid_temporal_dataframe(df)
+        print(is_valid)  # True
+        print(df_type)  # "native"
+
+    .. note::
+        Complements is_valid_temporal_backend which works with strings.
+        This works with actual DataFrame instances and provides type information
+        to avoid duplicate validation logic across the codebase.
+
+        DataFrame validation is performed by checking module paths rather than using isinstance,
+        as this is more reliable across different versions and implementations:
+        - pandas: pandas.core.frame
+        - modin: modin.pandas.dataframe
+        - pyarrow: pyarrow.lib
+        - polars: polars.dataframe.frame
+        - dask: dask.dataframe.core, dask_expr._collection
     """
-    api_keys = {
-        "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
-        "CLAUDE_API_KEY": os.getenv("CLAUDE_API_KEY"),
-    }
-    for key, value in api_keys.items():
-        if value is None:
-            print(f"Warning: {key} is not set in the environment variables.")
-    return api_keys
+    try:
+        # Case 1: Narwhalified DataFrames
+        if hasattr(df, "__class__") and df.__class__.__module__ == "narwhals.dataframe":
+            return True, "narwhals"
+
+        # Case 2: Native DataFrames - check module path
+        df_type = type(df)
+        df_module = df_type.__module__
+
+        # Check module path against all possible paths
+        module_paths = []
+        for paths in TEMPORALSCOPE_MODULE_PATHS.values():
+            if isinstance(paths, str):
+                module_paths.append(paths)
+            else:
+                module_paths.extend(paths)
+
+        if df_module in module_paths:
+            return True, "native"
+
+        # Case 3: Intermediate States - check convertibility
+        if any(hasattr(df, attr) for attr in ("to_pandas", "__array__", "to_numpy")):
+            return True, "native"
+
+        return False, None
+    except Exception:
+        return False, None
 
 
-def print_divider(char: str = "=", length: int = 70) -> None:
-    """Prints a divider line made of a specified character and length.
-
-    :param char: The character to use for the divider, defaults to '='
-    :type char: str, optional
-    :param length: The length of the divider, defaults to 70
-    :type length: int, optional
-    """
-    print(char * length)
-
-
-def convert_to_backend(df: IntoDataFrame, backend: str, npartitions: int = 1) -> IntoDataFrame:
+def convert_to_backend(
+    df: Union[SupportedTemporalDataFrame, IntoDataFrame], backend: str, npartitions: int = 1
+) -> SupportedTemporalDataFrame:
     """Convert a DataFrame to the specified backend format using Narwhals.
 
     Narwhals handles the conversion between supported backends (e.g., Pandas, Polars, PyArrow, Dask).
     This function also ensures compatibility with TemporalScope-supported backends.
+    Handles both native DataFrame types and narwhalified (FrameT) DataFrames.
 
-    :param df: Input DataFrame in any Narwhals-compatible backend.
-    :type df: IntoDataFrame
+    :param df: Input DataFrame in any supported format
+    :type df: Union[SupportedTemporalDataFrame, IntoDataFrame]
     :param backend: Target backend ('pandas', 'modin', 'polars', 'pyarrow', 'dask').
     :type backend: str
     :param npartitions: Number of partitions for Dask backend. Default is 1.
@@ -302,105 +430,48 @@ def convert_to_backend(df: IntoDataFrame, backend: str, npartitions: int = 1) ->
         data = pd.DataFrame({"time": range(10), "value": range(10)})
         df_modin = convert_to_backend(data, backend="modin")
         print(type(df_modin))  # Output: <class 'modin.pandas.dataframe.DataFrame'>
+
+    .. note::
+        While the DataFrame Interchange Protocol (DIP) aims to standardize DataFrame
+        conversions, current implementations still require intermediate conversion steps.
+        This function uses pandas as an interoperability layer due to its widespread
+        support and reliable conversion methods across different DataFrame libraries.
     """
     # Validate the backend
     is_valid_temporal_backend(backend)
 
-    # Ensure the input DataFrame type is supported
-    supported_types = (
-        pd.DataFrame,
-        mpd.DataFrame,
-        pa.Table,
-        pl.DataFrame,
-        dd.DataFrame,
-    )
-    if not isinstance(df, supported_types):
-        raise UnsupportedBackendError(f"Input DataFrame type '{type(df).__name__}' is not supported")
+    # Validate the input DataFrame
+    is_valid, df_type = is_valid_temporal_dataframe(df)
+    if not is_valid:
+        # Try to convert to pandas first if possible
+        if hasattr(df, "to_pandas"):
+            df = df.to_pandas()
+        elif hasattr(df, "__array__"):
+            df = pd.DataFrame(df.__array__())
+        elif hasattr(df, "to_numpy"):
+            df = pd.DataFrame(df.to_numpy())
+        else:
+            raise UnsupportedBackendError(f"Input DataFrame type '{type(df).__name__}' is not supported")
 
-    # Convert to a generic format using Narwhals
-    intermediate = nw.from_native(df)
+    # If narwhalified, get native form first
+    if df_type == "narwhals":
+        df = df.to_native()
 
-    # Handle conversion based on the target backend
+    # Handle LazyFrame from dask
+    if hasattr(df, "compute"):
+        df = df.compute()
+
+    # Convert to pandas intermediate using Narwhals
+    intermediate_pd_df = nw.from_native(df).to_pandas()
+
+    # Handle conversion based on target backend
     if backend == "pandas":
-        return intermediate.to_pandas()
+        return intermediate_pd_df
     elif backend == "modin":
-        return mpd.DataFrame(intermediate.to_pandas())
+        return mpd.DataFrame(intermediate_pd_df)
     elif backend == "polars":
-        return pl.DataFrame(intermediate.to_arrow())
+        return pl.DataFrame(intermediate_pd_df)
     elif backend == "pyarrow":
-        return pa.Table.from_pandas(intermediate.to_pandas())
+        return pa.Table.from_pandas(intermediate_pd_df)
     elif backend == "dask":
-        return dd.from_pandas(intermediate.to_pandas(), npartitions=npartitions)
-
-
-def get_dataframe_backend(df: SupportedTemporalDataFrame) -> str:
-    """Get DataFrame backend name from any supported DataFrame type.
-
-    Uses type checks to detect the backend and validates using
-    the is_valid_temporal_backend function to ensure it's a supported backend.
-
-    :param df: Input DataFrame from any supported backend
-    :type df: SupportedTemporalDataFrame
-    :return: Lowercase backend name (e.g., 'pandas', 'polars', etc.)
-    :rtype: str
-    :raises UnsupportedBackendError: If DataFrame backend is not supported
-
-    Example Usage:
-    --------------
-    .. code-block:: python
-
-        import pandas as pd
-        from temporalscope.core.core_utils import get_dataframe_backend
-
-        # Create sample DataFrame
-        df = pd.DataFrame({"time": range(5), "value": range(5)})
-
-        # Get backend name
-        backend = get_dataframe_backend(df)
-        print(backend)  # Output: 'pandas'
-    """
-    if isinstance(df, pd.DataFrame):
-        backend = "pandas"
-    elif isinstance(df, mpd.DataFrame):
-        backend = "modin"
-    elif isinstance(df, pl.DataFrame):
-        backend = "polars"
-    elif isinstance(df, pa.Table):
-        backend = "pyarrow"
-    elif isinstance(df, dd.DataFrame):
-        backend = "dask"
-    else:
-        raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
-
-    # Validate the backend using the is_valid_temporal_backend function
-    is_valid_temporal_backend(backend)
-
-    return backend
-
-
-def is_valid_temporal_dataframe(df: Any) -> bool:
-    """Check if object is a supported DataFrame type.
-
-    Uses TEMPORALSCOPE_CORE_BACKEND_TYPES to validate actual DataFrame instances.
-
-    :param df: Object to validate
-    :type df: Any
-    :return: True if DataFrame type is supported
-    :rtype: bool
-
-    Example Usage:
-    -------------
-    .. code-block:: python
-
-        import pandas as pd
-        from temporalscope.core.core_utils import is_valid_temporal_dataframe
-
-        df = pd.DataFrame({"col": [1, 2, 3]})
-        is_valid = is_valid_temporal_dataframe(df)
-        print(is_valid)  # True
-
-    .. note::
-        Complements is_valid_temporal_backend which works with strings.
-        This works with actual DataFrame instances.
-    """
-    return isinstance(df, tuple(TEMPORALSCOPE_CORE_BACKEND_TYPES.values()))
+        return dd.from_pandas(intermediate_pd_df, npartitions=npartitions)

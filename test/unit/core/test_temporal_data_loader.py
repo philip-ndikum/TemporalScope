@@ -60,7 +60,7 @@ from temporalscope.core.core_utils import (
     MODE_SINGLE_STEP,
     TEMPORALSCOPE_CORE_BACKEND_TYPES,
     SupportedTemporalDataFrame,
-    get_dataframe_backend,
+    is_valid_temporal_dataframe,
 )
 from temporalscope.core.exceptions import ModeValidationError, TimeColumnError, UnsupportedBackendError
 from temporalscope.core.temporal_data_loader import TimeFrame
@@ -136,6 +136,32 @@ def df_with_datetime(request, data_config: DataConfigType) -> Generator[Supporte
 
 
 # Assertion Helpers
+def get_backend_name(df: SupportedTemporalDataFrame) -> str:
+    """Get the backend name for a DataFrame.
+
+    :param df: DataFrame to get backend name for
+    :type df: SupportedTemporalDataFrame
+    :return: Backend name ('pandas', 'modin', 'polars', 'pyarrow', 'dask', 'narwhals')
+    :rtype: str
+    :raises UnsupportedBackendError: If DataFrame type not supported
+    """
+    # First validate DataFrame type
+    is_valid, df_type = is_valid_temporal_dataframe(df)
+    if not is_valid:
+        raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
+
+    # If narwhalified, get native form
+    if df_type == "narwhals":
+        df = df.to_native()
+
+    # Get backend from type
+    for name, cls in TEMPORALSCOPE_CORE_BACKEND_TYPES.items():
+        if isinstance(df, cls):
+            return name
+
+    raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
+
+
 @nw.narwhalify
 def assert_df_properties(df: SupportedTemporalDataFrame, expected_rows: int, expected_cols: int) -> None:
     """Validate DataFrame properties using Narwhals operations."""
@@ -169,7 +195,7 @@ def assert_sorted_by_time(df: SupportedTemporalDataFrame, ascending: bool = True
 
 # Tests
 @pytest.mark.parametrize("mode", TEST_MODES)
-def test_timeframe_basic_initialization(simple_df: SupportedTemporalDataFrame, mode: str) -> None:
+def test_timeframe_basic_initialization(simple_df: SupportedTemporalDataFrame, mode: str, request) -> None:
     """Test basic TimeFrame initialization with clean data."""
     # Initialize TimeFrame
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target", mode=mode)
@@ -181,14 +207,17 @@ def test_timeframe_basic_initialization(simple_df: SupportedTemporalDataFrame, m
 
     # Verify TimeFrame properties
     assert tf.mode == mode
-    assert tf.backend == get_dataframe_backend(simple_df)  # Use get_dataframe_backend directly
+    assert tf.backend == request.param  # Use param from fixture
     assert tf.ascending is True
 
 
 def test_timeframe_backend_inference(simple_df: SupportedTemporalDataFrame) -> None:
     """Test that TimeFrame correctly infers backend when none is specified."""
+    # Get expected backend name
+    expected_backend = get_backend_name(simple_df)
+
+    # Initialize TimeFrame
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
-    expected_backend = get_dataframe_backend(simple_df)
     assert tf.backend == expected_backend, f"Expected backend {expected_backend}, got {tf.backend}"
     assert_df_properties(tf.df, expected_rows=5, expected_cols=5)
 
@@ -196,7 +225,8 @@ def test_timeframe_backend_inference(simple_df: SupportedTemporalDataFrame) -> N
 @pytest.mark.parametrize("target_backend", ["pandas", "polars"])
 def test_timeframe_explicit_backend_conversion(simple_df: SupportedTemporalDataFrame, target_backend: str) -> None:
     """Test TimeFrame initialization with backend conversion."""
-    current_backend = get_dataframe_backend(simple_df)
+    # Get current backend name
+    current_backend = get_backend_name(simple_df)
 
     # Skip problematic backend combinations
     if current_backend == target_backend:
@@ -211,14 +241,15 @@ def test_timeframe_explicit_backend_conversion(simple_df: SupportedTemporalDataF
 
 def test_timeframe_explicit_backend_same(simple_df: SupportedTemporalDataFrame) -> None:
     """Test TimeFrame initialization with explicitly specified same backend."""
-    current_backend = get_dataframe_backend(simple_df)
+    # Get current backend name
+    current_backend = get_backend_name(simple_df)
 
     # Skip for dask backend due to known conversion limitations
     if current_backend == "dask":
         pytest.skip("Skipping same-backend test for dask due to conversion limitations")
 
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target", dataframe_backend=current_backend)
-    assert tf.backend == current_backend
+    assert tf.backend == current_backend, f"Backend should remain {current_backend}"
     assert_df_properties(tf.df, expected_rows=5, expected_cols=5)
 
 
@@ -303,11 +334,10 @@ def test_timeframe_rejects_non_numeric(df_with_non_numeric: SupportedTemporalDat
 def test_validate_data_with_invalid_datetime_string(simple_df: SupportedTemporalDataFrame) -> None:
     """Test validate_data with an invalid datetime string in the time column."""
     # Create new DataFrame with invalid date using Narwhals operations
-    invalid_df = simple_df.select([
-        nw.lit("invalid_date").alias("time"),
-        *[nw.col(col) for col in simple_df.columns if col != "time"]
-    ])
-    
+    invalid_df = simple_df.select(
+        [nw.lit("invalid_date").alias("time"), *[nw.col(col) for col in simple_df.columns if col != "time"]]
+    )
+
     with pytest.raises(TimeColumnError, match=r"time_col must be numeric, datetime, or a valid datetime string"):
         TimeFrame(df=invalid_df, time_col="time", target_col="target")
 
@@ -316,11 +346,10 @@ def test_validate_data_with_invalid_datetime_string(simple_df: SupportedTemporal
 def test_setup_timeframe_calls_validate_data(simple_df: SupportedTemporalDataFrame) -> None:
     """Test that _setup_timeframe calls validate_data and handles exceptions."""
     # Create new DataFrame with invalid date using Narwhals operations
-    invalid_df = simple_df.select([
-        nw.lit("invalid_date").alias("time"),
-        *[nw.col(col) for col in simple_df.columns if col != "time"]
-    ])
-    
+    invalid_df = simple_df.select(
+        [nw.lit("invalid_date").alias("time"), *[nw.col(col) for col in simple_df.columns if col != "time"]]
+    )
+
     with pytest.raises(TimeColumnError):
         TimeFrame(df=invalid_df, time_col="time", target_col="target")
 
@@ -328,16 +357,16 @@ def test_setup_timeframe_calls_validate_data(simple_df: SupportedTemporalDataFra
 def test_sort_data_method(simple_df: SupportedTemporalDataFrame) -> None:
     """Test the sort_data method to ensure it sorts correctly."""
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
-    
+
     # Get initial time values
     initial_df = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
     initial_values = initial_df["time"].tolist()
-    
+
     # Sort descending
     sorted_df = tf.sort_data(tf.df, ascending=False)
     sorted_df_pd = sorted_df.to_pandas() if hasattr(sorted_df, "to_pandas") else sorted_df
     sorted_values = sorted_df_pd["time"].tolist()
-    
+
     # Verify sorting
     assert sorted_values == sorted(initial_values, reverse=True), "DataFrame not sorted correctly in descending order"
 
@@ -345,11 +374,11 @@ def test_sort_data_method(simple_df: SupportedTemporalDataFrame) -> None:
 def test_update_data_method(simple_df: SupportedTemporalDataFrame) -> None:
     """Test the update_data method to ensure it updates the DataFrame and column configurations correctly."""
     tf = TimeFrame(df=simple_df, time_col="time", target_col="target")
-    
+
     # Create new DataFrame with modified target using Narwhals operations
     new_df = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
     new_df["new_target"] = new_df["target"] * 2
-    
+
     tf.update_data(new_df, new_target_col="new_target")
     df_pd = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
     assert "new_target" in df_pd.columns, "new_target column not found in updated DataFrame"
