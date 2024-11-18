@@ -219,34 +219,35 @@ class TimeFrame:
             tf = TimeFrame(data, time_col="time", target_col="value", mode=MODE_SINGLE_STEP)
             print(tf.get_data().head())
         """
-        # Validate mode first
-        if mode not in [MODE_SINGLE_STEP, MODE_MULTI_STEP]:
-            raise ModeValidationError(mode)
-
-        # Store metadata about columns
+        # Step 1: Set instance variables first
         self._time_col = time_col
         self._target_col = target_col
         self._mode = mode
         self._ascending = ascending
         self._sort = sort
 
-        # Validate optional backend string first if provided
+        # Step 2: Validate mode
+        if mode not in [MODE_SINGLE_STEP, MODE_MULTI_STEP]:
+            raise ModeValidationError(mode)
+
+        # Step 3: Get and validate the backend
         if dataframe_backend is not None:
+            # If backend explicitly provided, validate it
             is_valid_temporal_backend(dataframe_backend)
-
-        # Then validate DataFrame type
-        is_valid, df_type = is_valid_temporal_dataframe(df)
-        if not is_valid:
-            raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
-
-        # Handle backend conversion and inference
-        if dataframe_backend:
-            df = convert_to_backend(df, dataframe_backend)
             self._original_backend = dataframe_backend
         else:
+            # First validate DataFrame type
+            is_valid, df_type = is_valid_temporal_dataframe(df)
+            if not is_valid:
+                raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
+            # Then get backend name
             self._original_backend = get_dataframe_backend(df)
 
-        # Call setup method to validate and initialize the DataFrame
+        # Step 4: Convert DataFrame if needed
+        if dataframe_backend is not None and dataframe_backend != self._original_backend:
+            df = convert_to_backend(df, dataframe_backend)
+
+        # Step 5: Setup and validate the DataFrame
         self._df = self._setup_timeframe(df, sort=sort, ascending=ascending)
 
     @nw.narwhalify
@@ -262,24 +263,35 @@ class TimeFrame:
         :type column_names: List[str]
         :return: Dictionary mapping column names to their null value counts
         :rtype: Dict[str, int]
+
+        .. note::
+            This method uses Narwhals operations for backend-agnostic validation:
+            - Uses nw.col() for column references
+            - Handles lazy evaluation through collect()
+            - Performs consistent null checking across backends
         """
         result = {}
         for col in column_names:
-            # Create expression for null check
-            null_expr = nw.col(col).is_null().sum().alias(f"{col}_nulls")
+            # Create expression for null check using Narwhals operations
+            null_count = df.select(nw.col(col).is_null().sum())
 
-            # Execute null check and collect result
-            null_count = df.select([null_expr])
+            # Handle lazy evaluation first
             if hasattr(null_count, "collect"):
                 null_count = null_count.collect()
 
-            # Convert to pandas for consistent handling
-            if hasattr(null_count, "to_pandas"):
-                null_count = null_count.to_pandas()
+            # Handle Dask compute next
+            if hasattr(null_count, "compute"):
+                null_count = null_count.compute()
+                # Re-validate after computation
+                is_valid, df_type = is_valid_temporal_dataframe(null_count)
+                if not is_valid:
+                    raise ValueError(f"Invalid DataFrame type after compute: {type(null_count).__name__}")
 
-            # Extract the count value
-            count = null_count[f"{col}_nulls"].iloc[0]
-            result[col] = int(count)
+            # Convert to pandas using Narwhals
+            null_count = nw.from_native(null_count).to_pandas()
+
+            # Extract value consistently
+            result[col] = int(null_count.iloc[0, 0])
 
         return result
 
