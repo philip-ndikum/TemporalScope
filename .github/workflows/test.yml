@@ -42,10 +42,10 @@ jobs:
       - name: Run integration tests
         run: hatch run test:integration --suppress-no-test-exit-code # Suppress the exit code of the integration tests until integration tests are added
 
-      # Upload coverage to codecov.io
-      # Ensure that the coverage is only uploaded once (if statement)
-      - name: Upload coverage to codecov.io
+      - name: Coveralls
+        # We upload only coverage for ubuntu and python 3.11. Uploading coverage for all matrix.os and
+        # matrix.python-version complicates the workflow too much for little to no gain
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
-        uses: codecov/codecov-action@v5.0.2
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: coverallsapp/github-action@v2
+        with:
+          path-to-lcov: coverage.xml

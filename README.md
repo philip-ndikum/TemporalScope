@@ -36,7 +36,7 @@
       <tr>
         <th>Compatibility</th>
         <th>License</th>
-        <th>Code Quality</th>
+        <th>Meta</th>
         <th>Build Tools</th>
         <th>CI/CD</th>
         <th>Security</th>
@@ -60,8 +60,8 @@
         </td>
         <td>
           <a href="https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main"><img src="https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg" alt="pre-commit.ci status"></a><br>
-          <a href="https://codecov.io/gh/philip-ndikum/TemporalScope"><img src="https://codecov.io/gh/philip-ndikum/TemporalScope/branch/main/graph/badge.svg" alt="codecov"></a>
           <a href="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml"> <img src="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml/badge.svg"></a>
+          <a href='https://coveralls.io/github/philip-ndikum/TemporalScope'><img src='https://coveralls.io/repos/github/philip-ndikum/TemporalScope/badge.svg' alt='Coverage Status' /></a>
         </td>
         <td>
           <a href="https://www.bestpractices.dev/projects/9424"><img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices"></a><br>
