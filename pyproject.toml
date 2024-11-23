@@ -102,7 +102,7 @@ serve = "python -m http.server --directory _build"
 
 [tool.hatch.envs.test.scripts]
 unit = 'pytest --cov-report=lcov --cov-report=term --cov="temporalscope" -m "not integration" {args:test}'
-integration = 'pytest --cov-report=lcov --cov-report=term --cov="temporalscope" -m "integration" {args:test}'
+integration = 'pytest -m "integration" {args:test}'
 quality-assurance = """
 pytest &&
 docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
