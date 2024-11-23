@@ -49,6 +49,9 @@ jobs:
       - name: Run integration tests
         run: hatch run test:integration --suppress-no-test-exit-code # Suppress the exit code of the integration tests until integration tests are added
 
+      - name: Run notebook tests
+        run: hatch run test:notebook
+
       - name: Coveralls
         # We upload only coverage for ubuntu and python 3.11. Uploading coverage for all matrix.os and
         # matrix.python-version complicates the workflow too much for little to no gain
