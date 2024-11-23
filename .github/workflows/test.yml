@@ -54,5 +54,3 @@ jobs:
         # matrix.python-version complicates the workflow too much for little to no gain
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         uses: coverallsapp/github-action@v2
-        with:
-          path-to-lcov: coverage.lcov
