@@ -10,6 +10,7 @@ different purposes:
 
 This separation allows for more efficient CI/CD pipelines and clearer test organization.
 """
+
 from pathlib import Path
 
 import papermill as pm
@@ -26,7 +27,7 @@ def get_notebooks():
 @pytest.mark.parametrize("notebook_path", get_notebooks())
 def test_notebook_runs(notebook_path, tmp_path):
     """Test that notebook executes without errors using Papermill.
-    
+
     Uses the notebook marker to separate execution tests from unit tests,
     focusing solely on verifying that notebooks can run successfully.
     """
@@ -38,8 +39,8 @@ def test_notebook_runs(notebook_path, tmp_path):
             str(output_path),
             kernel_name="python3",
             progress_bar=False,  # Disable progress bar for cleaner test output
-            stdout_file=None,    # Don't capture stdout
-            stderr_file=None     # Don't capture stderr
+            stdout_file=None,  # Don't capture stdout
+            stderr_file=None,  # Don't capture stderr
         )
     except Exception as e:
         pytest.fail(f"Notebook {notebook_path} failed to execute: {str(e)}")
