@@ -76,6 +76,7 @@ htmlcov/
 .nox/
 .coverage
 coverage.xml
+coverage.lcov
 *.cover
 .hypothesis/
 
