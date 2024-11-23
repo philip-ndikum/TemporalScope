@@ -22,7 +22,7 @@ dependencies = [
 
     # General Machine Learning and Statistics
     "scikit-learn>=1.5.1",      # Scikit-Learn: Essential machine learning library for classification, regression, and clustering.
-    "lightgbm>=4.5.0",          # LightGBM: Gradient-boosted decision tree library that’s efficient for high-dimensional data.
+    "lightgbm>=4.5.0",          # LightGBM: Gradient-boosted decision tree library that's efficient for high-dimensional data.
     "statsmodels>=0.14.2",      # Statsmodels: Provides statistical models and hypothesis tests, useful for traditional time series analysis.
 
     # Data Manipulation and Storage
@@ -94,7 +94,13 @@ dependencies = ["pre-commit", "ruff", "jupyterlab", "notebook", "commitizen"]
 features = ["docs"]
 
 [tool.hatch.envs.test]
-extra-dependencies = ["pytest", "pytest-cov", "pytest-custom_exit_code", "pytest-mock"]
+extra-dependencies = [
+    "pytest",
+    "pytest-cov",
+    "pytest-custom_exit_code",
+    "pytest-mock",
+    "papermill>=2.5.0"
+]
 
 [tool.hatch.envs.docs.scripts]
 build = "sphinx-build -WTb html . _build"
