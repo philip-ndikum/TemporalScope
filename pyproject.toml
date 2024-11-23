@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.8.0",  "uv>=0.5.1"]
+requires = ["hatchling>=1.8.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -101,8 +101,8 @@ build = "sphinx-build -WTb html . _build"
 serve = "python -m http.server --directory _build"
 
 [tool.hatch.envs.test.scripts]
-unit = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "not integration" {args:test}'
-integration = 'pytest --cov-report xml:coverage.xml --cov="temporalscope" -m "integration" {args:test}'
+unit = 'pytest --cov-report=lcov --cov-report=term --cov="temporalscope" -m "not integration" {args:test}'
+integration = 'pytest --cov-report=lcov --cov-report=term --cov="temporalscope" -m "integration" {args:test}'
 quality-assurance = """
 pytest &&
 docformatter --check --recursive --wrap-summaries 120 --wrap-descriptions 120 src/temporalscope || \
