@@ -108,7 +108,7 @@ serve = "python -m http.server --directory _build"
 
 [tool.hatch.envs.test.scripts]
 unit = 'pytest --cov-report=lcov --cov-report=term --cov="temporalscope" -m "not integration and not notebook" {args:test}'
-notebook = 'pytest --cov-report=lcov --cov-report=term --cov="temporalscope" -m "notebook" {args:test}'
+notebook = 'pytest -m "notebook" {args:test}'
 integration = 'pytest -m "integration" {args:test}'
 quality-assurance = """
 pytest &&
