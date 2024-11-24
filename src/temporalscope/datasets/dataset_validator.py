@@ -117,8 +117,12 @@ Example Usage
     validator.print_report(results)
 
 .. note::
-   - Uses a familiar fit/transform pattern for consistency with other components
-   - Implements all operations through Narwhals' backend-agnostic API
+   - Uses the scikit-learn-style fit/transform pattern but adapted for TemporalScope:
+     * fit() validates input DataFrame compatibility
+     * transform() is @nw.narwhalify'd for backend-agnostic operations
+   - This pattern is used throughout TemporalScope to ensure:
+     * Input validation happens in fit()
+     * All operations use Narwhals' backend-agnostic API in transform()
    - Supports customizable thresholds for different domain requirements
    - Integrates with data pipelines through scikit-learn compatible API
 """
@@ -128,11 +132,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 
 import narwhals as nw
-import pandas as pd
 from narwhals.typing import FrameT
 from tabulate import tabulate
 
-from temporalscope.core.core_utils import SupportedTemporalDataFrame
+from temporalscope.core.core_utils import SupportedTemporalDataFrame, is_valid_temporal_dataframe
 
 
 @dataclass
@@ -165,17 +168,10 @@ class ValidationResult:
             for check_name, result in results.items():
                 log_entry = result.to_log_entry()
                 if not result.passed:
-                    context['task_instance'].xcom_push(
-                        key=f'validation_failure_{check_name}',
-                        value=result.to_dict()
-                    )
+                    context["task_instance"].xcom_push(key=f"validation_failure_{check_name}", value=result.to_dict())
 
                     # Log to monitoring system
-                    logger.log(
-                        level=log_entry["log_level"],
-                        msg=f"Validation check '{check_name}' failed",
-                        extra=log_entry
-                    )
+                    logger.log(level=log_entry["log_level"], msg=f"Validation check '{check_name}' failed", extra=log_entry)
 
     """
 
@@ -186,12 +182,7 @@ class ValidationResult:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert result to dictionary for serialization in data pipelines."""
-        return {
-            "passed": self.passed,
-            "message": self.message,
-            "details": self.details,
-            "severity": self.severity
-        }
+        return {"passed": self.passed, "message": self.message, "details": self.details, "severity": self.severity}
 
     def to_log_entry(self) -> Dict[str, Any]:
         """Format result as a structured log entry for monitoring systems."""
@@ -199,7 +190,7 @@ class ValidationResult:
             "validation_passed": self.passed,
             "validation_message": self.message,
             "validation_details": self.details,
-            "log_level": self.severity or ("INFO" if self.passed else "WARNING")
+            "log_level": self.severity or ("INFO" if self.passed else "WARNING"),
         }
 
     @classmethod
@@ -226,8 +217,9 @@ class ValidationResult:
             "total_checks": len(results),
             "passed_checks": sum(1 for r in results.values() if r.passed),
             "failed_checks": sum(1 for r in results.values() if not r.passed),
-            "check_details": {name: result.to_dict() for name, result in results.items()}
+            "check_details": {name: result.to_dict() for name, result in results.items()},
         }
+
 
 class DatasetValidator:
     """A validator for ensuring dataset quality using research-backed heuristics.
@@ -303,10 +295,7 @@ class DatasetValidator:
 
         # In an Airflow DAG
         def validate_dataset_task(**context):
-            validator = DatasetValidator(
-                min_samples=1000,
-                checks_to_run=["sample_size", "feature_count"]
-            )
+            validator = DatasetValidator(min_samples=1000, checks_to_run=["sample_size", "feature_count"])
 
             results = validator.fit_transform(df)
             failed = ValidationResult.get_failed_checks(results)
@@ -341,6 +330,8 @@ class DatasetValidator:
 
     def __init__(
         self,
+        time_col: str,
+        target_col: str,
         min_samples: int = 3000,
         max_samples: int = 50000,
         min_features: int = 4,
@@ -352,17 +343,41 @@ class DatasetValidator:
         checks_to_run: Optional[List[str]] = None,
         enable_warnings: bool = True,
     ):
-        """Initialize validator with custom thresholds.
+        """Initialize validator with column configuration and thresholds.
 
-        :param min_samples: Minimum number of samples required
+        This validator performs quality checks on single DataFrames, designed for integration
+        into automated pipelines (e.g., Airflow). It validates data quality using research-backed
+        thresholds while letting end users handle partitioning and parallelization.
+
+        Engineering Design Assumptions:
+        1. Single DataFrame Focus:
+        - Works on individual DataFrames
+        - End users handle partitioning/parallelization
+        - Suitable for pipeline integration
+
+        2. Basic Validation:
+        - Ensures time_col and target_col exist
+        - Validates numeric columns (except time_col)
+        - Checks for null values
+
+        3. Research-Backed Thresholds:
+        - Sample size (Grinsztajn et al. 2022)
+        - Feature counts (Shwartz-Ziv et al. 2021)
+        - Feature ratios (Gorishniy et al. 2021)
+
+        :param time_col: Column representing time values
+        :type time_col: str
+        :param target_col: Column representing target variable
+        :type target_col: str
+        :param min_samples: Minimum samples required (Grinsztajn et al. 2022)
         :type min_samples: int
-        :param max_samples: Maximum number of samples allowed
+        :param max_samples: Maximum samples allowed (Shwartz-Ziv et al. 2021)
         :type max_samples: int
-        :param min_features: Minimum number of features required
+        :param min_features: Minimum features required (Shwartz-Ziv et al. 2021)
         :type min_features: int
-        :param max_features: Maximum number of features allowed
+        :param max_features: Maximum features allowed (Gorishniy et al. 2021)
         :type max_features: int
-        :param max_feature_ratio: Maximum feature-to-sample ratio
+        :param max_feature_ratio: Maximum feature-to-sample ratio (Grinsztajn et al. 2022)
         :type max_feature_ratio: float
         :param min_unique_values: Minimum unique values for numerical features
         :type min_unique_values: int
@@ -376,6 +391,8 @@ class DatasetValidator:
         :type enable_warnings: bool
         :raises ValueError: If invalid checks are specified
         """
+        self.time_col = time_col
+        self.target_col = target_col
         self.min_samples = min_samples
         self.max_samples = max_samples
         self.min_features = min_features
@@ -385,7 +402,6 @@ class DatasetValidator:
         self.max_categorical_values = max_categorical_values
         self.class_imbalance_threshold = class_imbalance_threshold
         self.enable_warnings = enable_warnings
-        self._df = None  # Store DataFrame from fit()
 
         # Validate and store checks to run
         if checks_to_run:
@@ -399,284 +415,16 @@ class DatasetValidator:
     def _ensure_narwhals_df(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> FrameT:
         """Ensure DataFrame is Narwhals-compatible.
 
-        This method ensures the input DataFrame is compatible with Narwhals operations,
-        which is essential for validation in production pipelines.
-
         :param df: DataFrame to validate
         :type df: Union[SupportedTemporalDataFrame, FrameT]
         :return: Narwhals-compatible DataFrame
         :rtype: FrameT
-        :raises TypeError: If input cannot be converted to Narwhals DataFrame
+        :raises TypeError: If input is not a valid temporal DataFrame
         """
-        if hasattr(df, "select"):
-            return df
-
-        try:
-            # Handle different DataFrame types
-            if not isinstance(df, pd.DataFrame):
-                if hasattr(df, "to_pandas"):
-                    df = df.to_pandas()
-                else:
-                    df = pd.DataFrame(df)
-
-            @nw.narwhalify
-            def to_narwhals(df):
-                return df
-
-            return to_narwhals(df)
-        except Exception as e:
-            raise TypeError(f"Input must be convertible to a Narwhals DataFrame: {str(e)}") from e
-
-
-    @nw.narwhalify
-    def _check_sample_size(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> ValidationResult:
-        """Check if dataset meets sample size requirements.
-
-        This method evaluates sample size through a simple process:
-        1. Counts total samples using backend-agnostic operations
-        2. Validates against configured minimum and maximum thresholds
-
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: ValidationResult with:
-                - passed: Whether sample size is within acceptable range
-                - message: Description of any issues found
-                - details: Dictionary containing:
-                    * num_samples: Total number of samples in dataset
-        :rtype: ValidationResult
-
-        .. note::
-            Implementation Details:
-            - Uses count() for backend-agnostic sample counting
-            - Handles LazyFrame evaluation through collect()
-            - Converts PyArrow scalars using as_py()
-            - Handles empty DataFrames gracefully
-        """
-        # Handle empty DataFrame
-        if not df.columns:
-            details = {"num_samples": 0}
-            msg = "Dataset is empty. This is insufficient for any modeling."
-            if self.enable_warnings:
-                warnings.warn(msg)
-            return ValidationResult(False, msg, details)
-
-        # Step 1: Count total samples using first column
-        num_samples_df = df.select([nw.col(df.columns[0]).count().cast(nw.Int64).alias("count")])
-        if hasattr(num_samples_df, "collect"):
-            num_samples_df = num_samples_df.collect()
-
-        # Handle PyArrow scalar conversion
-        value = num_samples_df["count"][0]
-        if hasattr(value, "as_py"):
-            value = value.as_py()
-        num_samples = int(value)
-
-        details = {"num_samples": num_samples}
-
-        # Step 2: Validate against thresholds
-        if num_samples < self.min_samples:
-            msg = (
-                f"Dataset has {num_samples} samples, fewer than recommended minimum ({self.min_samples}). "
-                "This may be insufficient for complex models."
-            )
-            if self.enable_warnings:
-                warnings.warn(msg)
-            return ValidationResult(False, msg, details)
-
-        if num_samples > self.max_samples:
-            msg = (
-                f"Dataset has {num_samples} samples, more than recommended maximum ({self.max_samples}). "
-                "Consider using scalable implementations."
-            )
-            if self.enable_warnings:
-                warnings.warn(msg)
-            return ValidationResult(False, msg, details)
-
-        return ValidationResult(True, None, details)
-
-
-    @nw.narwhalify
-    def _check_feature_count(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> ValidationResult:
-        """Check if dataset meets feature count requirements.
-
-        This method evaluates feature count through a simple process:
-        1. Counts total features excluding time and target columns
-        2. Validates against configured minimum and maximum thresholds
-
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: ValidationResult with:
-                - passed: Whether feature count is within acceptable range
-                - message: Description of any issues found
-                - details: Dictionary containing:
-                    * num_features: Total number of features in dataset
-        :rtype: ValidationResult
-        """
-        df = self._ensure_narwhals_df(df)
-
-        # Get column names safely
-        cols = df.columns
-        if hasattr(cols, "collect"):
-            cols = cols.collect()
-        if hasattr(cols, "to_list"):
-            cols = cols.to_list()
-
-        # Count features
-        feature_cols = [col for col in cols if isinstance(col, str) and col.startswith("feature_")]
-        num_features = len(feature_cols)
-        details = {"num_features": num_features}
-
-        # Validate
-        if num_features < self.min_features:
-            msg = (
-                f"Dataset has {num_features} features, fewer than recommended minimum ({self.min_features}). "
-                "This may result in an oversimplified model."
-            )
-            if self.enable_warnings:
-                warnings.warn(msg)
-            return ValidationResult(
-                passed=False,
-                message=msg,
-                details=details,
-                severity="WARNING"  # Use severity for pipeline decisions
-            )
-
-        if num_features > self.max_features:
-            msg = (
-                f"Dataset has {num_features} features, more than recommended maximum ({self.max_features}). "
-                "Consider dimensionality reduction."
-            )
-            if self.enable_warnings:
-                warnings.warn(msg)
-            return ValidationResult(
-                passed=False,
-                message=msg,
-                details=details,
-                severity="WARNING"
-            )
-
-        return ValidationResult(
-            passed=True,
-            details=details,
-            severity="INFO"
-        )
-
-
-    @nw.narwhalify
-    def _check_feature_ratio(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> ValidationResult:
-        """Check feature-to-sample ratio.
-
-        This method evaluates feature-to-sample ratio through a simple process:
-        1. Counts total samples using backend-agnostic operations
-        2. Counts feature columns (excluding time and target)
-        3. Calculates ratio and validates against threshold
-
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: ValidationResult with:
-                - passed: Whether ratio is within acceptable range
-                - message: Description of any issues found
-                - details: Dictionary containing:
-                    * ratio: Feature-to-sample ratio (num_features/num_samples)
-        :rtype: ValidationResult
-
-        .. note::
-            Implementation Details:
-            - Uses count() for backend-agnostic sample counting
-            - Handles LazyFrame evaluation through collect()
-            - Converts PyArrow scalars using as_py()
-            - Only counts feature columns in ratio calculation
-        """
-        # Handle empty DataFrame
-        if not df.columns:
-            details = {"ratio": 0}
-            msg = "Dataset is empty. Cannot calculate feature ratio."
-            if self.enable_warnings:
-                warnings.warn(msg)
-            return ValidationResult(False, msg, details)
-
-        # Step 1: Count total samples
-        num_samples_df = df.select([nw.col(df.columns[0]).count().cast(nw.Int64).alias("count")])
-        if hasattr(num_samples_df, "collect"):
-            num_samples_df = num_samples_df.collect()
-
-        value = num_samples_df["count"][0]
-        if hasattr(value, "as_py"):
-            value = value.as_py()
-        num_samples = int(value)
-
-        # Step 2: Count feature columns safely
-        cols = df.columns
-        if hasattr(cols, "collect"):
-            cols = cols.collect()
-        if hasattr(cols, "to_list"):
-            cols = cols.to_list()
-
-        feature_cols = [col for col in cols if isinstance(col, str) and col.startswith("feature_")]
-        num_features = len(feature_cols)
-
-        # Handle no features case
-        if num_features == 0:
-            details = {"ratio": 0}
-            msg = "No feature columns found. Cannot calculate feature ratio."
-            if self.enable_warnings:
-                warnings.warn(msg)
-            return ValidationResult(False, msg, details)
-
-        # Step 3: Calculate and validate ratio
-        ratio = num_features / num_samples
-        details = {"ratio": ratio}
-
-        if ratio > self.max_feature_ratio:
-            msg = (
-                f"Feature-to-sample ratio ({ratio:.3f}) exceeds recommended maximum ({self.max_feature_ratio}). "
-                "This may increase risk of overfitting."
-            )
-            if self.enable_warnings:
-                warnings.warn(msg)
-            return ValidationResult(
-                passed=False,
-                message=msg,
-                details=details,
-                severity="WARNING"
-            )
-
-        return ValidationResult(True, None, details)
-
-    def fit(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> "DatasetValidator":
-        """Validate input DataFrame and prepare for validation checks."""
-        # Convert to Narwhals DataFrame if needed
-        if not hasattr(df, "select"):  # Check if it's already a Narwhals-compatible DataFrame
-            try:
-                # Convert to pandas first if needed
-                if not isinstance(df, pd.DataFrame):
-                    df = pd.DataFrame(df)
-
-                # Then use narwhalify to convert properly
-                @nw.narwhalify
-                def to_narwhals(df):
-                    return df
-
-                df = to_narwhals(df)
-            except Exception as e:
-                raise TypeError("Input must be convertible to a Narwhals DataFrame") from e
-        return self
-
-
-    def _get_feature_columns(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> List[str]:
-        """Get feature columns safely from DataFrame.
-
-        :param df: DataFrame to get columns from
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: List of feature column names
-        :rtype: List[str]
-        """
-        cols = df.columns
-        if hasattr(cols, "collect"):
-            cols = cols.collect()
-        if hasattr(cols, "to_list"):
-            cols = cols.to_list()
-        return [col for col in cols if isinstance(col, str) and col.startswith("feature_")]
+        is_valid, _ = is_valid_temporal_dataframe(df)
+        if not is_valid:
+            raise TypeError("Input must be a valid temporal DataFrame")
+        return df
 
     @nw.narwhalify
     def _check_feature_variability(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> ValidationResult:
@@ -713,14 +461,18 @@ class DatasetValidator:
         failed_columns = []
         for col in feature_cols:
             # Get unique and null counts
-            counts = df.select([
-                nw.col(col).n_unique().cast(nw.Int64).alias("unique"),
-                nw.col(col).is_null().sum().cast(nw.Int64).alias("nulls")
-            ])
+            counts = df.select(
+                [
+                    nw.col(col).n_unique().cast(nw.Int64).alias("unique"),
+                    nw.col(col).is_null().sum().cast(nw.Int64).alias("nulls"),
+                ]
+            )
             if hasattr(counts, "collect"):
                 counts = counts.collect()
 
-            unique_count = int(counts["unique"][0].as_py() if hasattr(counts["unique"][0], "as_py") else counts["unique"][0])
+            unique_count = int(
+                counts["unique"][0].as_py() if hasattr(counts["unique"][0], "as_py") else counts["unique"][0]
+            )
             null_count = int(counts["nulls"][0].as_py() if hasattr(counts["nulls"][0], "as_py") else counts["nulls"][0])
 
             details[col] = unique_count
@@ -738,7 +490,6 @@ class DatasetValidator:
             return ValidationResult(False, msg, details)
 
         return ValidationResult(True, None, details)
-
 
     @nw.narwhalify
     def _check_class_balance(
@@ -827,6 +578,289 @@ class DatasetValidator:
 
         return result
 
+    @nw.narwhalify
+    def _check_sample_size(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> ValidationResult:
+        """Check if dataset meets sample size requirements.
+
+        This method evaluates sample size through a simple process:
+        1. Counts total samples using backend-agnostic operations
+        2. Validates against configured minimum and maximum thresholds
+
+        :param df: DataFrame to validate
+        :type df: Union[SupportedTemporalDataFrame, FrameT]
+        :return: ValidationResult with:
+                - passed: Whether sample size is within acceptable range
+                - message: Description of any issues found
+                - details: Dictionary containing:
+                    * num_samples: Total number of samples in dataset
+        :rtype: ValidationResult
+
+        .. note::
+            Implementation Details:
+            - Uses count() for backend-agnostic sample counting
+            - Handles LazyFrame evaluation through collect()
+            - Converts PyArrow scalars using as_py()
+            - Handles empty DataFrames gracefully
+        """
+        # Handle empty DataFrame
+        if not df.columns:
+            details = {"num_samples": 0}
+            msg = "Dataset is empty. This is insufficient for any modeling."
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(False, msg, details)
+
+        # Step 1: Count total samples using first column
+        num_samples_df = df.select([nw.col(df.columns[0]).count().cast(nw.Int64).alias("count")])
+        if hasattr(num_samples_df, "collect"):
+            num_samples_df = num_samples_df.collect()
+
+        # Handle PyArrow scalar conversion
+        value = num_samples_df["count"][0]
+        if hasattr(value, "as_py"):
+            value = value.as_py()
+        num_samples = int(value)
+
+        details = {"num_samples": num_samples}
+
+        # Step 2: Validate against thresholds
+        if num_samples < self.min_samples:
+            msg = (
+                f"Dataset has {num_samples} samples, fewer than recommended minimum ({self.min_samples}). "
+                "This may be insufficient for complex models."
+            )
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(False, msg, details)
+
+        if num_samples > self.max_samples:
+            msg = (
+                f"Dataset has {num_samples} samples, more than recommended maximum ({self.max_samples}). "
+                "Consider using scalable implementations."
+            )
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(False, msg, details)
+
+        return ValidationResult(True, None, details)
+
+    @nw.narwhalify
+    def _check_feature_count(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> ValidationResult:
+        """Check if dataset meets feature count requirements.
+
+        This method evaluates feature count through a simple process:
+        1. Counts total features excluding time and target columns
+        2. Validates against configured minimum and maximum thresholds
+
+        :param df: DataFrame to validate
+        :type df: Union[SupportedTemporalDataFrame, FrameT]
+        :return: ValidationResult with:
+                - passed: Whether feature count is within acceptable range
+                - message: Description of any issues found
+                - details: Dictionary containing:
+                    * num_features: Total number of features in dataset
+        :rtype: ValidationResult
+        """
+        df = self._ensure_narwhals_df(df)
+
+        # Get feature columns using _get_feature_columns
+        feature_cols = self._get_feature_columns(df)
+        num_features = len(feature_cols)
+        details = {"num_features": num_features}
+
+        # Validate
+        if num_features < self.min_features:
+            msg = (
+                f"Dataset has {num_features} features, "
+                f"fewer than recommended minimum ({self.min_features}). "
+                "This may result in an oversimplified model."
+            )
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(
+                passed=False,
+                message=msg,
+                details=details,
+                severity="WARNING",
+            )
+
+        if num_features > self.max_features:
+            msg = (
+                f"Dataset has {num_features} features, more than recommended maximum ({self.max_features}). "
+                "Consider dimensionality reduction."
+            )
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(passed=False, message=msg, details=details, severity="WARNING")
+
+        return ValidationResult(passed=True, details=details, severity="INFO")
+
+    @nw.narwhalify
+    def _check_feature_ratio(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> ValidationResult:
+        """Check feature-to-sample ratio.
+
+        This method evaluates feature-to-sample ratio through a simple process:
+        1. Counts total samples using backend-agnostic operations
+        2. Counts feature columns (excluding time and target)
+        3. Calculates ratio and validates against threshold
+
+        :param df: DataFrame to validate
+        :type df: Union[SupportedTemporalDataFrame, FrameT]
+        :return: ValidationResult with:
+                - passed: Whether ratio is within acceptable range
+                - message: Description of any issues found
+                - details: Dictionary containing:
+                    * ratio: Feature-to-sample ratio (num_features/num_samples)
+        :rtype: ValidationResult
+
+        .. note::
+            Implementation Details:
+            - Uses count() for backend-agnostic sample counting
+            - Handles LazyFrame evaluation through collect()
+            - Converts PyArrow scalars using as_py()
+            - Only counts feature columns in ratio calculation
+        """
+        # Handle empty DataFrame
+        if not df.columns:
+            details = {"ratio": 0}
+            msg = "Dataset is empty. Cannot calculate feature ratio."
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(False, msg, details)
+
+        # Step 1: Count total samples
+        num_samples_df = df.select([nw.col(df.columns[0]).count().cast(nw.Int64).alias("count")])
+        if hasattr(num_samples_df, "collect"):
+            num_samples_df = num_samples_df.collect()
+
+        value = num_samples_df["count"][0]
+        if hasattr(value, "as_py"):
+            value = value.as_py()
+        num_samples = int(value)
+
+        # Step 2: Get feature columns using _get_feature_columns
+        feature_cols = self._get_feature_columns(df)
+        num_features = len(feature_cols)
+
+        # Handle no features case
+        if num_features == 0:
+            details = {"ratio": 0}
+            msg = "No features found. Cannot calculate feature ratio."
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(False, msg, details)
+
+        # Step 3: Calculate and validate ratio
+        ratio = num_features / num_samples
+        details = {"ratio": ratio}
+
+        if ratio > self.max_feature_ratio:
+            msg = (
+                f"Feature-to-sample ratio ({ratio:.3f}) exceeds recommended maximum ({self.max_feature_ratio}). "
+                "This may increase risk of overfitting."
+            )
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(passed=False, message=msg, details=details, severity="WARNING")
+
+        return ValidationResult(True, None, details)
+
+    def _get_feature_columns(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> List[str]:
+        """Get feature columns (all except time and target).
+
+        Features are defined as all columns except time_col and target_col.
+
+        :param df: DataFrame to get columns from
+        :type df: Union[SupportedTemporalDataFrame, FrameT]
+        :return: List of feature column names
+        :rtype: List[str]
+        """
+        cols = df.columns
+        if hasattr(cols, "collect"):
+            cols = cols.collect()
+        if hasattr(cols, "to_list"):
+            cols = cols.to_list()
+        return [col for col in cols if col not in {self.time_col, self.target_col}]
+
+    def fit(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> "DatasetValidator":
+        """Validate input DataFrame and prepare for validation checks.
+
+        This method ensures the input DataFrame is compatible with Narwhals operations,
+        which is essential for validation in production pipelines. It performs basic validation:
+
+        1. DataFrame Type:
+        - Validates DataFrame is Narwhals-compatible
+        - Ensures proper backend support
+
+        2. Column Validation:
+        - Verifies time_col and target_col exist
+        - Ensures all columns except time_col are numeric
+        - Checks for null values in any column
+
+        3. Pipeline Integration:
+        - Supports automated validation in workflows
+        - Enables quality gates in production pipelines
+        - Facilitates monitoring and alerting
+
+        :param df: DataFrame to validate
+        :type df: Union[SupportedTemporalDataFrame, FrameT]
+        :return: DatasetValidator instance for method chaining
+        :rtype: DatasetValidator
+        :raises TypeError: If input is not a valid temporal DataFrame
+        :raises ValueError: If columns are missing or invalid
+
+        Example:
+        -------
+        .. code-block:: python
+
+            import narwhals as nw
+            from temporalscope.datasets import DatasetValidator
+
+
+            @nw.narwhalify
+            def prepare_data(df):
+                return df
+
+
+            # Create validator with custom thresholds
+            validator = DatasetValidator(time_col="timestamp", target_col="value", min_samples=1000)
+
+            # Validate input DataFrame
+            validator.fit(prepare_data(df))
+
+        .. note::
+            - Input must be a Narwhals-compatible DataFrame
+            - Use @nw.narwhalify to ensure DataFrame compatibility
+            - Supports integration with data pipelines
+            - Validates numeric requirements for ML/DL compatibility
+
+        """
+        # Step 1: Validate DataFrame type
+        is_valid, _ = is_valid_temporal_dataframe(df)
+        if not is_valid:
+            raise TypeError("Input must be a valid temporal DataFrame")
+
+        # Step 2: Validate required columns exist
+        if self.time_col not in df.columns or self.target_col not in df.columns:
+            raise ValueError(f"Columns {self.time_col} and {self.target_col} must exist")
+
+        # Step 3: Validate numeric (except time)
+        for col in df.columns:
+            if col != self.time_col:
+                try:
+                    df.select([nw.col(col).cast(nw.Float64)])
+                except Exception as e:
+                    raise ValueError(f"Column {col} must be numeric. Error: {str(e)}")
+
+        # Step 4: Check nulls
+        null_counts = self._check_nulls(df, df.columns)
+        null_columns = [col for col, count in null_counts.items() if count > 0]
+        if null_columns:
+            raise ValueError(f"Missing values detected in columns: {', '.join(null_columns)}")
+
+        return self
+
+    @nw.narwhalify
     def transform(
         self,
         df: Union[SupportedTemporalDataFrame, FrameT],
@@ -840,7 +874,6 @@ class DatasetValidator:
         :type target_col: Optional[str]
         :return: Dictionary of validation results for each check
         :rtype: Dict[str, ValidationResult]
-        :raises TypeError: If input is not convertible to a Narwhals DataFrame
 
         Example:
         -------
@@ -879,21 +912,17 @@ class DatasetValidator:
         # Summarize results
         all_passed = all(result.passed for result in results.values())
         if not all_passed:
-            critical_failures = any(
-                result.severity == "ERROR"
-                for result in results.values()
-                if not result.passed
-            )
+            critical_failures = any(result.severity == "ERROR" for result in results.values() if not result.passed)
             if critical_failures and self.enable_warnings:
                 warnings.warn(
                     "Critical validation checks failed. These failures may significantly impact model performance.",
-                    RuntimeWarning
+                    RuntimeWarning,
                 )
             elif self.enable_warnings:
                 warnings.warn(
                     "Some validation checks failed. These are research-backed recommendations "
                     "and may not apply to all use cases. Adjust thresholds as needed.",
-                    UserWarning
+                    UserWarning,
                 )
 
         return results
@@ -956,9 +985,5 @@ class DatasetValidator:
             rows.append([check_name, status, message, details])
 
         print("\nDataset Validation Report")
-        print(tabulate(
-            rows,
-            headers=["Check", "Status", "Message", "Details"],
-            tablefmt="grid"
-        ))
+        print(tabulate(rows, headers=["Check", "Status", "Message", "Details"], tablefmt="grid"))
         print("\nNote: These are research-backed recommendations and may not apply to all use cases.")
