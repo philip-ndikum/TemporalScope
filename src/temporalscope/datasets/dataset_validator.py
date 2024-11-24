@@ -867,26 +867,10 @@ class DatasetValidator:
             - Returns detailed results
 
         """
-        # Convert to Narwhals DataFrame if needed
-        if not hasattr(df, "select"):  # Check if it's already a Narwhals-compatible DataFrame
-            try:
-                # Convert to pandas first if needed
-                if not isinstance(df, pd.DataFrame):
-                    df = pd.DataFrame(df)
-
-                # Then use narwhalify to convert properly
-                @nw.narwhalify
-                def to_narwhals(df):
-                    return df
-
-                df = to_narwhals(df)
-            except Exception as e:
-                raise TypeError("Input must be convertible to a Narwhals DataFrame") from e
-
+        # Execute validation checks
         results = {}
         check_names = ["sample_size", "feature_count", "feature_ratio", "feature_variability", "class_balance"]
 
-        # Execute enabled checks
         for check_name in check_names:
             result = self._execute_check(check_name, df, target_col)
             if result is not None:
