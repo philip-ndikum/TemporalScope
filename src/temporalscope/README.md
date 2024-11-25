@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="../assets/temporalscope_github_banner.svg" alt="TemporalScope Logo" >
+  <img src="assets/temporalscope_github_banner.svg" alt="TemporalScope Logo" >
 </p>
 
-<h3 align="center">Scientificially driven Model-Agnostic Temporal Feature Importance Analysis</h3>
+<h3 align="center">Scientifically driven Model-Agnostic Temporal Feature Importance Analysis</h3>
 
 <p align="center">
   <!-- Twitter Share Button -->
@@ -27,20 +27,57 @@
 </p>
 
 ---
-<p align="center">
-  <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version">
-  <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
-  <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
-  <a href="https://github.com/pypa/hatch"><img src="https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg" alt="Hatch project"></a>
-  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
-  <a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit"></a>
-  <a href="https://www.bestpractices.dev/projects/9424"><img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices"></a>
-</p>
+
+<!-- SPHINX-START -->
+
+<div align="center">
+  <table>
+    <thead>
+      <tr>
+        <th>Compatibility</th>
+        <th>License</th>
+        <th>Meta</th>
+        <th>Build Tools</th>
+        <th>CI/CD</th>
+        <th>Security</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version"><br>
+          <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
+        </td>
+        <td>
+          <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
+        </td>
+        <td>
+          <a href="https://docs.astral.sh/ruff/"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a><br>
+          <img src="https://www.mypy-lang.org/static/mypy_badge.svg" alt="Checked with mypy">
+        </td>
+        <td>
+          <a href="https://hatch.pypa.io/latest/"><img src="https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg" alt="Hatch project"></a>
+        </td>
+        <td>
+          <a href="https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main"><img src="https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg" alt="pre-commit.ci status"></a><br>
+          <a href="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml"> <img src="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml/badge.svg"></a>
+          <a href='https://coveralls.io/github/philip-ndikum/TemporalScope'><img src='https://coveralls.io/repos/github/philip-ndikum/TemporalScope/badge.svg' alt='Coverage Status' /></a>
+        </td>
+        <td>
+          <a href="https://www.bestpractices.dev/projects/9424"><img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices"></a><br>
+          <a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit"></a>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+---
+
+**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift.  This package is flexible and extensible, supporting frameworks like **Pandas, Polars, Modin, Dask, and PyArrow** via **native Narwhals compatibility**. Additionally, the optional _Clara LLM_ modules (etymology from the word _Clarity_) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase, so some installation methods may not work as expected on all platforms. Please check the `CONTRIBUTIONS.md` for the full roadmap.
 
 
-**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift. The tool is flexible and extensible, allowing for bespoke enhancements and algorithms, and supports frameworks like Pandas, Polars, and Modin. Additionally, the optional *Clara LLM* modules (etymology from the word *Clarity*) are intended to serve as a model-validation tool to support explainability efforts (XAI).
-
-
+<!-- SPHINX-END -->
 
 ### **Table of Contents**
 
@@ -58,25 +95,26 @@
 **Note**: TemporalScope is currently in **beta**, so some installation methods may not work as expected on all platforms.
 
 1. **Basic Installation using pip**: You can install the core package using pip:
-    ```bash
-    $ pip install temporalscope
-    ```
+   ```console
+   $ pip install temporalscope
+   ```
 2. **Installation with conda**: For conda users, install via conda-forge:
-    ```bash
-    $ conda install -c conda-forge temporalscope`
-    ```
+   ```console
+   $ conda install -c conda-forge temporalscope
+   ```
 3. **System-level Dependencies**: To view generated documentation locally, you may need `xdg-open`:
-    ```bash
-    $ sudo apt install xdg-utils`
-    ```
-4. **Git Clone and Setup**: We avoid requiring other system-level dependencies for security reasons. If you prefer the latest development version, clone the repository and use the provided setup script:
-    ```bash
-    $ git clone https://github.com/philip-ndikum/TemporalScope.git
-    $ cd TemporalScope
-    $ ./setup.sh
-    ```
-   This will configure the environment and install all necessary dependencies.
+   ```console
+   $ sudo apt install xdg-utils
+   ```
+4. **Git Clone and Setup**: For security reasons, we minimize system-level dependencies. If you prefer the latest development version, follow these steps to clone the repository and set up the project using Hatch:
 
+   ```console
+   $ git clone https://github.com/philip-ndikum/TemporalScope.git
+   $ cd TemporalScope
+   $ hatch shell
+   ```
+
+   This process clones the repository, navigates to the project directory, and uses Hatch to create and activate a virtual environment with the project installed in development mode.
 
 ## **Usage**
 
@@ -86,8 +124,8 @@ You can use TemporalScope with the following steps:
 2. **Select Backend (Optional)**: TemporalScope defaults to using Pandas as the backend. However, you can specify other backends like Dask, Modin, or CuDF.
 3. **Load Data**: Load your time series data into the `TimeSeriesData` class, specifying the `time_col` and optionally the `id_col`.
 4. **Apply a Feature Importance Method**: TemporalScope defaults to using a Random Forest model from scikit-learn if no model is specified. You can either:
-    - **A. Use a pre-trained model**: Pass a pre-trained model to the method.
-    - **B. Train a Random Forest model within the method**: TemporalScope handles model training and application automatically.
+   - **A. Use a pre-trained model**: Pass a pre-trained model to the method.
+   - **B. Train a Random Forest model within the method**: TemporalScope handles model training and application automatically.
 5. **Analyze and Visualize Results**: Interpret the results to understand how feature importance evolves over time or across different phases.
 
 Now, let's refine the code example using a random forest model and an academic dataset. We'll use the California housing dataset as a simple example since it's well-known and accessible.
@@ -97,7 +135,7 @@ import polars as pl
 import pandas as pd
 from statsmodels.datasets import macrodata
 from temporalscope.core.temporal_data_loader import TimeFrame
-from temporalscope.partition.naive_partitioner import NaivePartitioner
+from temporalscope.partitioning.naive_partitioner import NaivePartitioner
 from temporalscope.core.temporal_model_trainer import TemporalModelTrainer
 
 # 1. Load the dataset using Pandas (or convert to Polars)
@@ -144,15 +182,14 @@ for partition_name, predictions in results.items():
 
 **DISCLAIMER**: The following use cases are provided for academic and informational purposes only. TemporalScope is intended to support research and development in understanding temporal dynamics in feature importance. These examples are not intended as guidance for industrial applications without further validation and expert consultation. The use of TemporalScope in any industrial or production environment is at the user's own risk, and the developers disclaim any liability for such use. Please refer to the [License and Legal Notice](#license-and-legal-notice) for further details.
 
-| **Sector**    | **Use Case**                                                                                  | **Impact**                                                                                         |
-|---------------|-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|
-| **Finance**   | **Quantitative Investing:** Understanding how the importance of financial indicators, such as interest rates or stock volatility, changes across different market cycles.   | Enhances quantitative investment strategies by identifying which indicators are most predictive in various market conditions, thereby improving risk management and investment decisions. |
-| **Healthcare**| **Patient Outcome Prediction:** Tracking how various patient data features, such as age, vital signs, and medical history, contribute to health outcomes at different stages of treatment or disease progression. | Facilitates the creation of personalized treatment plans by identifying critical factors at specific stages, leading to improved patient outcomes and optimized healthcare resources. |
-| **Energy**    | **Load Forecasting:** Analyzing how the importance of variables such as weather conditions, time of day, and historical consumption data evolves in predicting energy demand.   | Improves energy load forecasting by adapting to changing conditions, leading to more efficient energy distribution and reduced operational costs. |
-| **Retail**    | **Customer Behavior Analysis:** Understanding how customer preferences and purchasing behaviors change over time, influenced by factors such as seasonal trends, promotions, and economic conditions. | Enables retailers to optimize inventory management, marketing strategies, and pricing models by identifying the most influential factors driving sales in different periods. |
+| **Sector**     | **Use Case**                                                                                                                                                                                                      | **Impact**                                                                                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Finance**    | **Quantitative Investing:** Understanding how the importance of financial indicators, such as interest rates or stock volatility, changes across different market cycles.                                         | Enhances quantitative investment strategies by identifying which indicators are most predictive in various market conditions, thereby improving risk management and investment decisions. |
+| **Healthcare** | **Patient Outcome Prediction:** Tracking how various patient data features, such as age, vital signs, and medical history, contribute to health outcomes at different stages of treatment or disease progression. | Facilitates the creation of personalized treatment plans by identifying critical factors at specific stages, leading to improved patient outcomes and optimized healthcare resources.     |
+| **Energy**     | **Load Forecasting:** Analyzing how the importance of variables such as weather conditions, time of day, and historical consumption data evolves in predicting energy demand.                                     | Improves energy load forecasting by adapting to changing conditions, leading to more efficient energy distribution and reduced operational costs.                                         |
+| **Retail**     | **Customer Behavior Analysis:** Understanding how customer preferences and purchasing behaviors change over time, influenced by factors such as seasonal trends, promotions, and economic conditions.             | Enables retailers to optimize inventory management, marketing strategies, and pricing models by identifying the most influential factors driving sales in different periods.              |
 
 For more detailed examples from sectors like engineering and other scientific applications, please refer to the [SCIENTIFIC_LITERATURE.md](SCIENTIFIC_LITERATURE.md).
-
 
 ## Development Roadmap & Changelog
 
@@ -160,13 +197,13 @@ For detailed test, security, and deployment workflows as defined by OpenSSF Best
 
 ## **Contributing**
 
-TemporalScope was conceived independently by [Philip Ndikum](https://github.com/philip-ndikum), Serge Ndikum, and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users. We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
+TemporalScope was conceived independently by [Philip Ndikum](https://github.com/philip-ndikum), [Serge Ndikum](https://github.com/serge-ndikum), and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users. We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
 
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
 
 ### **Contributors 💠**
 
-Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+Thanks to these wonderful people:
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -175,6 +212,7 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
   <tbody>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/125715876?v=4&s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/serge-ndikum"><img src="https://avatars.githubusercontent.com/u/180889799?v=4&s=100" width="100px;" alt="Serge Ndikum"/><br /><sub><b>Serge Ndikum</b></sub></a><br /><a href="https://github.com/serge-ndikum" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/kanenorman"><img src="https://avatars.githubusercontent.com/u/51185594?v=4&s=100" width="100px;" alt="Kane Norman"/><br /><sub><b>Kane Norman</b></sub></a><br /><a href="https://github.com/kanenorman" title="Code">💻</a></td>
     </tr>
   </tbody>
@@ -184,12 +222,12 @@ Thanks to these wonderful people ([emoji key](https://allcontributors.org/docs/e
 ## Cite this Project
 
 If you use **TemporalScope** in your research, please consider citing it:
-```
-{
-  @software{ndikum2024temporalscope,
-  author = {Philip Ndikum, Serge Ndikum, Kane Norman},
+
+```bibtex
+@software{ndikum2024temporalscope,
+  author = {Ndikum, Philip and Ndikum, Serge and Norman, Kane},
   title = {TemporalScope: Model-Agnostic Temporal Feature Importance Analysis},
-  year = 2024,
+  year = {2024},
   version = {0.1.0},
   publisher = {GitHub},
   url = {https://github.com/philip-ndikum/TemporalScope}

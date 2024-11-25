@@ -133,7 +133,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import narwhals as nw
 from narwhals.typing import FrameT
-from tabulate import tabulate
+from tabulate import tabulate  # type: ignore
 
 from temporalscope.core.core_utils import SupportedTemporalDataFrame, is_valid_temporal_dataframe
 
@@ -447,7 +447,7 @@ class DatasetValidator:
                     * {column_name}: Number of unique values for each feature
         :rtype: ValidationResult
         """
-        details = {"numeric_feature": True}
+        details: Dict[str, Any] = {"numeric_feature": True}
 
         # Get feature columns
         feature_cols = self._get_feature_columns(df)
@@ -740,7 +740,7 @@ class DatasetValidator:
 
         # Handle zero samples case
         if num_samples == 0:
-            details = {"ratio": float("inf")}
+            details = {"ratio": 0}  # Zero samples means zero ratio# Convert to percentage as int
             msg = "Dataset has zero samples. Cannot calculate feature ratio."
             if self.enable_warnings:
                 warnings.warn(msg)
@@ -760,7 +760,7 @@ class DatasetValidator:
 
         # Step 3: Calculate and validate ratio
         ratio = num_features / num_samples
-        details = {"ratio": ratio}
+        details = {"ratio": ratio}  # type: ignore  # Store actual ratio for validation
 
         if ratio > self.max_feature_ratio:
             msg = (
