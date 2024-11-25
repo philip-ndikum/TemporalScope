@@ -19,30 +19,75 @@
 
 This module defines the TemporalPartitionerProtocol, a protocol for all
 temporal partitioning methods. Each partitioning method must implement
-the required methods to comply with this protocol.
+the required methods to comply with this protocol. Currently, only single-step
+workflows (scalar targets) are supported. Multi-step workflows (sequence targets)
+are planned for future releases, and the protocol is designed to be flexible
+enough to accommodate both modes when multi-step support is added.
+
+Partitioning in Modern Time-Series Analysis:
+--------------------------------------------
+Partitioning is foundational to modern time-series workflows. It ensures computational
+efficiency, robust validation, and interpretable insights. Key use cases include:
+
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Aspect                     | Details                                                                          |
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Temporal Explainability    | Facilitates feature importance analyses by segmenting data for localized         |
+    |                            | SHAP/WindowSHAP metrics.                                                         |
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Robust Evaluation          | Respects temporal ordering in train-test splits, critical for time-series        |
+    |                            | generalization.                                                                  |
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Scalability and Efficiency | Supports sliding windows, expanding windows, and fixed partitions with           |
+    |                            | lazy-loading and backend compatibility for large-scale datasets.                 |
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Workflow Flexibility       | Supports both single-step and multi-step modes, enabling DataFrame operations    |
+    |                            | and deep learning pipelines through flexible data structures.                    |
+    +----------------------------+----------------------------------------------------------------------------------+
 
 Core Functionality:
 -------------------
-1. fit: Must generate the partition indices (row ranges) for the
-   partitions ('train', 'test', 'validation', etc.) in a memory-efficient manner.
-   Implementations should leverage lazy-loading techniques to ensure that
-   large datasets are handled efficiently, minimizing memory usage.
-2. transform: Must use the indices from fit to return the actual partitioned data.
-   This method should apply the calculated indices to retrieve specific data slices,
-   maintaining the efficiency gained from lazy-loading in the fit stage.
-3. check_data: Optional method to perform data validation checks.
+The protocol consists of three main methods. fit and transform are mandatory, while check_data is optional for additional validation.
 
-Each implementing class must provide its own logic for partitioning the data and
-any necessary validation, while adhering to the design principles of lazy-loading
-and memory efficiency.
+    +-------------+----------------------------------------------------------------------------------+--------------+
+    | Method      | Description                                                                      | Required     |
+    +-------------+----------------------------------------------------------------------------------+--------------+
+    | fit         | Generates partition indices (row ranges) for datasets, supporting sliding        | Yes          |
+    |             | windows, fixed-length, or expanding partitions.                                  |              |
+    +-------------+----------------------------------------------------------------------------------+--------------+
+    | transform   | Applies the partition indices to retrieve specific data slices, ensuring         | Yes          |
+    |             | memory-efficient operation.                                                      |              |
+    +-------------+----------------------------------------------------------------------------------+--------------+
+    | check_data  | Validates input data to ensure required columns exist and are non-null.          | No           |
+    |             | Optional since TimeFrame already guarantees clean data.                          |              |
+    +-------------+----------------------------------------------------------------------------------+--------------+
+
+.. seealso::
+
+    1. Nayebi, A., Tipirneni, S., Reddy, C. K., et al. (2024). WindowSHAP: An efficient framework for
+       explaining time-series classifiers based on Shapley values. Journal of Biomedical Informatics.
+       DOI:10.1016/j.jbi.2023.104438.
+    2. Gu, X., See, K. W., Wang, Y., et al. (2021). The sliding window and SHAP theory—an improved system
+       with a long short-term memory network model for state of charge prediction in electric vehicles.
+       Energies, 14(12), 3692. DOI:10.3390/en14123692.
+    3. Van Ness, M., Shen, H., Wang, H., et al. (2023). Cross-Frequency Time Series Meta-Forecasting.
+       arXiv preprint arXiv:2302.02077.
+
+.. note::
+    - Clean Data Guarantee: TimeFrame ensures all data is validated, sorted, and properly typed before partitioning.
+      This includes numeric features, proper time column types, and null value checks.
+    - Workflow Modes: Supports both single-step (scalar targets) and multi-step (sequence targets) modes:
+      - Single-step: Traditional DataFrame operations with scalar targets
+      - Multi-step: Deep learning workflows with sequence targets, potentially using PyTorch/TensorFlow formats
+    - Data Flexibility: While TimeFrame loads data as DataFrames initially, the protocol supports transformation
+      to other formats (tensors, datasets) based on the workflow mode.
+    - Future plans: Support for multi-modal models and advanced workflows is a key design priority, ensuring this protocol
+      remains adaptable to diverse datasets and state-of-the-art methods.
 """
 
 from typing import Any, Dict, Iterator, Protocol, Tuple, Union
 
-import modin.pandas as mpd
-import pandas as pd
-import polars as pl
-
+from temporalscope.core.core_utils import SupportedTemporalDataFrame
 from temporalscope.core.temporal_data_loader import TimeFrame
 
 
@@ -54,10 +99,17 @@ class TemporalPartitionerProtocol(Protocol):
     provide partitioning logic and optionally perform data validation checks, with a
     strong emphasis on memory efficiency through lazy-loading techniques.
 
-    :ivar tf: The `TimeFrame` object containing the pre-sorted time series data to be partitioned.
+    :ivar tf: The `TimeFrame` object containing pre-validated, sorted time series data.
+             TimeFrame guarantees:
+             - All features are numeric (except time column)
+             - Time column is properly typed and sorted
+             - No null values
+             - Metadata preservation regardless of data format
     :vartype tf: TimeFrame
-    :ivar df: The data extracted from the `TimeFrame`.
-    :vartype df: Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]
+    :ivar df: The data to be partitioned. Format depends on the workflow mode:
+             - Single-step mode: Typically DataFrame with scalar targets
+             - Multi-step mode: Could be DataFrame, tensor, or dataset with sequence targets
+    :vartype df: Any
     :ivar enable_warnings: Whether to enable warnings during partition validation.
     :vartype enable_warnings: bool
 
@@ -67,10 +119,13 @@ class TemporalPartitionerProtocol(Protocol):
         partitions are supported, and at least "train" and "test" must be defined
         for logical consistency. To manage large datasets efficiently, implementations
         should focus on generating indices lazily to reduce memory footprint.
+
+        The protocol is designed to be flexible, supporting both DataFrame operations
+        and deep learning workflows through TimeFrame's metadata management.
     """
 
     tf: TimeFrame
-    df: Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]
+    df: Union[SupportedTemporalDataFrame, Any]
     enable_warnings: bool
 
     def fit(
@@ -97,6 +152,10 @@ class TemporalPartitionerProtocol(Protocol):
             Implementations should focus on generating these indices lazily to
             optimize memory usage, particularly with large datasets.
 
+            The data being partitioned is guaranteed to be clean and properly typed
+            by TimeFrame, so implementations can focus on partitioning logic without
+            additional data validation.
+
         :example:
 
             .. code-block:: python
@@ -111,44 +170,57 @@ class TemporalPartitionerProtocol(Protocol):
     def transform(
         self,
     ) -> Union[
-        Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]],
-        Iterator[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]]],
+        Dict[str, Dict[str, Any]],
+        Iterator[Dict[str, Dict[str, Any]]],
     ]:
         """Return the data for each partition.
 
         This method returns the data slices for each partition based on the
-        partition indices generated by the `fit` method.
+        partition indices generated by the `fit` method. The format of the data
+        depends on the workflow mode (single-step vs multi-step).
 
         :return: A dictionary containing the data slices for each partition,
                  or an iterator over them.
-        :rtype: Union[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]],
-                      Iterator[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]]]]
+        :rtype: Union[Dict[str, Dict[str, Any]], Iterator[Dict[str, Dict[str, Any]]]]
 
         .. note::
             This method returns the actual data slices for each partition
             based on the indices generated by `fit`. The returned structure
             mirrors the same dictionary format but contains actual data
-            instead of index ranges. The `transform` method should continue
-            to optimize for memory efficiency by using the pre-calculated
-            lazy indices to access only the necessary data.
+            instead of index ranges.
+
+            The data format depends on the workflow mode:
+            - Single-step: Typically DataFrame slices with scalar targets
+            - Multi-step: Could be DataFrame slices, tensors, or datasets with sequence targets
+
+            TimeFrame maintains metadata (column names, target info) regardless of format.
+
+            The transform method should continue to optimize for memory
+            efficiency by using the pre-calculated lazy indices to access
+            only the necessary data.
 
         :example:
 
             .. code-block:: python
 
+                # Single-step mode (DataFrame example)
                 {
                     "partition_1": {
                         "full": DataFrame(...),
                         "train": DataFrame(...),
                         "test": DataFrame(...),
                         "validation": None,
-                    },
-                    "partition_2": {
-                        "full": DataFrame(...),
-                        "train": DataFrame(...),
-                        "test": DataFrame(...),
+                    }
+                }
+
+                # Multi-step mode (PyTorch example)
+                {
+                    "partition_1": {
+                        "full": TensorDataset(...),
+                        "train": TensorDataset(...),
+                        "test": TensorDataset(...),
                         "validation": None,
-                    },
+                    }
                 }
         """
         pass
@@ -156,8 +228,13 @@ class TemporalPartitionerProtocol(Protocol):
     def check_data(self) -> None:
         """Perform data validation checks.
 
-        Implementing classes must provide their own data validation logic, such as ensuring sample size is sufficient,
-        checking for window overlaps, or validating the feature count.
+        This method is optional since TimeFrame already guarantees clean, validated data.
+        Implementing classes may provide additional validation specific to their partitioning
+        strategy, such as:
+        - Ensuring sufficient sample size for the chosen window/partition sizes
+        - Checking for appropriate window overlaps
+        - Validating feature counts or ratios
+        - Custom domain-specific validation
         """
         pass
 

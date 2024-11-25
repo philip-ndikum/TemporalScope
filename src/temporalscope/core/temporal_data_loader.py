@@ -32,104 +32,69 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""TemporalScope/src/temporalscope/core/temporal_data_loader.py.
+"""TemporalScope/src/temporalscope/partition/base_protocol.py.
 
-This module provides `TimeFrame`, a flexible, universal data loader for time series forecasting, tailored for
-state-of-the-art models, including multi-modal and mixed-frequency approaches. Assuming users employ universal
-models without built-in grouping or ID-based segmentation, `TimeFrame` enables integration with custom
-preprocessing, loss functions, and explainability techniques such as SHAP, LIME, and Boruta-SHAP. TemporalScope
-imposes no engineering constraints, allowing users full flexibility in data preparation and model design.
+This module defines the TemporalPartitionerProtocol, a protocol for all
+temporal partitioning methods. Each partitioning method must implement
+the required methods to comply with this protocol.
 
-Engineering Design
---------------------
+Partitioning in Modern Time-Series Analysis:
+--------------------------------------------
+Partitioning is foundational to modern time-series workflows. It ensures computational
+efficiency, robust validation, and interpretable insights. Key use cases include:
 
-    TemporalScope is designed with several key assumptions to ensure performance, scalability, and flexibility
-    across a wide range of time series forecasting and XAI workflows.
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Aspect                     | Details                                                                          |
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Temporal Explainability    | Facilitates feature importance analyses by segmenting data for localized         |
+    |                            | SHAP/WindowSHAP metrics.                                                         |
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Robust Evaluation          | Respects temporal ordering in train-test splits, critical for time-series        |
+    |                            | generalization.                                                                  |
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Scalability and Efficiency | Supports sliding windows, expanding windows, and fixed partitions with           |
+    |                            | lazy-loading and backend compatibility for large-scale datasets.                 |
+    +----------------------------+----------------------------------------------------------------------------------+
+    | Single vs. Multi-Step      | Single-step targets are supported across backends. Multi-step workflows          |
+    |                            | will require future updates to handle vectorized targets efficiently.            |
+    +----------------------------+----------------------------------------------------------------------------------+
 
-    1. Preprocessed Data Assumption:
-       TemporalScope assumes that the user provides clean, preprocessed data. This includes handling categorical
-       encoding, missing data imputation, and feature scaling prior to using TemporalScope's partitioning and explainability
-       methods. Similar assumptions are seen in popular packages such as TensorFlow and GluonTS, which expect the
-       user to manage data preprocessing outside of the core workflow.
+Core Functionality:
+-------------------
+The protocol consists of three main methods. fit and transform are mandatory, while check_data is optional for additional validation.
 
-    2. Time Column Constraints:
-       The `time_col` must be either a numeric index or a timestamp. TemporalScope relies on this temporal ordering for
-       key operations like sliding window partitioning and temporal explainability workflows (e.g., SHAP).
-
-    3. Numeric Features Requirement:
-       Aside from the `time_col`, all other features in the dataset must be numeric. This ensures compatibility with machine
-       learning and deep learning models that require numeric inputs. As seen in frameworks like TensorFlow, users are expected
-       to preprocess categorical features (e.g., one-hot encoding or embeddings) before applying modeling or partitioning algorithms.
-
-    4. Universal Model Assumption:
-       TemporalScope is designed with the assumption that models trained will operate on the entire dataset without
-       automatically applying hidden groupings or segmentations (e.g., for mixed-frequency data). This ensures that users
-       can leverage frameworks like SHAP, Boruta-SHAP, and LIME for model-agnostic explainability without limitations.
-
-    5. Supported Data Modes:
-
-       TemporalScope also integrates seamlessly with model-agnostic explainability techniques like SHAP, LIME, and
-       Boruta-SHAP, allowing insights to be extracted from most machine learning and deep learning models.
-
-       The following table illustrates the two primary modes supported by TemporalScope and their typical use cases:
-
-       +--------------------+----------------------------------------------------+--------------------------------------------+
-       | **Mode**           | **Description**                                    | **Compatible Frameworks**                  |
-       +--------------------+----------------------------------------------------+--------------------------------------------+
-       | Single-step mode   | Suitable for scalar target machine learning tasks. | Scikit-learn, XGBoost, LightGBM, SHAP      |
-       |                    | Each row represents a single time step.            | TensorFlow (for standard regression tasks) |
-       +--------------------+----------------------------------------------------+--------------------------------------------+
-       | Multi-step mode    | Suitable for deep learning tasks like sequence     | TensorFlow, PyTorch, Keras, SHAP, LIME     |
-       |                    | forecasting. Input sequences (`X`) and output      | (for seq2seq models, sequence forecasting) |
-       |                    | sequences (`Y`) are handled as separate datasets.  |                                            |
-       +--------------------+----------------------------------------------------+--------------------------------------------+
-
-       These modes follow standard assumptions in time series forecasting libraries, allowing for seamless integration
-       with different models while requiring the user to manage their own data preprocessing.
-
-    By enforcing these constraints, TemporalScope focuses on its core purpose—time series partitioning, explainability,
-    and scalability—while leaving more general preprocessing tasks to the user. This follows industry standards seen in
-    popular time series libraries.
+    +-------------+----------------------------------------------------------------------------------+--------------+
+    | Method      | Description                                                                      | Required     |
+    +-------------+----------------------------------------------------------------------------------+--------------+
+    | fit         | Generates partition indices (row ranges) for datasets, supporting sliding        | Yes          |
+    |             | windows, fixed-length, or expanding partitions.                                  |              |
+    +-------------+----------------------------------------------------------------------------------+--------------+
+    | transform   | Applies the partition indices to retrieve specific data slices, ensuring         | Yes          |
+    |             | memory-efficient operation.                                                      |              |
+    +-------------+----------------------------------------------------------------------------------+--------------+
+    | check_data  | Validates input data to ensure required columns exist and are non-null.          | No           |
+    |             | Optional for flexibility.                                                        |              |
+    +-------------+----------------------------------------------------------------------------------+--------------+
 
 .. seealso::
 
-    1. Van Ness, M., Shen, H., Wang, H., Jin, X., Maddix, D.C., & Gopalswamy, K.
-       (2023). Cross-Frequency Time Series Meta-Forecasting. arXiv preprint
-       arXiv:2302.02077.
-
-    2. Woo, G., Liu, C., Kumar, A., Xiong, C., Savarese, S., & Sahoo, D. (2024).
-       Unified training of universal time series forecasting transformers. arXiv
-       preprint arXiv:2402.02592.
-
-    3. Trirat, P., Shin, Y., Kang, J., Nam, Y., Bae, M., Kim, J., Kim, B., &
-       Lee, J.-G. (2024). Universal time-series representation learning: A survey.
-       arXiv preprint arXiv:2401.03717.
-
-    4. Xu, Q., Zhuo, X., Jiang, C., & Liu, Y. (2019). An artificial neural network
-       for mixed frequency data. Expert Systems with Applications, 118, pp.127-139.
-
-    5. Filho, L.L., de Oliveira Werneck, R., Castro, M., Ribeiro Mendes Júnior, P.,
-       Lustosa, A., Zampieri, M., Linares, O., Moura, R., Morais, E., Amaral, M., &
-       Salavati, S. (2024). A multi-modal approach for mixed-frequency time series
-       forecasting. Neural Computing and Applications, pp.1-25.
+    1. Nayebi, A., Tipirneni, S., Reddy, C. K., et al. (2024). WindowSHAP: An efficient framework for
+       explaining time-series classifiers based on Shapley values. Journal of Biomedical Informatics.
+       DOI:10.1016/j.jbi.2023.104438.
+    2. Gu, X., See, K. W., Wang, Y., et al. (2021). The sliding window and SHAP theory—an improved system
+       with a long short-term memory network model for state of charge prediction in electric vehicles.
+       Energies, 14(12), 3692. DOI:10.3390/en14123692.
+    3. Van Ness, M., Shen, H., Wang, H., et al. (2023). Cross-Frequency Time Series Meta-Forecasting.
+       arXiv preprint arXiv:2302.02077.
 
 .. note::
-
-    - **Multi-Step Mode Limitation**: Multi-step mode is currently not implemented due to limitations across
-      DataFrames like Modin and Polars, which do not natively support vectorized (sequence-based) targets within a single cell.
-      A future interoperability layer is planned to convert multi-step datasets into compatible formats, such as TensorFlow's
-      `tf.data.Dataset`, or to flatten target sequences for these backends.
-    - **Single-Step Mode Support**: With Narwhals as the backend-agnostic layer, all Narwhals-supported backends (Pandas, Modin, Polars)
-      support single-step mode without requiring additional adjustments, ensuring compatibility with workflows using scalar target variables.
-    - **Recommendation**: For current multi-step workflows, Pandas is recommended as it best supports the necessary data structures.
-      Future releases will include interoperability enhancements to manage vectorized targets across all supported backends.
-
-.. seealso::
-
-   - Narwhals documentation: https://narwhals.readthedocs.io/
-   - SHAP documentation: https://shap.readthedocs.io/
-   - Boruta-SHAP documentation: https://github.com/Ekeany/Boruta-Shap
-   - LIME documentation: https://lime-ml.readthedocs.io/
+    - Single-step mode: Fully supported across Narwhals-backed frameworks (e.g., Pandas, Polars, Modin) for workflows
+      with scalar targets.
+    - Multi-step mode: Currently not implemented due to limitations in handling vectorized (sequence-based)
+      targets within a single cell across frameworks like Modin and Polars. Future updates will introduce interoperability
+      layers for handling such targets in frameworks like TensorFlow (tf.data.Dataset) or flattening them for compatibility.
+    - Future plans: Support for multi-modal models and advanced workflows is a key design priority, ensuring this protocol
+      remains adaptable to diverse datasets and state-of-the-art methods.
 """
 
 from datetime import datetime
