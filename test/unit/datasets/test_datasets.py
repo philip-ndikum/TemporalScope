@@ -26,7 +26,6 @@ import pytest
 
 from temporalscope.core.core_utils import (
     TEMPORALSCOPE_CORE_BACKEND_TYPES,
-    convert_to_backend,
     is_valid_temporal_backend,
 )
 from temporalscope.core.exceptions import UnsupportedBackendError
