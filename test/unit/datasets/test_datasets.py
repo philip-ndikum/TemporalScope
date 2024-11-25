@@ -66,6 +66,18 @@ def test_load_dataset_structure(dataset_loader):
     assert pd.api.types.is_datetime64_any_dtype(df["ds"])
 
 
+def test_load_macrodata_none_data(mocker):
+    """Test that _load_macrodata raises ValueError when macrodata.load_pandas().data is None."""
+    # Mock macrodata.load_pandas() to return an object with data=None
+    mock_load = mocker.patch("statsmodels.datasets.macrodata.load_pandas")
+    mock_load.return_value = mocker.Mock(data=None)
+
+    # Create loader and attempt to load data
+    loader = DatasetLoader("macrodata")
+    with pytest.raises(ValueError, match="Failed to load macrodata dataset"):
+        loader._load_dataset_and_target()
+
+
 # ========================= Backend Validation Tests =========================
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
 def test_valid_backends_with_load_data(dataset_loader, backend):
@@ -80,11 +92,3 @@ def test_invalid_backend_raises_error(dataset_loader):
     """Test that using an invalid backend raises an UnsupportedBackendError."""
     with pytest.raises(UnsupportedBackendError, match="is not supported"):
         dataset_loader.load_data(backend=INVALID_BACKEND)
-
-
-def test_load_data_with_backend_conversion(mocker, dataset_loader):
-    """Test load_data conversion by mocking convert_to_backend function."""
-    mocker.patch("temporalscope.core.core_utils.convert_to_backend", side_effect=convert_to_backend)
-    backend = "pandas"
-    data = dataset_loader.load_data(backend=backend)
-    assert isinstance(data, pd.DataFrame)

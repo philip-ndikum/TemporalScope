@@ -738,6 +738,14 @@ class DatasetValidator:
             value = value.as_py()
         num_samples = int(value)
 
+        # Handle zero samples case
+        if num_samples == 0:
+            details = {"ratio": float("inf")}
+            msg = "Dataset has zero samples. Cannot calculate feature ratio."
+            if self.enable_warnings:
+                warnings.warn(msg)
+            return ValidationResult(False, msg, details)
+
         # Step 2: Get feature columns using _get_feature_columns
         feature_cols = self._get_feature_columns(df)
         num_features = len(feature_cols)
@@ -785,22 +793,10 @@ class DatasetValidator:
     def fit(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> "DatasetValidator":
         """Validate input DataFrame and prepare for validation checks.
 
-        This method ensures the input DataFrame is compatible with Narwhals operations,
-        which is essential for validation in production pipelines. It performs basic validation:
+        This method ensures the input DataFrame meets basic validation requirements:
 
-        1. DataFrame Type:
-        - Validates DataFrame is Narwhals-compatible
-        - Ensures proper backend support
-
-        2. Column Validation:
-        - Verifies time_col and target_col exist
-        - Ensures all columns except time_col are numeric
-        - Checks for null values in any column
-
-        3. Pipeline Integration:
-        - Supports automated validation in workflows
-        - Enables quality gates in production pipelines
-        - Facilitates monitoring and alerting
+        1. Validates DataFrame type and required columns
+        2. Ensures numeric columns and checks for null values
 
         :param df: DataFrame to validate
         :type df: Union[SupportedTemporalDataFrame, FrameT]
@@ -812,48 +808,57 @@ class DatasetValidator:
         Example:
         -------
         .. code-block:: python
-
-            import narwhals as nw
-            from temporalscope.datasets import DatasetValidator
-
-
-            @nw.narwhalify
-            def prepare_data(df):
-                return df
-
-
-            # Create validator with custom thresholds
-            validator = DatasetValidator(time_col="timestamp", target_col="value", min_samples=1000)
-
-            # Validate input DataFrame
-            validator.fit(prepare_data(df))
-
-        .. note::
-            - Input must be a Narwhals-compatible DataFrame
-            - Use @nw.narwhalify to ensure DataFrame compatibility
-            - Supports integration with data pipelines
-            - Validates numeric requirements for ML/DL compatibility
+            validator = DatasetValidator(time_col="time", target_col="target")
+            validator.fit(df)
 
         """
-        # Step 1: Validate DataFrame type
-        is_valid, _ = is_valid_temporal_dataframe(df)
+
+        @nw.narwhalify
+        def validate_numeric(df: Union[SupportedTemporalDataFrame, FrameT]) -> FrameT:
+            """Validate that all columns except time are numeric."""
+            for col in df.columns:
+                if col != self.time_col:
+                    try:
+                        df.select([nw.col(col).cast(nw.Float64)])
+                    except Exception as e:
+                        raise ValueError(f"Column {col} must be numeric. Error: {str(e)}")
+            return df
+
+        @nw.narwhalify
+        def check_nulls(df: Union[SupportedTemporalDataFrame, FrameT], columns: List[str]) -> Dict[str, int]:
+            """Check for null values in specified columns."""
+            null_counts = {}
+            for col in columns:
+                null_count = df.select([nw.col(col).is_null().sum().cast(nw.Int64).alias("nulls")])
+                if hasattr(null_count, "collect"):
+                    null_count = null_count.collect()
+                value = null_count["nulls"][0]
+                if hasattr(value, "as_py"):
+                    value = value.as_py()
+                null_counts[col] = int(value)
+            return null_counts
+
+        # Step 1: Validate DataFrame type using core_utils
+        is_valid, df_type = is_valid_temporal_dataframe(df)
         if not is_valid:
             raise TypeError("Input must be a valid temporal DataFrame")
 
-        # Step 2: Validate required columns exist
-        if self.time_col not in df.columns or self.target_col not in df.columns:
+        # Step 2: Get column names based on DataFrame type
+        cols = df.column_names if hasattr(df, "column_names") else df.columns
+        if hasattr(cols, "collect"):
+            cols = cols.collect()
+        if hasattr(cols, "to_list"):
+            cols = cols.to_list()
+
+        # Step 3: Validate required columns exist
+        if self.time_col not in cols or self.target_col not in cols:
             raise ValueError(f"Columns {self.time_col} and {self.target_col} must exist")
 
-        # Step 3: Validate numeric (except time)
-        for col in df.columns:
-            if col != self.time_col:
-                try:
-                    df.select([nw.col(col).cast(nw.Float64)])
-                except Exception as e:
-                    raise ValueError(f"Column {col} must be numeric. Error: {str(e)}")
+        # Step 4: Validate numeric columns
+        validate_numeric(df)
 
-        # Step 4: Check nulls
-        null_counts = self._check_nulls(df, df.columns)
+        # Step 5: Check nulls
+        null_counts = check_nulls(df, cols)
         null_columns = [col for col, count in null_counts.items() if count > 0]
         if null_columns:
             raise ValueError(f"Missing values detected in columns: {', '.join(null_columns)}")
