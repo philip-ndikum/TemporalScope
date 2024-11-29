@@ -62,7 +62,7 @@ from temporalscope.core.core_utils import (
     get_temporalscope_backends,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
-from temporalscope.partition.padding.validation import check_for_nulls_nans
+from temporalscope.partition.single_target.utils import check_for_nulls_nans
 
 
 @pytest.fixture(params=get_temporalscope_backends())

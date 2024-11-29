@@ -15,33 +15,91 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""TemporalScope/temporalscope/partitioning/sliding_window.py.
+"""TemporalScope/src/temporalscope/partition/single_target/sliding_window.py
 
-This module defines the SlidingWindowPartitioner class, a specific implementation of the
-TemporalPartitionerProtocol for creating contiguous, non-overlapping partitions using a sliding window mechanism.
+This module defines the SlidingWindowPartitioner class, a specific implementation
+of the TemporalPartitionerProtocol for creating contiguous, non-overlapping
+partitions using a sliding window mechanism.
 
-Core Functionality:
+The SlidingWindowPartitioner divides a dataset into non-overlapping partitions
+using a fixed window size and optional stride. The stride determines how far to
+move between the starting points of consecutive partitions, which can introduce
+gaps between them. Each partition can be further split into train, test, and
+validation sets.
+
+This class utilizes the generator pattern for memory efficiency, yielding
+partition indices and data slices one at a time. The `SlidingWindowPartitioner`
+is intended for universal models, which assume flat partitioning across all
+entities. Users are responsible for preprocessing steps such as deduplication or
+transforming `time_col` to numerical features.
+
+Engineering Design:
 -------------------
-The SlidingWindowPartitioner divides a dataset into non-overlapping partitions using a fixed window size and
-optional stride. The stride determines how far to move between the starting points of consecutive partitions,
-which can introduce gaps between them. Each partition can be further split into train, test, and validation sets.
 
-This class utilizes the generator pattern for memory efficiency, yielding partition indices and data slices one at a time.
++-------------------------+-------------------------------------------------------+
+| Aspect                  | Description                                           |
++-------------------------+-------------------------------------------------------+
+| Partial Temporal        | Follows a universal model design; allows overlapping  |
+| Ordering                | labels within partitions while leaving strict         |
+|                         | temporal ordering to the user.                        |
++-------------------------+-------------------------------------------------------+
+| Narwhals API            | Leverages Narwhals backend for efficient operations.  |
+|                         | Users can switch between supported backends (e.g.,    |
+|                         | Pandas, Polars, Modin) using core_utils.              |
++-------------------------+-------------------------------------------------------+
+| Dataset Accessibility   | Inspired by Dask and TensorFlow design. Provides      |
+|                         | hierarchical access via `partitions[index]["train"]`, |
+|                         | `test`, `validation`, or `full` labels.               |
++-------------------------+-------------------------------------------------------+
+| Lazy/Eager Execution    | Narwhals backend supports lazy/eager evaluation;      |
+|                         | generator pattern ensures memory-efficient `fit` and  |
+|                         | `transform` operations.                               |
++-------------------------+-------------------------------------------------------+
+| Human-Centric Design    | Combines human-readable labels (`train`, `test`) with |
+|                         | indexing for scalable workflows, reducing cognitive   |
+|                         | overhead when handling large numbers of partitions.   |
++-------------------------+-------------------------------------------------------+
+| Padding Control         | Leaves padding decisions (e.g., zero-padding) to      |
+|                         | users while allowing configurable truncation.         |
++-------------------------+-------------------------------------------------------+
 
-The `SlidingWindowPartitioner` is intended for universal models, which assume flat partitioning across all entities.
-Users are responsible for preprocessing steps such as deduplication or transforming `time_col` to numerical features.
+.. note::
+
+Visualization:
+--------------
+The table below illustrates how the sliding window mechanism works with overlapping
+partitions. Each "X" represents a row included in the respective partition, based on
+the configured window size and stride.
+
+| Time         | Partition 1 | Partition 2 | Partition 3 | Partition 4 | Partition 5 |
+|--------------|-------------|-------------|-------------|-------------|-------------|
+| 2021-01-01   | X           |             |             |             |             |
+| 2021-01-02   | X           | X           |             |             |             |
+| 2021-01-03   |             | X           | X           |             |             |
+| 2021-01-04   |             |             | X           | X           |             |
+| 2021-01-05   |             |             |             | X           | X           |
+| 2021-01-06   |             |             |             |             | X           |
 
 .. seealso::
 
-    1. Gu, X., See, K.W., Wang, Y., Zhao, L. and Pu, W., 2021. The sliding window and SHAP theory—an improved system with a long short-term memory network model for state of charge prediction in electric vehicle application. Energies, 14(12), p.3692.
-    2. Pham, N.T., Nguyen, S.D., Nguyen, V.S.T., Pham, B.N.H. and Dang, D.N.M., 2023. Speech emotion recognition using overlapping sliding window and Shapley additive explainable deep neural network. Journal of Information and Telecommunication, 7(3), pp.317-335.
-    3. Van Zyl, C., Ye, X. and Naidoo, R., 2024. Harnessing eXplainable artificial intelligence for feature selection in time series energy forecasting: A comparative analysis of Grad-CAM and SHAP. Applied Energy, 353, p.122079.
-    4. Bi, Y., Xiang, D., Ge, Z., Li, F., Jia, C. and Song, J., 2020. An interpretable prediction model for identifying N7-methylguanosine sites based on XGBoost and SHAP. Molecular Therapy-Nucleic Acids, 22, pp.362-372.
-    5. Zimmermann, B. and Boussard, M., 2022, May. Improving drift detection by monitoring shapley loss values. In International Conference on Pattern Recognition and Artificial Intelligence (pp. 455-466). Cham: Springer International Publishing.
-    6. Li, B., Balestra, C. and Müller, E., 2022. Enabling the visualization of distributional shift using shapley values. In NeurIPS 2022 Workshop on Distribution Shifts: Connecting Methods and Applications.
-    7. Seiffer, C., Ziekow, H., Schreier, U. and Gerling, A., 2021. Detection of concept drift in manufacturing data with SHAP values to improve error prediction. DATA ANALYTICS, pp.3-7.
-    8. Haug, J., Braun, A., Zürn, S. and Kasneci, G., 2022, October. Change detection for local explainability in evolving data streams. In Proceedings of the 31st ACM International Conference on Information & Knowledge Management (pp. 706-716).]
-    9. Zhao, D. and Koh, Y.S., 2020. Feature drift detection in evolving data streams. In Database and Expert Systems Applications: 31st International Conference, DEXA 2020, Bratislava, Slovakia, September 14–17, 2020, Proceedings, Part II 31 (pp. 335-349). Springer International Publishing.
+    1. Gu et al., 2021. The sliding window and SHAP theory applied to long
+       short-term memory networks for state of charge prediction.
+    2. Pham et al., 2023. Speech emotion recognition using overlapping sliding
+       window and explainable neural networks.
+    3. Van Zyl et al., 2024. Explainable AI for feature selection in time series
+       energy forecasting with Grad-CAM and SHAP.
+    4. Bi et al., 2020. Prediction model for identifying methylation sites with
+       XGBoost and SHAP explainability.
+    5. Zimmermann et al., 2022. Improving drift detection by monitoring SHAP
+       loss values in pattern recognition workflows.
+    6. Li et al., 2022. Visualizing distributional shifts using SHAP in machine
+       learning models.
+    7. Seiffer et al., 2021. Concept drift detection in manufacturing data with
+       SHAP for error prediction improvement.
+    8. Haug et al., 2022. Change detection for local explainability in evolving
+       data streams.
+    9. Zhao et al., 2020. Feature drift detection in evolving data streams with
+       database applications.
 """
 
 from temporalscope.partition.base_protocol import TemporalPartitionerProtocol
@@ -51,86 +109,66 @@ PRECISION = 1e-6
 
 
 class SlidingWindowPartitioner(TemporalPartitionerProtocol):
-    """Sliding Window Partitioner for dividing time series data into contiguous, non-overlapping partitions.
+    """Partition time series data into contiguous, non-overlapping windows.
 
-    This class splits a dataset into partitions using either a specified `window_size` or a calculated `window_size`
-    based on the desired `num_partitions`. Users can define a stride to introduce gaps between consecutive partitions.
-    Each partition can be further divided into train, test, and validation sets based on provided percentages.
+    The `SlidingWindowPartitioner` divides a dataset into partitions of a fixed `window_size`
+    with an optional `stride` to introduce gaps or overlaps. Each partition is further split
+    into train, test, and validation subsets based on user-defined percentages.
 
-    This class supports workflows for both machine learning (ML) and deep learning (DL) models. For ML, truncation or
-    varying window sizes may be acceptable. However, in DL pipelines (e.g., TensorFlow, PyTorch, JAX), padding is often
-    required to ensure uniform input shapes across batches, making the `truncate` parameter and padding behavior critical.
+    This class operates on a global dataset level, preserving temporal order without grouping
+    by entities. It assumes preprocessed data and integrates seamlessly with the `TimeFrame`
+    class for compatibility with various backends and workflows.
 
-    The partitioning occurs globally across the entire dataset, maintaining the temporal order without grouping by entity.
-    This design ensures compatibility with universal models, where the entire dataset is treated as a single unit for
-    partitioning, aligning with the flexibility of the `TimeFrame` class. Users are responsible for any necessary preprocessing
-    (e.g., deduplication or transformation of `time_col`).
+    Key Features:
+    -------------
+    - Preserves **weak temporal ordering**, allowing for duplicate entities or mixed-frequency
+      time columns. This design ensures flexibility for advanced workflows while leaving
+      strict sorting decisions to the user.
+    - Configurable `window_size` and `stride` for flexible partitioning.
+    - Supports train, test, and optional validation splits within each partition.
+    - Lazy-loading with `fit` and `transform` methods for memory efficiency.
+    - Designed for single-target, DataFrame-centric workflows.
 
-    Assumptions:
-    ------------
-    - `train_pct` must be specified.
-    - `test_pct` is optional, and if not provided, the remaining percentage after `train_pct` will implicitly be assigned to `test_pct`.
-    - `val_pct` is also optional, and if provided, the sum of `train_pct`, `test_pct`, and `val_pct` must equal 1.0.
-    - The total of `train_pct`, `test_pct`, and `val_pct` must sum to 1.0 exactly.
-    - Partitioning occurs globally across the dataset, and users are responsible for preprocessing, such as deduplication
-      or transformation of `time_col`.
-
-    The class uses a generator pattern for `fit` and `transform` methods to yield partition indices and data slices
-    one at a time, promoting memory efficiency and lazy loading.
-
-    :param tf: The TimeFrame object containing the data to be partitioned.
+    :param tf: The `TimeFrame` object containing validated and sorted time series data.
     :type tf: TimeFrame
-    :param num_partitions: The desired number of partitions to create. If `window_size` is specified, this is ignored.
-    :type num_partitions: Optional[int]
-    :param window_size: The size of each partition (number of rows). If specified, it takes precedence over `num_partitions`.
+    :param window_size: Number of rows in each partition. Required unless `num_partitions` is provided.
     :type window_size: Optional[int]
-    :param stride: The number of rows to skip between the start points of consecutive partitions.
-                   A stride larger than the window size creates gaps, while a stride equal to the window size results in no gaps.
-    :type stride: int
-    :param reverse: Whether the sliding window should move in reverse (from the end to the start of the dataset).
-                    If set to True, the window slides in reverse; if False (default), it slides forward.
-    :type reverse: bool
-    :param truncate: Whether to truncate the last partition if its size is smaller than the window size.
-                     Note: For deep learning models, truncation can lead to varying input sizes and should be avoided.
-    :type truncate: bool
-    :param train_pct: Percentage of data allocated for training within each partition. Must be provided.
+    :param stride: Number of rows to skip between consecutive partitions. Default is equal to `window_size`.
+    :type stride: int, optional
+    :param train_pct: Fraction of each partition allocated for training. Required.
     :type train_pct: float
-    :param test_pct: Percentage of data allocated for testing within each partition. Optional.
+    :param test_pct: Fraction allocated for testing. Defaults to remaining data after training.
     :type test_pct: Optional[float]
-    :param val_pct: Optional percentage of data allocated for validation within each partition. If provided, the sum of `train_pct`,
-                    `test_pct`, and `val_pct` must equal 1.0.
+    :param val_pct: Fraction allocated for validation. Defaults to zero.
     :type val_pct: Optional[float]
-    :param enable_warnings: Enable warnings for uneven partition sizes.
-    :type enable_warnings: bool
-    :param verbose: If set to True, print partitioning details.
-    :type verbose: bool
+    :param truncate: Whether to truncate the last partition if it is smaller than `window_size`.
+    :type truncate: bool, optional
+    :param verbose: Print partitioning details if True. Default is False.
+    :type verbose: bool, optional
 
     :raises ValueError:
-        - If neither `window_size` nor `num_partitions` is provided or valid.
-        - If `stride` is not a positive integer.
-        - If `train_pct`, `test_pct`, or `val_pct` are not within the range [0, 1].
-        - If `train_pct`, `test_pct`, and `val_pct` do not sum to 1.0.
-        - If the dataset cannot be sorted or retrieved properly from the TimeFrame.
-        - If any required data is missing or invalid during the partitioning process.
+        - If `window_size` or `num_partitions` is invalid.
+        - If train, test, and validation percentages do not sum to 1.0.
+        - If `stride` is not positive or if required data is missing.
 
     Example Usage:
     --------------
     .. code-block:: python
 
-        import pandas as pd
         from temporalscope.core.temporal_data_loader import TimeFrame
         from temporalscope.partition.sliding_window import SlidingWindowPartitioner
 
-        # Create a sample dataset using Pandas
-        data_df = pd.DataFrame({"time": pd.date_range(start="2021-01-01", periods=6, freq="D"), "value": range(6)})
-
-        # Create a TimeFrame object
-        data_tf = TimeFrame(data_df, time_col="time", target_col="value", backend="pd")
-
-        # Create a SlidingWindowPartitioner with window_size=2 and stride=1
-        partitioner = SlidingWindowPartitioner(
-            tf=data_tf, window_size=2, stride=1, truncate=True, train_pct=0.7, test_pct=0.3
+        # Create a sample dataset
+        data_df = pd.DataFrame(
+            {
+                "time": pd.date_range(start="2021-01-01", periods=6, freq="D"),
+                "value": range(6),
+            }
         )
+        data_tf = TimeFrame(data_df, time_col="time", target_col="value")
+
+        # Initialize partitioner
+        partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=2, stride=1, train_pct=0.7, test_pct=0.3)
 
         # Iterate over partition indices
         for partition in partitioner.fit():
@@ -139,45 +177,6 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         # Iterate over data slices for each partition
         for partition_data in partitioner.transform():
             print(partition_data)
-
-    Visualization:
-    --------------
-    .. note::
-
-       Here's a conceptual 2D visualization of how the sliding window and stride work with a `time_col`:
-
-       .. code-block:: text
-
-           time        value
-           -------     ------
-           2021-01-01   0
-           2021-01-02   1
-           2021-01-03   2
-           2021-01-04   3
-           2021-01-05   4
-           2021-01-06   5
-
-       Partitioning with `window_size=2` and `stride=1`:
-
-       - First partition:
-           time        value
-           -------     ------
-           2021-01-01   0
-           2021-01-02   1
-
-       - Second partition:
-           time        value
-           -------     ------
-           2021-01-02   1
-           2021-01-03   2
-
-       - Third partition:
-           time        value
-           -------     ------
-           2021-01-03   2
-           2021-01-04   3
-
-       The sliding window moves across the entire dataset, maintaining the temporal order within each partition.
     """
 
     # DEFAULT_PAD_SCHEME = "forward_fill"  # Define the default padding scheme
