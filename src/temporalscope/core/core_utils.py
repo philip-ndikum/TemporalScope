@@ -194,7 +194,7 @@ import warnings
 from importlib import util
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
-import dask.dataframe as dd  # Import dask.dataframe as dd again
+import dask.dataframe as dd
 import modin.pandas as mpd
 
 # Narwhals Imports
@@ -550,3 +550,38 @@ def convert_to_backend(
 
     except Exception as e:
         raise UnsupportedBackendError(f"Failed to convert DataFrame: {str(e)}")
+
+
+@nw.narwhalify
+def is_lazy_evaluation(df: SupportedTemporalDataFrame) -> bool:
+    """Check if DataFrame uses lazy evaluation.
+
+    :param df: DataFrame to check evaluation mode
+    :type df: SupportedTemporalDataFrame
+    :return: True if DataFrame uses lazy evaluation, False otherwise
+    :rtype: bool
+
+    Example:
+    -------
+    .. code-block:: python
+
+        import narwhals as nw
+        from temporalscope.core.core_utils import is_lazy_evaluation
+
+        df = nw.from_native(data)
+        if is_lazy_evaluation(df):
+            # Handle lazy evaluation path
+            result = df.select([...])  # Maintain lazy evaluation
+        else:
+            # Handle eager evaluation path
+            result = df.select([...])  # Direct computation ok
+
+    .. note::
+        Identifies whether a DataFrame uses lazy evaluation:
+        - Lazy execution: dask, polars lazy
+        - Eager execution: pandas, polars eager
+        - Used to maintain consistent evaluation modes across operations
+
+    """
+    df_native = df.to_native()
+    return hasattr(df_native, "compute") or hasattr(df_native, "collect")

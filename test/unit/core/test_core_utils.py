@@ -41,6 +41,7 @@ from temporalscope.core.core_utils import (
     get_default_backend_cfg,
     get_narwhals_backends,
     get_temporalscope_backends,
+    is_lazy_evaluation,
     is_valid_temporal_backend,
     is_valid_temporal_dataframe,
     print_divider,
@@ -482,3 +483,76 @@ def test_get_dataframe_backend_broken():
     df = BrokenDataFrame()
     with pytest.raises(UnsupportedBackendError, match="Unknown DataFrame type"):
         get_dataframe_backend(df)
+
+
+def test_convert_to_backend_invalid_type_no_to_pandas():
+    """Test convert_to_backend with invalid type that doesn't have to_pandas."""
+
+    class InvalidDataFrame:
+        def __init__(self):
+            pass
+
+        @property
+        def __class__(self):
+            # Force df_type to be None in is_valid_temporal_dataframe
+            raise Exception("Simulated error")
+
+    df = InvalidDataFrame()
+    with pytest.raises(UnsupportedBackendError, match="Input DataFrame type 'InvalidDataFrame' is not supported"):
+        convert_to_backend(df, "pandas")
+
+
+def test_get_dataframe_backend_valid_but_unknown():
+    """Test get_dataframe_backend with DataFrame that's valid but doesn't match known backends."""
+
+    class CustomDataFrame:
+        def __init__(self):
+            self._df = pd.DataFrame({"col": [1, 2, 3]})
+
+        def to_pandas(self):
+            return self._df
+
+        @property
+        def __class__(self):
+            # Make it look like a valid DataFrame by using a known module path
+            class_mock = type("DataFrame", (), {"__module__": "pandas.core.frame"})
+            return class_mock
+
+        def __getattr__(self, name):
+            # Prevent isinstance checks from returning True
+            if name == "__class__":
+                class_mock = type("NotDataFrame", (), {})
+                return class_mock
+            return getattr(self._df, name)
+
+    df = CustomDataFrame()
+    # This DataFrame will pass is_valid_temporal_dataframe but fail all isinstance checks
+    with pytest.raises(UnsupportedBackendError, match="Unknown DataFrame type"):
+        get_dataframe_backend(df)
+
+
+# ========================= Tests for is_lazy_evaluation =========================
+
+
+def test_is_lazy_evaluation_dask(synthetic_df, request):
+    """Test lazy evaluation detection for dask backend."""
+    if request.node.callspec.params["synthetic_df"] == "dask":
+        assert is_lazy_evaluation(synthetic_df), "Expected dask DataFrame to use lazy evaluation"
+
+
+def test_is_lazy_evaluation_polars_lazy(synthetic_df, request):
+    """Test lazy evaluation detection for polars lazy backend."""
+    if request.node.callspec.params["synthetic_df"] == "polars-lazy":
+        assert is_lazy_evaluation(synthetic_df), "Expected polars lazy DataFrame to use lazy evaluation"
+
+
+def test_is_lazy_evaluation_eager(synthetic_df, request):
+    """Test lazy evaluation detection for eager backends."""
+    backend = request.node.callspec.params["synthetic_df"]
+    if backend not in ["dask", "polars-lazy"]:
+        assert not is_lazy_evaluation(synthetic_df), f"Expected {backend} DataFrame to use eager evaluation"
+
+
+def test_is_lazy_evaluation_narwhalified(narwhalified_df):
+    """Test lazy evaluation detection for narwhalified DataFrame."""
+    assert not is_lazy_evaluation(narwhalified_df), "Expected narwhalified DataFrame to use eager evaluation"

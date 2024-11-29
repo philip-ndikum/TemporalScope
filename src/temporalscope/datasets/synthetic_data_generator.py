@@ -102,6 +102,86 @@ import pandas as pd
 
 from temporalscope.core.core_utils import SupportedTemporalDataFrame, convert_to_backend, is_valid_temporal_backend
 
+# Set random seed for reproducibility for unit tests
+RANDOM_SEED = 100
+
+
+def _apply_nulls_nans_single_row(df: pd.DataFrame, feature_cols: list[str], with_nulls: bool, with_nans: bool) -> None:
+    """Apply nulls/nans to a single row DataFrame using pandas operations.
+
+    This is an internal utility function that operates on pandas DataFrames directly for efficiency
+    and simplicity in null/nan application. The main function handles conversion to other backends.
+
+    :param df: Pandas DataFrame to modify (modified in-place)
+    :type df: pd.DataFrame
+    :param feature_cols: List of feature column names to apply nulls/nans to
+    :type feature_cols: list[str]
+    :param with_nulls: Whether to apply null values
+    :type with_nulls: bool
+    :param with_nans: Whether to apply NaN values (only if with_nulls is False)
+    :type with_nans: bool
+    """
+    if with_nulls:
+        df.iloc[0, df.columns.get_indexer(feature_cols)] = None
+    elif with_nans:
+        df.iloc[0, df.columns.get_indexer(feature_cols)] = np.nan
+
+
+def _apply_nulls_nans_multi_row(
+    df: pd.DataFrame,
+    feature_cols: list[str],
+    with_nulls: bool,
+    with_nans: bool,
+    null_percentage: float,
+    nan_percentage: float,
+    num_samples: int,
+) -> None:
+    """Apply nulls/nans to multiple rows in a DataFrame using pandas operations.
+
+    This is an internal utility function that operates on pandas DataFrames directly for efficiency
+    and simplicity in null/nan application. The main function handles conversion to other backends.
+
+    For nulls and nans:
+    - Ensures at least 1 row is affected if enabled
+    - Respects maximum available rows
+    - Prevents overlap between null and nan rows
+    - Uses random selection for realistic data generation
+
+    :param df: Pandas DataFrame to modify (modified in-place)
+    :type df: pd.DataFrame
+    :param feature_cols: List of feature column names to apply nulls/nans to
+    :type feature_cols: list[str]
+    :param with_nulls: Whether to apply null values
+    :type with_nulls: bool
+    :param with_nans: Whether to apply NaN values
+    :type with_nans: bool
+    :param null_percentage: Percentage of rows to contain null values (0.0 to 1.0)
+    :type null_percentage: float
+    :param nan_percentage: Percentage of rows to contain NaN values (0.0 to 1.0)
+    :type nan_percentage: float
+    :param num_samples: Total number of rows in the DataFrame
+    :type num_samples: int
+    """
+    null_indices = []
+    if with_nulls:
+        num_null_rows = min(
+            num_samples,  # Don't exceed total rows
+            max(1, int(num_samples * null_percentage)),  # At least 1 row if enabled
+        )
+        null_indices = np.random.choice(num_samples, size=num_null_rows, replace=False)
+        df.iloc[null_indices, df.columns.get_indexer(feature_cols)] = None
+
+    if with_nans:
+        # Use remaining rows after null application
+        available_indices = np.setdiff1d(np.arange(num_samples), null_indices)
+        if len(available_indices) > 0:  # Only if we have rows left
+            num_nan_rows = min(
+                len(available_indices),  # Don't exceed available rows
+                max(1, int(num_samples * nan_percentage)),  # At least 1 row if enabled
+            )
+            nan_indices = np.random.choice(available_indices, size=num_nan_rows, replace=False)
+            df.iloc[nan_indices, df.columns.get_indexer(feature_cols)] = np.nan
+
 
 def generate_synthetic_time_series(
     backend: str,
@@ -109,8 +189,12 @@ def generate_synthetic_time_series(
     num_features: int = 3,
     with_nulls: bool = False,
     with_nans: bool = False,
+    null_percentage: float = 0.05,  # Default 5% nulls
+    nan_percentage: float = 0.05,  # Default 5% nans
     mode: str = "single_step",
     time_col_numeric: bool = False,
+    drop_time: bool = False,
+    random_seed: int = RANDOM_SEED,
 ) -> SupportedTemporalDataFrame:
     """Generate synthetic time series data with specified backend support and configurations.
 
@@ -124,10 +208,22 @@ def generate_synthetic_time_series(
     :type with_nulls: bool, optional
     :param with_nans: Introduces NaN values in feature columns if True.
     :type with_nans: bool, optional
+    :param null_percentage: Percentage of rows to contain null values (0.0 to 1.0). Only used if with_nulls is True.
+                          For datasets with few rows, ensures at least one row is affected if nulls are enabled.
+                          For single-row datasets, nulls take precedence over NaNs if both are enabled.
+    :type null_percentage: float, optional
+    :param nan_percentage: Percentage of rows to contain NaN values (0.0 to 1.0). Only used if with_nans is True.
+                         For datasets with few rows, ensures at least one row is affected if NaNs are enabled.
+                         For single-row datasets, nulls take precedence over NaNs if both are enabled.
+    :type nan_percentage: float, optional
     :param mode: Mode for data generation; currently only supports 'single_step'.
     :type mode: str, optional
     :param time_col_numeric: If True, 'time' column is numeric instead of datetime.
     :type time_col_numeric: bool, optional
+    :param drop_time: If True, omits the time column from output DataFrame.
+    :type drop_time: bool, optional
+    :param random_seed: Seed for random number generation to ensure reproducible results.
+    :type random_seed: int, optional
 
     :return: DataFrame or Table in the specified backend containing synthetic data.
     :rtype: SupportedTemporalDataFrame
@@ -140,31 +236,40 @@ def generate_synthetic_time_series(
         raise ValueError("`num_samples` and `num_features` must be non-negative.")
     if mode != "single_step":
         raise ValueError(f"Unsupported mode: {mode}. Only 'single_step' mode is supported.")
+    if not 0.0 <= null_percentage <= 1.0:
+        raise ValueError("null_percentage must be between 0.0 and 1.0")
+    if not 0.0 <= nan_percentage <= 1.0:
+        raise ValueError("nan_percentage must be between 0.0 and 1.0")
 
-    # Generate initial DataFrame with Pandas
+    np.random.seed(random_seed)
+
+    # Generate DataFrame
     time_column = (
         np.arange(num_samples, dtype=np.float64)
         if time_col_numeric
         else pd.date_range("2023-01-01", periods=num_samples)
     )
-    df = pd.DataFrame(
-        {
-            "time": time_column,
-            "target": np.random.rand(num_samples),
-            **{f"feature_{i+1}": np.random.rand(num_samples) for i in range(num_features)},
-        }
-    )
 
-    # Apply nulls or NaNs if specified
-    if with_nulls:
-        df.iloc[0:5, 2:] = None
-    if with_nans:
-        df.iloc[0:5, 2:] = np.nan
+    columns = {}
+    if not drop_time:
+        columns["time"] = time_column
+    columns["target"] = np.random.rand(num_samples)
+    for i in range(num_features):
+        columns[f"feature_{i+1}"] = np.random.rand(num_samples)
 
-    # Convert to specified backend
+    df = pd.DataFrame(columns)
+
+    # Apply nulls/nans if needed
+    feature_cols = [col for col in df.columns if col.startswith("feature_")]
+    if feature_cols and (with_nulls or with_nans):
+        if num_samples == 1:
+            _apply_nulls_nans_single_row(df, feature_cols, with_nulls, with_nans)
+        else:
+            _apply_nulls_nans_multi_row(
+                df, feature_cols, with_nulls, with_nans, null_percentage, nan_percentage, num_samples
+            )
+
     result = convert_to_backend(df, backend)
-
-    # Ensure Dask DataFrames are computed before returning
     if isinstance(result, dd.DataFrame):
         result = result.persist()
 
