@@ -25,9 +25,7 @@ helping to identify key factors influencing system behavior at different stages.
 
 from collections.abc import Callable
 
-import numpy as np
 import pandas as pd
-from shap import Explainer
 
 from temporalscope.partition.base_protocol import TemporalPartitionerProtocol
 
@@ -72,28 +70,29 @@ def calculate_masv(
         the `SHAP documentation <https://shap.readthedocs.io>`_.
     """
     # Initialize the SHAP explainer with the provided model
-    explainer = Explainer(model)
+    # explainer = Explainer(model)
 
-    # Get the partitioned data from the partitioner
-    partitions = partitioner.get_partition_data()
+    # # Get the partitioned data from the partitioner
+    # partitions = partitioner.get_partition_data()
 
-    # Initialize an empty dictionary to store MASV scores
-    masv_dict: dict[str, list[float]] = {feature: [] for feature in data.columns}
+    # # Initialize an empty dictionary to store MASV scores
+    # masv_dict: dict[str, list[float]] = {feature: [] for feature in data.columns}
 
-    # Iterate over each partition
-    for partition_data in partitions.values():
-        # Extract the training data for the current partition
-        phase_data = partition_data["train"]  # Assuming we're calculating MASV on the 'train' partition
+    # # Iterate over each partition
+    # for partition_data in partitions.values():
+    #     # Extract the training data for the current partition
+    #     phase_data = partition_data["train"]  # Assuming we're calculating MASV on the 'train' partition
 
-        # Calculate SHAP values for the partition data
-        shap_values = explainer(phase_data)
+    #     # Calculate SHAP values for the partition data
+    #     shap_values = explainer(phase_data)
 
-        # Compute the mean absolute SHAP values for the partition
-        masv_phase = np.mean(np.abs(shap_values.values), axis=0)
+    #     # Compute the mean absolute SHAP values for the partition
+    #     masv_phase = np.mean(np.abs(shap_values.values), axis=0)
 
-        # Update the dictionary with MASV scores for each feature
-        for i, feature in enumerate(data.columns):
-            masv_dict[feature].append(masv_phase[i])
+    #     # Update the dictionary with MASV scores for each feature
+    #     for i, feature in enumerate(data.columns):
+    #         masv_dict[feature].append(masv_phase[i])
 
-    # Return the dictionary containing MASV scores for each feature across partitions
-    return masv_dict
+    # # Return the dictionary containing MASV scores for each feature across partitions
+    # return masv_dict
+    return {}

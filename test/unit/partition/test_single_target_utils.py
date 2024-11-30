@@ -58,11 +58,11 @@ import pytest
 
 from temporalscope.core.core_utils import (
     SupportedTemporalDataFrame,
+    check_dataframe_nulls_nans,
     convert_to_backend,
     get_temporalscope_backends,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
-from temporalscope.partition.single_target.utils import check_for_nulls_nans
 
 
 @pytest.fixture(params=get_temporalscope_backends())
@@ -100,7 +100,7 @@ def sample_df(data_config: Callable[..., Dict[str, Any]]) -> SupportedTemporalDa
 
 def test_check_nulls_nans_clean_data(sample_df: SupportedTemporalDataFrame) -> None:
     """Test validation passes on clean data."""
-    check_for_nulls_nans(sample_df)  # Should not raise any exceptions
+    check_dataframe_nulls_nans(sample_df, sample_df.columns)  # Should not raise any exceptions
 
 
 def test_check_nulls_nans_with_nulls(data_config: Callable[..., Dict[str, Any]]) -> None:
@@ -109,7 +109,7 @@ def test_check_nulls_nans_with_nulls(data_config: Callable[..., Dict[str, Any]])
     df = generate_synthetic_time_series(**config)
 
     with pytest.raises(ValueError, match="Cannot process data containing null values in column feature_1"):
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)
 
 
 def test_check_nulls_nans_with_nans(data_config: Callable[..., Dict[str, Any]]) -> None:
@@ -123,7 +123,7 @@ def test_check_nulls_nans_with_nans(data_config: Callable[..., Dict[str, Any]]) 
     df = generate_synthetic_time_series(**config)
 
     with pytest.raises(ValueError, match="Cannot process data containing null values in column feature_1"):
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)
 
 
 def test_check_nulls_nans_no_numeric_columns(backend: str) -> None:
@@ -135,7 +135,7 @@ def test_check_nulls_nans_no_numeric_columns(backend: str) -> None:
     df = convert_to_backend(df, backend)
 
     with pytest.raises(ValueError, match="No numeric columns found in DataFrame"):
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)
 
 
 def test_check_nulls_nans_mixed_columns(backend: str) -> None:
@@ -150,7 +150,7 @@ def test_check_nulls_nans_mixed_columns(backend: str) -> None:
     df = convert_to_backend(df, backend)
 
     with pytest.raises(ValueError, match="Cannot process data containing null values in column num_col"):
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)
 
 
 def test_check_nulls_nans_nan_only(backend: str) -> None:
@@ -166,7 +166,7 @@ def test_check_nulls_nans_nan_only(backend: str) -> None:
 
     # NaN values are detected as nulls in most backends
     with pytest.raises(ValueError, match="Cannot process data containing null values in column col2"):
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)
 
 
 def test_check_nulls_nans_nan_after_null(backend: str) -> None:
@@ -186,7 +186,7 @@ def test_check_nulls_nans_nan_after_null(backend: str) -> None:
 
     # Should catch the null value first
     with pytest.raises(ValueError, match="Cannot process data containing null values in column col1"):
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)
 
 
 def test_check_nulls_nans_pyarrow_scalar_conversion(backend: str) -> None:
@@ -206,7 +206,7 @@ def test_check_nulls_nans_pyarrow_scalar_conversion(backend: str) -> None:
     df = convert_to_backend(df, backend)
 
     with pytest.raises(ValueError, match="Cannot process data containing null values in column col2"):
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)
 
 
 def test_check_nulls_nans_separate_nan_detection(backend: str) -> None:
@@ -227,7 +227,7 @@ def test_check_nulls_nans_separate_nan_detection(backend: str) -> None:
 
     # Some backends detect NaN as null, others distinguish them
     try:
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)
     except ValueError as e:
         assert any(
             msg in str(e)
@@ -261,4 +261,4 @@ def test_check_nulls_nans_pyarrow_nan_only(backend: str) -> None:
     df = convert_to_backend(df, backend)
 
     with pytest.raises(ValueError, match="Cannot process data containing null values in column col2"):
-        check_for_nulls_nans(df)
+        check_dataframe_nulls_nans(df, df.columns)

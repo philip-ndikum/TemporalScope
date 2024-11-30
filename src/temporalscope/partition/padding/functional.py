@@ -88,8 +88,7 @@ Critical Rules:
 
 import narwhals as nw
 
-from temporalscope.core.core_utils import SupportedTemporalDataFrame, is_lazy_evaluation
-from temporalscope.partition.padding.validation import check_for_nulls_nans
+from temporalscope.core.core_utils import SupportedTemporalDataFrame, check_dataframe_nulls_nans, is_lazy_evaluation
 
 
 @nw.narwhalify
@@ -110,7 +109,7 @@ def mean_fill_pad(
     :raises ValueError: If target_len <= current length or invalid padding direction
     """
     # Validate data quality first
-    check_for_nulls_nans(df)
+    check_dataframe_nulls_nans(df, df.columns)
 
     # Validate padding direction
     if padding not in {"pre", "post"}:
@@ -158,7 +157,6 @@ def mean_fill_pad(
         # 1. Create a single-row DataFrame with scalar values
         # 2. Use dask's native concat for proper lazy evaluation
         # 3. Each column must be created independently to maintain proper lazy evaluation
-        import dask.dataframe as dd  # For proper dask concatenation
 
         # Create a single row of padding values
         padding_df = df.select(

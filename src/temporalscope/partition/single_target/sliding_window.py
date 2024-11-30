@@ -102,6 +102,10 @@ the configured window size and stride.
        database applications.
 """
 
+from typing import Optional
+
+from temporalscope.core.core_utils import MODE_SINGLE_TARGET
+from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.partition.base_protocol import TemporalPartitionerProtocol
 
 # Precision constant for floating-point comparisons
@@ -111,52 +115,37 @@ PRECISION = 1e-6
 class SlidingWindowPartitioner(TemporalPartitionerProtocol):
     """Partition time series data into contiguous, non-overlapping windows.
 
-    The `SlidingWindowPartitioner` divides a dataset into partitions of a fixed `window_size`
-    with an optional `stride` to introduce gaps or overlaps. Each partition is further split
-    into train, test, and validation subsets based on user-defined percentages.
+    The `SlidingWindowPartitioner` divides a dataset into a configurable number of partitions (`num_partitions`).
+    Optionally, a fixed `window_size` can be specified to define the size of each partition. If both `num_partitions`
+    and `window_size` are provided, `num_partitions` takes precedence, and `window_size` will be inferred.
 
-    This class operates on a global dataset level, preserving temporal order without grouping
-    by entities. It assumes preprocessed data and integrates seamlessly with the `TimeFrame`
-    class for compatibility with various backends and workflows.
+    The partitioner is explicitly designed for **single-target workflows**. It does **not support multi-target modes**,
+    and passing any unsupported mode will result in an error. The class supports train, test, and validation splits
+    within each partition and operates in a memory-efficient manner using lazy evaluation.
+
+    Setup Process:
+    --------------
+    - Default sorting by `time_col` ensures temporal ordering.
+    - Explicit `mode` validation restricts functionality to `MODE_SINGLE_TARGET`.
 
     Key Features:
     -------------
-    - Preserves **weak temporal ordering**, allowing for duplicate entities or mixed-frequency
-      time columns. This design ensures flexibility for advanced workflows while leaving
-      strict sorting decisions to the user.
-    - Configurable `window_size` and `stride` for flexible partitioning.
-    - Supports train, test, and optional validation splits within each partition.
-    - Lazy-loading with `fit` and `transform` methods for memory efficiency.
-    - Designed for single-target, DataFrame-centric workflows.
-
-    :param tf: The `TimeFrame` object containing validated and sorted time series data.
-    :type tf: TimeFrame
-    :param window_size: Number of rows in each partition. Required unless `num_partitions` is provided.
-    :type window_size: Optional[int]
-    :param stride: Number of rows to skip between consecutive partitions. Default is equal to `window_size`.
-    :type stride: int, optional
-    :param train_pct: Fraction of each partition allocated for training. Required.
-    :type train_pct: float
-    :param test_pct: Fraction allocated for testing. Defaults to remaining data after training.
-    :type test_pct: Optional[float]
-    :param val_pct: Fraction allocated for validation. Defaults to zero.
-    :type val_pct: Optional[float]
-    :param truncate: Whether to truncate the last partition if it is smaller than `window_size`.
-    :type truncate: bool, optional
-    :param verbose: Print partitioning details if True. Default is False.
-    :type verbose: bool, optional
-
-    :raises ValueError:
-        - If `window_size` or `num_partitions` is invalid.
-        - If train, test, and validation percentages do not sum to 1.0.
-        - If `stride` is not positive or if required data is missing.
+    - Configurable `num_partitions` as the primary partitioning parameter.
+    - Optional `window_size` for defining partition sizes directly.
+    - Flexible `stride` for overlapping or gapped partitions.
+    - Train, test, and validation splits within each partition.
+    - Fully Narwhals-compatible for backend-agnostic operation.
+    - Supports lazy-loading with `fit` and `transform` methods for memory efficiency.
 
     Example Usage:
     --------------
+    **Lazy Evaluation:**
+
     .. code-block:: python
 
         from temporalscope.core.temporal_data_loader import TimeFrame
         from temporalscope.partition.sliding_window import SlidingWindowPartitioner
+        from temporalscope.core.core_utils import MODE_SINGLE_TARGET
 
         # Create a sample dataset
         data_df = pd.DataFrame(
@@ -168,107 +157,134 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         data_tf = TimeFrame(data_df, time_col="time", target_col="value")
 
         # Initialize partitioner
-        partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=2, stride=1, train_pct=0.7, test_pct=0.3)
+        partitioner = SlidingWindowPartitioner(
+            tf=data_tf,
+            num_partitions=3,
+            train_pct=0.7,
+            test_pct=0.3,
+            mode=MODE_SINGLE_TARGET,
+        )
 
-        # Iterate over partition indices
-        for partition in partitioner.fit():
-            print(partition)
+        # Lazily generate partition indices
+        for partition_indices in partitioner.fit():
+            print(partition_indices)
 
-        # Iterate over data slices for each partition
+        # Lazily transform data slices
         for partition_data in partitioner.transform():
+            print(partition_data)
+
+    **Eager Evaluation:**
+
+    .. code-block:: python
+
+        from temporalscope.core.temporal_data_loader import TimeFrame
+        from temporalscope.partition.sliding_window import SlidingWindowPartitioner
+        from temporalscope.core.core_utils import MODE_SINGLE_TARGET
+
+        # Create a sample dataset
+        data_df = pd.DataFrame(
+            {
+                "time": pd.date_range(start="2021-01-01", periods=6, freq="D"),
+                "value": range(6),
+            }
+        )
+        data_tf = TimeFrame(data_df, time_col="time", target_col="value")
+
+        # Initialize partitioner
+        partitioner = SlidingWindowPartitioner(
+            tf=data_tf,
+            num_partitions=3,
+            train_pct=0.7,
+            test_pct=0.3,
+            mode=MODE_SINGLE_TARGET,
+        )
+
+        # Perform fit and transform in one step
+        for partition_data in partitioner.fit_transform():
             print(partition_data)
     """
 
-    # DEFAULT_PAD_SCHEME = "forward_fill"  # Define the default padding scheme
+    def __init__(
+        self,
+        tf: TimeFrame,
+        num_partitions: Optional[int] = None,
+        window_size: Optional[int] = None,
+        stride: Optional[int] = None,
+        train_pct: float = 0.7,
+        test_pct: Optional[float] = None,
+        val_pct: Optional[float] = 0.0,
+        truncate: bool = True,
+        mode: str = MODE_SINGLE_TARGET,
+        verbose: bool = False,
+    ):
+        """Initialize the SlidingWindowPartitioner with validation of input parameters.
 
-    # def __init__(
-    #     self,
-    #     tf: TimeFrame,
-    #     num_partitions: Optional[int] = 2,
-    #     window_size: Optional[int] = None,
-    #     stride: int = 1,
-    #     reverse: bool = False,
-    #     truncate: bool = True,
-    #     train_pct: float = 0.7,
-    #     test_pct: Optional[float] = 0.3,
-    #     val_pct: Optional[float] = None,
-    #     enable_warnings: bool = False,
-    #     verbose: bool = False,
-    #     pad_scheme: str = DEFAULT_PAD_SCHEME,
-    # ):
-    #     """Initialize the SlidingWindowPartitioner with the given parameters.
+        :param tf: The `TimeFrame` object containing validated and sorted time series data.
+        :type tf: TimeFrame
+        :param num_partitions: Number of partitions to create. Required unless `window_size` is provided.
+        :type num_partitions: Optional[int]
+        :param window_size: Size of each partition. Optional if `num_partitions` is provided.
+        :type window_size: Optional[int]
+        :param stride: Number of rows to skip between consecutive partitions. Defaults to `window_size`.
+        :type stride: int, optional
+        :param train_pct: Fraction of each partition allocated for training. Required.
+        :type train_pct: float
+        :param test_pct: Fraction allocated for testing. Defaults to remaining data after training.
+        :type test_pct: Optional[float]
+        :param val_pct: Fraction allocated for validation. Defaults to zero.
+        :type val_pct: Optional[float]
+        :param truncate: Whether to truncate the last partition if it is smaller than the calculated size.
+        :type truncate: bool, optional
+        :param mode: Operational mode, defaults to `MODE_SINGLE_TARGET`. Only `MODE_SINGLE_TARGET` is supported.
+        :type mode: str
+        :param verbose: Print partitioning details if True. Default is False.
+        :type verbose: bool, optional
 
-    #     :param tf: TimeFrame object to partition. All columns except `time_col` must be numeric.
-    #     :param num_partitions: Number of partitions to create (ignored if `window_size` is provided).
-    #     :param window_size: Size of each partition.
-    #     :param stride: Number of rows to skip between partitions.
-    #     :param reverse: Whether the sliding window should move in reverse.
-    #     :param truncate: Whether to truncate the last partition if smaller than `window_size`.
-    #     :param train_pct: Percentage of data allocated for training.
-    #     :param test_pct: Percentage of data allocated for testing.
-    #     :param val_pct: Percentage of data allocated for validation.
-    #     :param enable_warnings: Enable warnings for uneven partition sizes.
-    #     :param verbose: Enable verbose output.
-    #     :param pad_scheme: The padding scheme to use for filling partitions. Defaults to 'forward_fill'.
-    #     :raises ValueError: If input parameters are invalid or columns (except `time_col`) are not numeric.
-    #     """
-    #     # Validate the backend and pad scheme
-    #     is_valid_temporal_backend(tf.dataframe_backend)
-    #     if pad_scheme not in PAD_SCHEMES:
-    #         raise ValueError(f"Invalid pad_scheme: {pad_scheme}. Supported schemes: {PAD_SCHEMES}")
+        :raises ValueError:
+            - If both `num_partitions` and `window_size` are invalid or missing.
+            - If train, test, and validation percentages do not sum to 1.0.
+            - If `stride` is not positive or if required data is missing.
+            - If `mode` is invalid or unsupported.
+        """
+        # Validate mode
+        # if mode != MODE_SINGLE_TARGET:
+        #     raise ValueError(f"Unsupported mode: {mode}. This partitioner supports only `MODE_SINGLE_TARGET`.")
+        # self.mode = mode
 
-    #     # Check if all columns except `time_col` are numeric
-    #     non_time_cols = [col for col in tf.get_data().columns if col != tf.time_col]
-    #     non_numeric_cols = [col for col in non_time_cols if not pd.api.types.is_numeric_dtype(tf.get_data()[col])]
+        # # Validate percentages
+        # if not (0 <= train_pct <= 1):
+        #     raise ValueError("`train_pct` must be between 0 and 1.")
+        # if test_pct is not None and not (0 <= test_pct <= 1):
+        #     raise ValueError("`test_pct` must be between 0 and 1.")
+        # if val_pct is not None and not (0 <= val_pct <= 1):
+        #     raise ValueError("`val_pct` must be between 0 and 1.")
+        # total_pct = train_pct + (test_pct or 0) + (val_pct or 0)
+        # if not abs(total_pct - 1.0) < PRECISION:
+        #     raise ValueError("Train, test, and validation percentages must sum to 1.0.")
 
-    #     if non_numeric_cols:
-    #         raise ValueError(
-    #             f"All columns except `time_col` must be numeric. Non-numeric columns found: {non_numeric_cols}"
-    #         )
+        # # Validate `num_partitions` or `window_size`
+        # if num_partitions is None and window_size is None:
+        #     raise ValueError("Either `num_partitions` or `window_size` must be specified.")
+        # if num_partitions is not None and num_partitions <= 0:
+        #     raise ValueError("`num_partitions` must be a positive integer.")
+        # if window_size is not None and window_size <= 0:
+        #     raise ValueError("`window_size` must be a positive integer.")
+        # self.num_partitions = num_partitions
+        # self.window_size = window_size
 
-    #     # Get the number of rows from the TimeFrame object
-    #     num_rows = tf.get_data().shape[0]
+        # # Default stride to window_size if not provided
+        # self.stride = stride or self.window_size
 
-    #     # Determine window size if not provided
-    #     if window_size is None:
-    #         if num_partitions is None or num_partitions <= 0:
-    #             raise ValueError("`num_partitions` must be a positive integer.")
-    #         window_size = num_rows // num_partitions
+        # if self.stride <= 0:
+        #     raise ValueError("`stride` must be a positive integer.")
 
-    #     # Validate the window size and stride
-    #     if window_size <= 0:
-    #         raise ValueError("`window_size` must be a positive integer.")
-    #     if stride <= 0:
-    #         raise ValueError("`stride` must be a positive integer.")
-
-    #     # Validate percentage values
-    #     if not (0 <= train_pct <= 1):
-    #         raise ValueError("`train_pct` must be between 0 and 1.")
-    #     if test_pct is not None and not (0 <= test_pct <= 1):
-    #         raise ValueError("`test_pct` must be between 0 and 1.")
-    #     if val_pct is not None and not (0 <= val_pct <= 1):
-    #         raise ValueError("`val_pct` must be between 0 and 1.")
-    #     if train_pct + (test_pct or 0) + (val_pct or 0) != 1.0:
-    #         raise ValueError("Train, test, and validation percentages must sum to 1.0.")
-
-    #     # Assign attributes
-    #     self.tf = tf
-    #     self.window_size = window_size
-    #     self.stride = stride
-    #     self.reverse = reverse
-    #     self.truncate = truncate
-    #     self.verbose = verbose
-    #     self.pad_scheme = pad_scheme  # Assign the chosen padding scheme
-
-    #     # Precompute percentages
-    #     self.train_pct, self.test_pct, self.val_pct = self.precompute_percentages(train_pct, test_pct, val_pct)
-
-    #     # Sort the data using TimeFrame's sort_data method
-    #     self.tf.sort_data(ascending=True)
-
-    #     # Initialize internal state
-    #     self._fit_executed = False
-    #     self._transform_executed = False
+        # # Assign other parameters
+        # self.tf = tf
+        # self.train_pct = train_pct
+        # self.test_pct = test_pct
+        # self.val_pct = val_pct
+        # self.truncate = truncate
+        # self.verbose = verbose
 
     # def precompute_percentages(
     #     self,

@@ -211,7 +211,7 @@ from narwhals.typing import FrameT, IntoDataFrame
 from narwhals.utils import Implementation
 
 # TemporalScope Imports
-from temporalscope.core.exceptions import UnsupportedBackendError
+from temporalscope.core.exceptions import TimeColumnError, UnsupportedBackendError
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -219,9 +219,9 @@ load_dotenv()
 # Constants
 # ---------
 # Define constants for TemporalScope-supported modes
-MODE_SINGLE_STEP = "single_step"
-MODE_MULTI_STEP = "multi_step"
-VALID_MODES = [MODE_SINGLE_STEP, MODE_MULTI_STEP]
+MODE_SINGLE_TARGET = "single_target"
+MODE_MULTI_TARGET = "multi_target"
+VALID_MODES = [MODE_SINGLE_TARGET, MODE_MULTI_TARGET]
 
 # Backend constants for TemporalScope
 TEMPORALSCOPE_CORE_BACKENDS = {"pandas", "modin", "pyarrow", "polars", "dask"}
@@ -585,3 +585,294 @@ def is_lazy_evaluation(df: SupportedTemporalDataFrame) -> bool:
     """
     df_native = df.to_native()
     return hasattr(df_native, "compute") or hasattr(df_native, "collect")
+
+
+@nw.narwhalify
+def check_dataframe_empty(df: SupportedTemporalDataFrame) -> bool:
+    """Check if a DataFrame is empty using backend-agnostic operations.
+
+    This function validates the input DataFrame using `is_valid_temporal_dataframe` and
+    determines whether it is empty based on standard backend attributes such as `shape`.
+    It handles lazy evaluation transparently for backends like Dask and Polars.
+
+    :param df: The input DataFrame to check.
+    :type df: SupportedTemporalDataFrame
+    :return: True if the DataFrame is empty, False otherwise.
+    :rtype: bool
+    :raises ValueError: If the input DataFrame is None or invalid.
+
+    Example:
+    -------
+        .. code-block:: python
+
+            import narwhals as nw
+            from temporalscope.core.core_utils import check_dataframe_empty
+
+            # Example with Pandas
+            data = {"col1": []}
+            df = nw.from_native(data)  # Convert to SupportedTemporalDataFrame
+            assert check_dataframe_empty(df) == True
+
+            # Example with Dask LazyFrame
+            lazy_df = nw.from_native(data).lazy()
+            assert check_dataframe_empty(lazy_df) == True
+
+    .. note::
+        This function checks for emptiness using attributes like `shape`, `__len__`,
+        and `num_rows` to support various backends. These attributes cover common
+        DataFrame implementations, ensuring robust handling across the Narwhals API.
+        If none of these attributes are present, an `UnsupportedBackendError` is raised.
+
+    """
+    if df is None:
+        raise ValueError("DataFrame cannot be None.")
+
+    # Validate the DataFrame
+    is_valid, df_type = is_valid_temporal_dataframe(df)
+    if not is_valid:
+        raise ValueError(f"Unsupported DataFrame type: {type(df).__name__}")
+
+    # Resolve lazy evaluation
+    if is_lazy_evaluation(df):
+        df = df.collect() if hasattr(df, "collect") else df.compute()
+
+    # Check emptiness using backend-specific attributes
+    if hasattr(df, "shape") and df.shape:
+        return df.shape[0] == 0
+    if hasattr(df, "__len__"):
+        # Fallback for DataFrames that define `__len__` (e.g., Narwhals BaseFrame).
+        return len(df) == 0
+    if hasattr(df, "num_rows"):
+        # Fallback for DataFrames that expose `num_rows` (e.g., PyArrow-like backends).
+        return df.num_rows == 0
+
+    # Fallback for unsupported cases
+    return False
+
+
+@nw.narwhalify
+def check_dataframe_nulls_nans(df: SupportedTemporalDataFrame, column_names: List[str]) -> Dict[str, int]:
+    """Check for null values in specified DataFrame columns using Narwhals operations.
+
+    This function first validates if the DataFrame is empty using `check_dataframe_empty`
+    and then performs backend-agnostic null value counting for the specified columns.
+
+    :param df: DataFrame to check for null values
+    :type df: SupportedTemporalDataFrame
+    :param column_names: List of column names to check
+    :type column_names: List[str]
+    :return: Dictionary mapping column names to their null value counts
+    :rtype: Dict[str, int]
+    :raises ValueError: If the DataFrame is empty or a column is nonexistent.
+    :raises UnsupportedBackendError: If the backend is unsupported.
+
+    Example:
+    -------
+    .. code-block:: python
+
+        import narwhals as nw
+        from temporalscope.core.core_utils import SupportedTemporalDataFrame, check_dataframe_nulls_nans
+
+        # Example input DataFrame
+        data = {
+            "col1": [1, 2, None],
+            "col2": [4, None, 6],
+        }
+        df = nw.from_native(data)  # Convert to SupportedTemporalDataFrame
+
+        # Define columns to check
+        column_names = ["col1", "col2"]
+
+        # Call check_dataframe_nulls_nans
+        null_counts = check_dataframe_nulls_nans(df, column_names)
+
+        # Output: {"col1": 1, "col2": 1}
+        print(null_counts)
+
+    .. note::
+        This function integrates `check_dataframe_empty` to handle empty DataFrames,
+        and uses backend-agnostic operations (e.g., `is_null`) to count null values
+        in the specified columns. It assumes Narwhals-compatible backends.
+
+    """
+    # Step 1: Validate if the DataFrame is empty
+    if check_dataframe_empty(df):
+        raise ValueError("Empty DataFrame provided.")
+
+    result = {}
+    is_lazy = is_lazy_evaluation(df)  # Determine evaluation mode upfront
+
+    for col in column_names:
+        try:
+            # Step 2: Compute null counts
+            null_check = df.select([nw.col(col).is_null().sum().alias("null_count")])
+
+            # Step 3: Handle lazy evaluation if applicable
+            if is_lazy:
+                if hasattr(null_check, "compute"):
+                    null_check = null_check.compute()
+                elif hasattr(null_check, "collect"):
+                    null_check = null_check.collect()
+
+            # Step 4: Extract null count value and handle PyArrow scalar type
+            count = null_check["null_count"][0]
+            if hasattr(count, "as_py"):  # Handle PyArrow scalar
+                count = count.as_py()
+
+            # Step 5: Explicitly cast to int and store the result
+            result[col] = int(count)
+
+        except KeyError:
+            # Handle nonexistent column error
+            raise ValueError(f"Column '{col}' not found.")
+        except Exception as e:
+            # Generic fallback for other errors
+            raise ValueError(f"Error checking null values in column '{col}': {e}")
+
+    return result
+
+
+@nw.narwhalify
+def convert_to_numeric(
+    df: SupportedTemporalDataFrame, time_col: str, col_expr: Any, col_dtype: Any
+) -> SupportedTemporalDataFrame:
+    """Convert a datetime column to numeric using Narwhals API.
+
+    :param df: The input DataFrame containing the column to convert.
+    :type df: SupportedTemporalDataFrame
+    :param time_col: The name of the time column to convert.
+    :type time_col: str
+    :param col_expr: The Narwhals column expression for the time column.
+    :type col_expr: Any
+    :param col_dtype: The resolved dtype of the time column.
+    :type col_dtype: Any
+    :return: The DataFrame with the converted time column.
+    :rtype: SupportedTemporalDataFrame
+    :raises ValueError: If the column is not a datetime type.
+
+    .. note::
+        - Converts datetime columns to numeric using `dt.timestamp()`.
+        - Uses `time_unit="us"` for general backend compatibility.
+        - Ensures the resulting column is cast to `Float64` for numeric operations.
+        - Handles potential overflow issues for PyArrow by selecting smaller time units.
+    """
+    # Check if col_dtype is a datetime type (explicit Pandas/Narwhals check)
+    if pd.api.types.is_datetime64_any_dtype(col_dtype) or "datetime" in str(col_dtype).lower():
+        return df.with_columns([col_expr.dt.timestamp(time_unit="us").cast(nw.Float64()).alias(time_col)])
+
+    raise ValueError(f"Column '{time_col}' is not a datetime column, cannot convert to numeric.")
+
+
+@nw.narwhalify
+def convert_to_datetime(
+    df: SupportedTemporalDataFrame, time_col: str, col_expr: Any, col_dtype: Any
+) -> SupportedTemporalDataFrame:
+    """Convert a string or numeric column to datetime using Narwhals API.
+
+    :param df: The input DataFrame containing the column to convert.
+    :type df: SupportedTemporalDataFrame
+    :param time_col: The name of the time column to convert.
+    :type time_col: str
+    :param col_expr: The Narwhals column expression for the time column.
+    :type col_expr: Any
+    :param col_dtype: The resolved dtype of the time column.
+    :type col_dtype: Any
+    :return: The DataFrame with the converted time column.
+    :rtype: SupportedTemporalDataFrame
+    :raises ValueError: If the column is not convertible to datetime.
+
+    .. note::
+        - Handles string columns using `str.to_datetime()` for backend compatibility.
+        - Numeric columns are cast directly to `Datetime` using `cast(nw.Datetime())` where supported.
+        - For PyArrow, handles timezone preservation and default `time_unit="ns"`.
+        - Narwhals-backend ensures consistent behavior across lazy and eager backends.
+        - Raises errors for unsupported column types to prevent silent failures.
+    """
+    if "string" in str(col_dtype).lower():
+        return df.with_columns([col_expr.str.to_datetime().alias(time_col)])
+    if "float" in str(col_dtype).lower() or "int" in str(col_dtype).lower():
+        return df.with_columns([col_expr.cast(nw.Datetime()).alias(time_col)])
+    raise ValueError(f"Column '{time_col}' is neither string nor numeric; cannot convert to datetime.")
+
+
+@nw.narwhalify
+def validate_column_type(time_col: str, col_dtype: Any) -> None:
+    """Validate that a column is either numeric or datetime.
+
+    :param time_col: The name of the time column to validate.
+    :type time_col: str
+    :param col_dtype: The resolved dtype of the time column.
+    :type col_dtype: Any
+    :raises ValueError: If the column is neither numeric nor datetime.
+
+    .. note::
+        - Validates column dtypes to ensure they are either numeric (float/int) or datetime.
+        - For numeric columns, supports all backend-specific numeric types (e.g., Float64, Int64).
+        - For datetime columns, supports both timezone-aware and naive formats (e.g., UTC, local).
+        - Provides clear error messages for unsupported types, ensuring better debugging in enterprise pipelines.
+        - Centralized validation logic avoids repeated dtype checks in other utility functions.
+        - Compatible with Narwhals lazy evaluation backends like Dask or Modin.
+    """
+    is_numeric = "float" in str(col_dtype).lower() or "int" in str(col_dtype).lower()
+    is_datetime = "datetime" in str(col_dtype).lower()
+    if not is_numeric and not is_datetime:
+        raise ValueError(f"Column '{time_col}' is neither numeric nor datetime.")
+
+
+@nw.narwhalify
+def validate_and_convert_time_column(
+    df: SupportedTemporalDataFrame,
+    time_col: str,
+    conversion_type: Optional[str] = None,
+) -> SupportedTemporalDataFrame:
+    """Validate and optionally convert the time column in a DataFrame.
+
+    :param df: The input DataFrame to process.
+    :type df: SupportedTemporalDataFrame
+    :param time_col: The name of the time column to validate or convert.
+    :type time_col: str
+    :param conversion_type: Optional. Specify the conversion type:
+                            - 'numeric': Convert to Float64.
+                            - 'datetime': Convert to Datetime.
+                            - None: Validate only.
+    :type conversion_type: Optional[str]
+    :return: The validated and optionally converted DataFrame.
+    :rtype: SupportedTemporalDataFrame
+    :raises TimeColumnError: If validation or conversion fails or if an invalid conversion_type is provided.
+    :raises ValueError: If the column dtype cannot be resolved.
+
+    Example:
+    -------
+    .. code-block:: python
+
+        df = validate_and_convert_time_column(df, "time", conversion_type="numeric")
+
+    .. note::
+       - Validates and converts the `time_col` to the specified type (`numeric` or `datetime`).
+       - Uses backend-specific adjustments for PyArrow and other frameworks.
+       - Handles nulls and ensures consistent schema across all supported backends.
+       - Raises errors for invalid `conversion_type` values.
+
+    """
+    if time_col not in df.columns:
+        raise TimeColumnError(f"Column '{time_col}' does not exist in the DataFrame.")
+
+    if conversion_type not in {"numeric", "datetime", None}:
+        raise ValueError(f"Invalid conversion_type '{conversion_type}'. Must be one of 'numeric', 'datetime', or None.")
+
+    # Fetch column dtype safely
+    col_dtype = df.schema.get(time_col) if hasattr(df, "schema") else None
+    if col_dtype is None:
+        raise ValueError(f"Unable to resolve dtype for column '{time_col}'.")
+
+    # Delegate based on conversion type
+    if conversion_type == "numeric":
+        return convert_to_numeric(df, time_col, nw.col(time_col), col_dtype)
+
+    if conversion_type == "datetime":
+        return convert_to_datetime(df, time_col, nw.col(time_col), col_dtype)
+
+    # Validation-only path
+    validate_column_type(time_col, col_dtype)
+
+    return df

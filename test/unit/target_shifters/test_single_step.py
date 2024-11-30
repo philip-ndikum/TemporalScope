@@ -53,7 +53,7 @@ import pandas as pd
 import pytest
 
 from temporalscope.core.core_utils import (
-    MODE_SINGLE_STEP,
+    MODE_SINGLE_TARGET,
     SupportedTemporalDataFrame,
     get_temporalscope_backends,
 )
@@ -81,7 +81,7 @@ def data_config(backend: str) -> DataConfigType:
             "num_features": 2,
             "with_nulls": False,
             "with_nans": False,
-            "mode": MODE_SINGLE_STEP,
+            "mode": MODE_SINGLE_TARGET,
             "time_col_numeric": True,
             "backend": backend,
         }

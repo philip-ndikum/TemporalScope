@@ -97,7 +97,7 @@ import numpy as np
 import pandas as pd
 
 from temporalscope.core.core_utils import (
-    MODE_SINGLE_STEP,
+    MODE_SINGLE_TARGET,
     SupportedTemporalDataFrame,
     is_valid_temporal_dataframe,
 )
@@ -189,7 +189,7 @@ class SingleStepTargetShifter:
         n_lags: int = 1,
         drop_target: bool = True,
         verbose: bool = False,
-        mode: str = MODE_SINGLE_STEP,
+        mode: str = MODE_SINGLE_TARGET,
     ):
         """Initialize the shifter with target column and lag settings."""
         if n_lags <= 0:

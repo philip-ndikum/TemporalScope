@@ -160,7 +160,7 @@ class ValidationResult:
     .. code-block:: python
 
         # In an Airflow DAG
-        def validate_dataset(**context):
+        def validate_dataframeset(**context):
             validator = DatasetValidator()
             results = validator.fit_transform(df)
 
@@ -294,7 +294,7 @@ class DatasetValidator:
     .. code-block:: python
 
         # In an Airflow DAG
-        def validate_dataset_task(**context):
+        def validate_dataframeset_task(**context):
             validator = DatasetValidator(min_samples=1000, checks_to_run=["sample_size", "feature_count"])
 
             results = validator.fit_transform(df)

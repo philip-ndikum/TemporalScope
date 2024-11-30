@@ -84,15 +84,15 @@ Example Usage:
 --------------
 .. code-block:: python
 
-    from temporalscope.core.core_utils import MODE_SINGLE_STEP, MODE_MULTI_STEP
+    from temporalscope.core.core_utils import MODE_SINGLE_TARGET, MODE_MULTI_TARGET
     from temporalscope.datasets.synthetic_data_generator import create_sample_data
 
     # Generating data for single-step mode
-    df = create_sample_data(num_samples=100, num_features=3, mode=MODE_SINGLE_STEP)
+    df = create_sample_data(num_samples=100, num_features=3, mode=MODE_SINGLE_TARGET)
     print(df.head())  # Shows the generated data with features and a scalar target.
 
     # Generating data for multi-step mode
-    df = create_sample_data(num_samples=100, num_features=3, mode=MODE_MULTI_STEP)
+    df = create_sample_data(num_samples=100, num_features=3, mode=MODE_MULTI_TARGET)
     print(df.head())  # Shows the generated input sequence (`X`) and target sequence (`Y`).
 """
 
@@ -191,7 +191,7 @@ def generate_synthetic_time_series(
     with_nans: bool = False,
     null_percentage: float = 0.05,  # Default 5% nulls
     nan_percentage: float = 0.05,  # Default 5% nans
-    mode: str = "single_step",
+    mode: str = "single_target",
     time_col_numeric: bool = False,
     drop_time: bool = False,
     random_seed: int = RANDOM_SEED,
@@ -216,7 +216,7 @@ def generate_synthetic_time_series(
                          For datasets with few rows, ensures at least one row is affected if NaNs are enabled.
                          For single-row datasets, nulls take precedence over NaNs if both are enabled.
     :type nan_percentage: float, optional
-    :param mode: Mode for data generation; currently only supports 'single_step'.
+    :param mode: Mode for data generation; currently only supports 'single_target'.
     :type mode: str, optional
     :param time_col_numeric: If True, 'time' column is numeric instead of datetime.
     :type time_col_numeric: bool, optional
@@ -234,8 +234,8 @@ def generate_synthetic_time_series(
 
     if num_samples < 0 or num_features < 0:
         raise ValueError("`num_samples` and `num_features` must be non-negative.")
-    if mode != "single_step":
-        raise ValueError(f"Unsupported mode: {mode}. Only 'single_step' mode is supported.")
+    if mode != "single_target":
+        raise ValueError(f"Unsupported mode: {mode}. Only 'single_target' mode is supported.")
     if not 0.0 <= null_percentage <= 1.0:
         raise ValueError("null_percentage must be between 0.0 and 1.0")
     if not 0.0 <= nan_percentage <= 1.0:

@@ -27,6 +27,8 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
+from typing import Any, Callable, Dict
+
 import narwhals as nw
 import pandas as pd
 import pytest
@@ -34,8 +36,13 @@ import pytest
 from temporalscope.core.core_utils import (
     TEMPORALSCOPE_CORE_BACKEND_TYPES,
     TEMPORALSCOPE_OPTIONAL_BACKENDS,
+    TimeColumnError,
     UnsupportedBackendError,
+    check_dataframe_empty,
+    check_dataframe_nulls_nans,
     convert_to_backend,
+    convert_to_datetime,
+    convert_to_numeric,
     get_api_keys,
     get_dataframe_backend,
     get_default_backend_cfg,
@@ -45,6 +52,8 @@ from temporalscope.core.core_utils import (
     is_valid_temporal_backend,
     is_valid_temporal_dataframe,
     print_divider,
+    validate_and_convert_time_column,
+    validate_column_type,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
@@ -556,3 +565,412 @@ def test_is_lazy_evaluation_eager(synthetic_df, request):
 def test_is_lazy_evaluation_narwhalified(narwhalified_df):
     """Test lazy evaluation detection for narwhalified DataFrame."""
     assert not is_lazy_evaluation(narwhalified_df), "Expected narwhalified DataFrame to use eager evaluation"
+
+
+@pytest.fixture(params=get_temporalscope_backends())
+def backend(request) -> str:
+    """Fixture providing all supported backends for testing."""
+    return request.param
+
+
+@pytest.fixture
+def data_config(backend: str) -> Callable[..., Dict[str, Any]]:
+    """Base fixture for data generation configuration."""
+
+    def _config(**kwargs) -> Dict[str, Any]:
+        default_config = {
+            "num_samples": 3,
+            "num_features": 2,
+            "with_nulls": False,
+            "with_nans": False,
+            "backend": backend,
+            "drop_time": True,
+            "random_seed": 42,
+        }
+        default_config.update(kwargs)
+        return default_config
+
+    return _config
+
+
+# ========================= check_dataframe_empty Tests =========================
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_empty_with_empty_df(backend: str) -> None:
+    """Test check_dataframe_empty returns True for empty DataFrame."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=0, num_features=1, drop_time=True)
+    df = nw.from_native(df)
+    assert check_dataframe_empty(df) is True
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_empty_with_data(backend: str) -> None:
+    """Test check_dataframe_empty returns False for non-empty DataFrame."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=3, num_features=1, drop_time=True)
+    df = nw.from_native(df)
+    assert check_dataframe_empty(df) is False
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_empty_with_lazy_evaluation(backend: str) -> None:
+    """Test check_dataframe_empty works with lazy evaluation."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=0, num_features=1, drop_time=True)
+    df = nw.from_native(df)
+    if hasattr(df.to_native(), "lazy"):
+        df = df.to_native().lazy()
+        df = nw.from_native(df)
+    assert check_dataframe_empty(df) is True
+
+
+@pytest.mark.parametrize("backend", ["dask"])
+def test_check_dataframe_empty_lazy_compute(backend: str) -> None:
+    """Test check_dataframe_empty handles lazy evaluation with compute."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=0, num_features=1, drop_time=True)
+    df = nw.from_native(df)
+
+    if hasattr(df, "compute"):
+        df.compute = lambda: nw.from_native({"col": []})
+        assert check_dataframe_empty(df) is True
+
+
+# Tests for error handling
+def test_check_dataframe_empty_error_handling() -> None:
+    """Test check_dataframe_empty error handling for None input."""
+    with pytest.raises(ValueError, match="DataFrame cannot be None"):
+        check_dataframe_empty(None)
+
+
+def test_check_dataframe_empty_unsupported_type() -> None:
+    """Test check_dataframe_empty raises ValueError for unsupported DataFrame type."""
+
+    class UnsupportedDataFrame:
+        """Custom DataFrame type not supported by Narwhals API."""
+
+        pass
+
+    df = UnsupportedDataFrame()
+    with pytest.raises(ValueError, match="Unsupported DataFrame type"):
+        check_dataframe_empty(df)
+
+
+# ========================= check_dataframe_nulls_nans Tests =========================
+
+
+@pytest.fixture
+def sample_df():
+    """Generate sample DataFrame for testing check_dataframe_nulls_nans function.
+
+    Uses synthetic_data_generator to create consistent test data across backends.
+    """
+    return generate_synthetic_time_series(
+        backend="pandas", num_samples=3, num_features=2, with_nulls=True, null_percentage=0.3, drop_time=True
+    )
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_nulls_nans_no_nulls(backend: str) -> None:
+    """Test check_dataframe_nulls_nans with DataFrame containing no null values.
+
+    Uses synthetic data generator with no nulls to verify check_dataframe_nulls_nans correctly
+    identifies when there are no null values in specified columns.
+    """
+    df = generate_synthetic_time_series(
+        backend=backend, num_samples=3, num_features=1, with_nulls=False, drop_time=True
+    )
+    result = check_dataframe_nulls_nans(df, ["feature_1"])
+    assert result == {"feature_1": 0}
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_nulls_nans_with_nulls(backend: str) -> None:
+    """Test check_dataframe_nulls_nans with DataFrame containing null values.
+
+    Uses synthetic data generator with nulls to verify check_dataframe_nulls_nans correctly
+    counts null values in specified columns.
+    """
+    df = generate_synthetic_time_series(
+        backend=backend, num_samples=10, num_features=1, with_nulls=True, null_percentage=0.5, drop_time=True
+    )
+    result = check_dataframe_nulls_nans(df, ["feature_1"])
+    assert 4 <= result["feature_1"] <= 6  # ~50% nulls
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_nulls_nans_empty_dataframe(backend: str) -> None:
+    """Test check_dataframe_nulls_nans with an empty DataFrame."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=0, num_features=1, drop_time=True)
+    with pytest.raises(ValueError, match="Empty"):  # Generic pattern
+        check_dataframe_nulls_nans(df, ["feature_1"])
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_nulls_nans_nonexistent_column(backend: str) -> None:
+    """Test check_dataframe_nulls_nans with nonexistent column."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=3, num_features=1, drop_time=True)
+    with pytest.raises(ValueError, match="Column 'nonexistent' not found."):  # Match the specific message
+        check_dataframe_nulls_nans(df, ["nonexistent"])
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_nulls_nans_empty_column_list(backend: str) -> None:
+    """Test check_dataframe_nulls_nans with empty list of columns.
+
+    Verifies check_dataframe_nulls_nans returns empty dict for empty column list.
+    """
+    df = generate_synthetic_time_series(backend=backend, num_samples=3, num_features=1, drop_time=True)
+    result = check_dataframe_nulls_nans(df, [])
+    assert result == {}
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_dataframe_nulls_nans_all_nulls(backend: str) -> None:
+    """Test check_dataframe_nulls_nans with columns containing all null values.
+
+    Uses synthetic data generator with 100% null percentage to verify
+    check_dataframe_nulls_nans correctly identifies when all values are null.
+    """
+    df = generate_synthetic_time_series(
+        backend=backend, num_samples=3, num_features=1, with_nulls=True, null_percentage=1.0, drop_time=True
+    )
+    result = check_dataframe_nulls_nans(df, ["feature_1"])
+    assert result == {"feature_1": 3}
+
+
+@pytest.mark.parametrize("backend", ["dask"])
+def test_check_dataframe_nulls_nans_lazy_compute(backend: str) -> None:
+    """Test check_dataframe_nulls_nans handles lazy evaluation with compute."""
+    # Generate a real synthetic Dask DataFrame with nulls
+    df = generate_synthetic_time_series(
+        backend=backend, num_samples=10, num_features=1, with_nulls=True, null_percentage=0.5, drop_time=True
+    )
+
+    # Perform the test directly without mocking
+    result = check_dataframe_nulls_nans(df, ["feature_1"])
+    print(f"Result from check_dataframe_nulls_nans:\n{result}")  # Debug: Verify result
+
+    # Verify null counts (depends on generator behavior)
+    assert "feature_1" in result
+    assert 0 <= result["feature_1"] <= 5  # Adjust based on null_percentage
+
+
+# ========================= validate_and_convert_time_column Tests =========================
+
+
+@pytest.mark.parametrize("backend", ["pandas", "modin", "polars", "pyarrow", "dask"])
+def test_validate_and_convert_time_column_numeric_single(backend):
+    """Test validation and numeric conversion of time column for a single backend."""
+    # Generate synthetic data with the specified backend
+    df = generate_synthetic_time_series(
+        backend=backend, num_samples=3, num_features=1, drop_time=False, time_col_numeric=False
+    )
+
+    # Convert the time column to numeric
+    result = validate_and_convert_time_column(df, "time", conversion_type="numeric")
+
+    # Ensure the column was converted properly to numeric
+    if backend in ["pyarrow"]:
+        # PyArrow: Check if `time` exists in the schema (field names)
+        assert "time" in [
+            field.name for field in result.schema
+        ], f"'time' column not found in result for backend: {backend}"
+    else:
+        assert "time" in result.columns, f"'time' column not found in result for backend: {backend}"
+
+    # Backend-specific dtype validation
+    if backend in ["pandas", "modin"]:
+        # Pandas/Modin: Use DataFrame dtypes directly
+        resolved_dtype = result["time"].dtype
+        assert resolved_dtype in ["float64", "float32"], f"Expected numeric dtype for 'time', got {resolved_dtype}"
+
+    elif backend == "polars":
+        # Polars: Use `schema` for dtype resolution
+        resolved_dtype = result.schema.get("time")
+        assert str(resolved_dtype).lower() in [
+            "float64",
+            "float32",
+        ], f"Expected numeric dtype for Polars, got {resolved_dtype}"
+
+    elif backend == "pyarrow":
+        # PyArrow: Validate `ChunkedArray` dtype
+        resolved_dtype = result.schema.field("time").type
+        assert str(resolved_dtype).lower() in [
+            "double",
+            "float64",
+        ], f"Expected numeric dtype for PyArrow, got {resolved_dtype}"
+
+    elif backend == "dask":
+        # Dask: Resolve dtype from `_meta`
+        resolved_dtype = result["time"]._meta.dtype
+        assert resolved_dtype in ["float64", "float32"], f"Expected numeric dtype for Dask, got {resolved_dtype}"
+
+
+# ========================= Edge case tests =========================
+
+
+def test_convert_to_numeric_with_timezones():
+    """Test convert_to_numeric with timezone-aware and naive datetime columns.
+
+    This test ensures that:
+    - Timezone-aware datetime columns are correctly converted to numeric timestamps.
+    - Naive datetime columns are handled correctly.
+    - Columns with invalid types raise appropriate errors.
+    """
+    # Create a DataFrame with different datetime columns
+    df = pd.DataFrame(
+        {
+            "naive_datetime": pd.date_range("2023-01-01", periods=3),
+            "aware_datetime": pd.date_range("2023-01-01", periods=3, tz="UTC"),
+            "invalid_column": ["not_a_datetime", "still_not", "nope"],
+        }
+    )
+
+    # Update col_dtype to match actual Pandas dtypes
+    naive_dtype = df["naive_datetime"].dtype
+    aware_dtype = df["aware_datetime"].dtype
+
+    # Test naive datetime column
+    result = convert_to_numeric(df, "naive_datetime", nw.col("naive_datetime"), naive_dtype)
+    assert "naive_datetime" in result.columns
+    assert pd.api.types.is_float_dtype(result["naive_datetime"]), "Expected numeric dtype for naive datetime."
+
+    # Test timezone-aware datetime column
+    result = convert_to_numeric(df, "aware_datetime", nw.col("aware_datetime"), aware_dtype)
+    assert "aware_datetime" in result.columns
+    assert pd.api.types.is_float_dtype(result["aware_datetime"]), "Expected numeric dtype for timezone-aware datetime."
+
+    # Test invalid column type
+    with pytest.raises(ValueError, match="not a datetime column"):
+        convert_to_numeric(df, "invalid_column", nw.col("invalid_column"), df["invalid_column"].dtype)
+
+
+def test_convert_to_numeric_error_handling():
+    """Test convert_to_numeric error handling for invalid column types."""
+    # Create a DataFrame with an invalid column type
+    df = pd.DataFrame({"invalid_col": ["not_a_datetime", "nope", "still_not"]})
+
+    # Test invalid column type
+    with pytest.raises(ValueError, match="is not a datetime column"):
+        convert_to_numeric(df, "invalid_col", nw.col("invalid_col"), df["invalid_col"].dtype)
+
+
+def test_validate_column_type():
+    """Test validate_column_type for various scenarios."""
+    # Test valid numeric column
+    validate_column_type("numeric_col", "float64")  # Should not raise an error
+
+    # Test valid datetime column
+    validate_column_type("datetime_col", "datetime64[ns]")  # Should not raise an error
+
+    # Test invalid column type
+    with pytest.raises(ValueError, match="neither numeric nor datetime"):
+        validate_column_type("invalid_col", "string")
+
+    # Test mixed-type column (invalid)
+    with pytest.raises(ValueError, match="neither numeric nor datetime"):
+        validate_column_type("mixed_col", "object")
+
+    # Test custom/user-defined types (invalid)
+    with pytest.raises(ValueError, match="neither numeric nor datetime"):
+        validate_column_type("custom_col", "custom_type")
+
+
+def test_convert_to_datetime_error_handling():
+    """Test convert_to_datetime error handling for invalid column types."""
+    # Create a DataFrame with an invalid column type
+    df = pd.DataFrame({"invalid_col": ["not_a_datetime", "nope", "still_not"]})
+
+    # Test invalid column type
+    with pytest.raises(ValueError, match="neither string nor numeric"):
+        convert_to_datetime(df, "invalid_col", nw.col("invalid_col"), df["invalid_col"].dtype)
+
+
+def test_validate_column_type_edge_cases():
+    """Test validate_column_type for edge cases."""
+    # Test very long column name
+    long_col_name = "a" * 300
+    validate_column_type(long_col_name, "datetime64[ns]")  # Should not raise an error
+
+    # Test numeric column with unusual dtype
+    validate_column_type("unusual_numeric", "float128")  # Should not raise an error
+
+    # Test datetime column with timezone
+    validate_column_type("tz_datetime", "datetime64[ns, UTC]")  # Should not raise an error
+
+
+def test_convert_to_datetime_with_string_column():
+    """Test convert_to_datetime with string datetime column."""
+    # Create a DataFrame with a string datetime column
+    df = pd.DataFrame(
+        {
+            "string_datetime": ["2023-01-01", "2023-01-02", "2023-01-03"],
+        }
+    )
+
+    # Call convert_to_datetime for the string column
+    result = convert_to_datetime(df, "string_datetime", nw.col("string_datetime"), "string")
+
+    # Check that the column was converted correctly
+    assert "string_datetime" in result.columns, "Column 'string_datetime' not found in result."
+    assert pd.api.types.is_datetime64_any_dtype(
+        result["string_datetime"]
+    ), "Expected column 'string_datetime' to be converted to datetime."
+
+
+def test_convert_to_datetime_with_numeric_column():
+    """Test convert_to_datetime with numeric timestamp column."""
+    # Create a DataFrame with a numeric timestamp column
+    df = pd.DataFrame(
+        {
+            "numeric_timestamp": [1672531200, 1672617600, 1672704000],  # Unix timestamps for Jan 1-3, 2023
+        }
+    )
+
+    # Call convert_to_datetime for the numeric column
+    result = convert_to_datetime(df, "numeric_timestamp", nw.col("numeric_timestamp"), "float")
+
+    # Check that the column was converted correctly
+    assert "numeric_timestamp" in result.columns, "Column 'numeric_timestamp' not found in result."
+    assert pd.api.types.is_datetime64_any_dtype(
+        result["numeric_timestamp"]
+    ), "Expected column 'numeric_timestamp' to be converted to datetime."
+
+
+def test_validate_and_convert_time_column_missing_time_column():
+    """Test for missing time column in validate_and_convert_time_column."""
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    with pytest.raises(TimeColumnError, match="Column 'time' does not exist in the DataFrame."):
+        validate_and_convert_time_column(df, "time", conversion_type="numeric")
+
+
+def test_validate_and_convert_time_column_invalid_conversion_type():
+    """Test for invalid conversion type in validate_and_convert_time_column."""
+    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3)})
+    with pytest.raises(
+        ValueError, match="Invalid conversion_type 'invalid_type'. Must be one of 'numeric', 'datetime', or None."
+    ):
+        validate_and_convert_time_column(df, "time", conversion_type="invalid_type")
+
+
+def test_validate_and_convert_time_column_to_numeric():
+    """Test validate_and_convert_time_column with numeric conversion."""
+    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3)})
+    result = validate_and_convert_time_column(df, "time", conversion_type="numeric")
+    assert "time" in result.columns
+    assert pd.api.types.is_float_dtype(result["time"]), "Expected numeric dtype for 'time' column."
+
+
+def test_validate_and_convert_time_column_to_datetime():
+    """Test validate_and_convert_time_column with datetime conversion."""
+    df = pd.DataFrame({"time": [1672531200, 1672617600, 1672704000]})
+    result = validate_and_convert_time_column(df, "time", conversion_type="datetime")
+    assert "time" in result.columns
+    assert pd.api.types.is_datetime64_any_dtype(result["time"]), "Expected datetime dtype for 'time' column."
+
+
+def test_validate_and_convert_time_column_validation_only():
+    """Test validate_and_convert_time_column with validation-only path."""
+    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3)})
+    result = validate_and_convert_time_column(df, "time", conversion_type=None)
+    assert "time" in result.columns
+    assert pd.api.types.is_datetime64_any_dtype(result["time"]), "Expected datetime dtype for 'time' column."

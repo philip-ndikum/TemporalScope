@@ -30,7 +30,7 @@ import polars as pl
 import pyarrow as pa
 import pytest
 
-from temporalscope.core.core_utils import MODE_SINGLE_STEP, TEMPORALSCOPE_CORE_BACKEND_TYPES
+from temporalscope.core.core_utils import MODE_SINGLE_TARGET, TEMPORALSCOPE_CORE_BACKEND_TYPES
 from temporalscope.core.exceptions import UnsupportedBackendError
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
@@ -97,7 +97,7 @@ def test_generate_synthetic_time_series_basic(
         num_features=num_features,
         with_nulls=with_nulls,
         with_nans=with_nans,
-        mode=MODE_SINGLE_STEP,
+        mode=MODE_SINGLE_TARGET,
     )
 
     # Get shape and compute for Dask
@@ -157,7 +157,7 @@ def test_time_column_generation(backend: str, time_col_numeric: bool) -> None:
         num_samples=100,
         num_features=3,
         time_col_numeric=time_col_numeric,
-        mode=MODE_SINGLE_STEP,
+        mode=MODE_SINGLE_TARGET,
     )
 
     # Get first time value
@@ -195,12 +195,12 @@ def test_invalid_backend(backend: str) -> None:
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
 def test_unsupported_mode(backend: str) -> None:
     """Test that an unsupported mode raises the appropriate error."""
-    with pytest.raises(ValueError, match="Unsupported mode: multi_step. Only 'single_step' mode is supported."):
+    with pytest.raises(ValueError, match="Unsupported mode: multi_target"):
         generate_synthetic_time_series(
             backend=backend,
             num_samples=100,
             num_features=5,
-            mode="multi_step",
+            mode="multi_target",
         )
 
 
