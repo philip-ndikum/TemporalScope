@@ -109,7 +109,9 @@ def mean_fill_pad(
     :raises ValueError: If target_len <= current length or invalid padding direction
     """
     # Validate data quality first
-    check_dataframe_nulls_nans(df, df.columns)
+    null_counts = check_dataframe_nulls_nans(df, df.columns)
+    if any(count > 0 for count in null_counts.values()):
+        raise ValueError("Cannot process data containing null values")
 
     # Validate padding direction
     if padding not in {"pre", "post"}:

@@ -129,6 +129,7 @@ from temporalscope.core.core_utils import (
     get_dataframe_backend,
     is_valid_temporal_backend,
     is_valid_temporal_dataframe,
+    sort_dataframe_time,
     validate_and_convert_time_column,
     validate_column_types,
 )
@@ -358,13 +359,9 @@ class TimeFrame:
             print(sorted_df)  # Shows data sorted by time column
 
         .. note::
-            This method uses Narwhals operations for backend-agnostic sorting:
-            - Uses nw.col() for column references
-            - Handles lazy evaluation through collect()
-            - Works consistently across all supported backends
+            Uses the reusable utility function `sort_dataframe_time` for consistency across the codebase.
         """
-        nw_df = self._to_narwhals(df)
-        return nw_df.sort(by=[self._time_col], descending=not ascending)
+        return sort_dataframe_time(df, time_col=self._time_col, ascending=ascending)
 
     @nw.narwhalify
     def validate_dataframe(self, df: SupportedTemporalDataFrame) -> None:
@@ -432,7 +429,7 @@ class TimeFrame:
         validate_column_types(nw_df, self._time_col)
 
         # If verbose, notify the user about validation success
-        if getattr(self, "verbose", False):
+        if self._verbose:
             print("Validation completed successfully.")
 
     @nw.narwhalify

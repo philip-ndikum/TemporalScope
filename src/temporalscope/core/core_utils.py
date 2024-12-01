@@ -395,7 +395,7 @@ def get_dataframe_backend(df: Union[SupportedTemporalDataFrame, Any]) -> str:
     :raises UnsupportedBackendError: If DataFrame type not supported.
 
     Example:
-    --------
+    -------
     .. code-block:: python
 
         from temporalscope.core.core_utils import get_dataframe_backend
@@ -408,9 +408,11 @@ def get_dataframe_backend(df: Union[SupportedTemporalDataFrame, Any]) -> str:
 
         # Example with a Polars DataFrame
         import polars as pl
+
         df = pl.DataFrame({"col1": [1, 2, 3]})
         backend = get_dataframe_backend(df)
         print(backend)  # Output: 'polars'
+
     """
     # First validate DataFrame type
     is_valid, df_type = is_valid_temporal_dataframe(df)
@@ -427,7 +429,9 @@ def get_dataframe_backend(df: Union[SupportedTemporalDataFrame, Any]) -> str:
             return name
 
     # If no backend matches, raise an error
-    raise UnsupportedBackendError(f"Failed to determine backend for DataFrame of type {type(df).__name__}")  # pragma: no cover
+    raise UnsupportedBackendError(
+        f"Failed to determine backend for DataFrame of type {type(df).__name__}"
+    )  # pragma: no cover
 
 
 @nw.narwhalify
