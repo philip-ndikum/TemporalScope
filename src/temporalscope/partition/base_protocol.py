@@ -19,148 +19,151 @@
 
 This module defines the TemporalPartitionerProtocol, a protocol for all
 temporal partitioning methods. Each partitioning method must implement
-the required methods to comply with this protocol.
+the required methods to comply with this protocol. Currently, only single-target
+workflows (scalar targets) are supported. Multi-target workflows (sequence or tensor
+targets) are planned for future releases. This protocol is designed to be flexible
+enough to accommodate both modes when multi-target support is added.
+
+Partitioning for modern XAI Time-Series Pipelines:
+--------------------------------------------
+Partitioning is foundational to modern time-series workflows. It ensures computational efficiency,
+robust validation, and interpretable insights. Key use cases include:
+
++----------------------------+-----------------------------------------------------------------------------------+
+| Aspect                     | Details                                                                           |
++----------------------------+-----------------------------------------------------------------------------------+
+| Temporal Explainability    | Facilitates feature importance analyses by segmenting data for localized          |
+|                            | SHAP/WindowSHAP metrics.                                                          |
++----------------------------+-----------------------------------------------------------------------------------+
+| Robust Evaluation          | Respects temporal ordering in train-test splits, critical for time-series         |
+|                            | generalization.                                                                   |
++----------------------------+-----------------------------------------------------------------------------------+
+| Scalability and Efficiency | Supports sliding windows, expanding windows, and fixed partitions with            |
+|                            | lazy-loading and backend compatibility for large-scale datasets.                  |
++----------------------------+-----------------------------------------------------------------------------------+
+| Workflow Flexibility       | Supports both single-target and multi-target modes, enabling DataFrame            |
+|                            | operations and deep learning pipelines through flexible partitioning methods.     |
++----------------------------+-----------------------------------------------------------------------------------+
 
 Core Functionality:
 -------------------
-1. fit: Must generate the partition indices (row ranges) for the
-   partitions ('train', 'test', 'validation', etc.) in a memory-efficient manner.
-   Implementations should leverage lazy-loading techniques to ensure that
-   large datasets are handled efficiently, minimizing memory usage.
-2. transform: Must use the indices from fit to return the actual partitioned data.
-   This method should apply the calculated indices to retrieve specific data slices,
-   maintaining the efficiency gained from lazy-loading in the fit stage.
-3. check_data: Optional method to perform data validation checks.
+The protocol defines four mandatory methods, ensuring a strict and consistent lifecycle across all partitioning implementations.
+Each method has a clear purpose and aligns with the goals of efficient partitioning:
 
-Each implementing class must provide its own logic for partitioning the data and
-any necessary validation, while adhering to the design principles of lazy-loading
-and memory efficiency.
++-----------------+-----------------------------------------------------------------------------------+
+| Method          | Description                                                                       |
++-----------------+-----------------------------------------------------------------------------------+
+| setup           | Prepares and validates input data, ensuring compatibility with the chosen         |
+|                 | workflow (e.g., backend conversions, deduplication, parameter checks).            |
++-----------------+-----------------------------------------------------------------------------------+
+| fit             | Generates partition indices (row ranges) for datasets, supporting sliding         |
+|                 | windows, fixed-length, or expanding partitions.                                   |
++-----------------+-----------------------------------------------------------------------------------+
+| transform       | Applies the partition indices to retrieve specific data slices, ensuring          |
+|                 | memory-efficient operation using lazy evaluation techniques.                      |
++-----------------+-----------------------------------------------------------------------------------+
+| fit_transform   | Combines `fit` and `transform` for eager workflows, directly producing            |
+|                 | partitioned data slices.                                                          |
++-----------------+-----------------------------------------------------------------------------------+
+
+Workflow Modes:
+---------------
+The protocol supports two primary modes:
+
+1. Single-Target (DataFrame-Centric):
+   - Operations focus on Narwhals-backed DataFrames (Pandas, Polars, or Modin).
+   - Slices are returned in DataFrame formats, preserving metadata.
+
+2. Multi-Target (Tensor/Dataset-Centric):
+   - Designed for deep learning workflows (e.g., PyTorch, TensorFlow).
+   - Handles transformations from DataFrame to tensor or dataset formats.
+   - Ensures compatibility with sequence or tensor-target models.
+
+Future Plans:
+-------------
+The protocol is designed for extensibility, ensuring advanced workflows like multi-modal models, cross-frequency partitioning,
+or custom padding strategies can be integrated seamlessly.
+
+.. seealso::
+
+    1. Nayebi, A., Tipirneni, S., Reddy, C. K., et al. (2024). WindowSHAP: An efficient framework for
+       explaining time-series classifiers based on Shapley values. Journal of Biomedical Informatics.
+       DOI:10.1016/j.jbi.2023.104438.
+    2. Gu, X., See, K. W., Wang, Y., et al. (2021). The sliding window and SHAP theory—an improved system
+       with a long short-term memory network model for state of charge prediction in electric vehicles.
+       Energies, 14(12), 3692. DOI:10.3390/en14123692.
+    3. Van Ness, M., Shen, H., Wang, H., et al. (2023). Cross-Frequency Time Series Meta-Forecasting.
+       arXiv preprint arXiv:2302.02077.
 """
 
-from typing import Any, Dict, Iterator, Protocol, Tuple, Union
-
-import modin.pandas as mpd
-import pandas as pd
-import polars as pl
-
-from temporalscope.core.temporal_data_loader import TimeFrame
+from typing import Any, Dict, Iterator, Protocol
 
 
 class TemporalPartitionerProtocol(Protocol):
     """Protocol for temporal partitioning methods.
 
-    The `TemporalPartitionerProtocol` operates on a `TimeFrame` object and provides core
-    functionality for retrieving partition indices and data. Implementing classes must
-    provide partitioning logic and optionally perform data validation checks, with a
-    strong emphasis on memory efficiency through lazy-loading techniques.
-
-    :ivar tf: The `TimeFrame` object containing the pre-sorted time series data to be partitioned.
-    :vartype tf: TimeFrame
-    :ivar df: The data extracted from the `TimeFrame`.
-    :vartype df: Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]
-    :ivar enable_warnings: Whether to enable warnings during partition validation.
-    :vartype enable_warnings: bool
-
-    .. note::
-        The partitions returned by each partitioning method will always include a
-        "full" partition with index ranges. The "train", "test", and "validation"
-        partitions are supported, and at least "train" and "test" must be defined
-        for logical consistency. To manage large datasets efficiently, implementations
-        should focus on generating indices lazily to reduce memory footprint.
+    This protocol defines the lifecycle for partitioning workflows, supporting both
+    single-target (dataframe-centric) and multi-target (tensor/dataset-centric) use cases.
     """
 
-    tf: TimeFrame
-    df: Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]
-    enable_warnings: bool
+    def setup(self) -> None:
+        """Prepare and validate input data for partitioning.
 
-    def fit(
-        self,
-    ) -> Union[
-        Dict[str, Dict[str, Tuple[int, int]]],
-        Iterator[Dict[str, Dict[str, Tuple[int, int]]]],
-    ]:
-        """Generate partition indices.
+        This method performs preprocessing and ensures the data is compatible
+        with the specific workflow. Example tasks include:
+        - Sorting and deduplication for DataFrame workflows.
+        - Conversion to tensors or datasets for multi-target workflows.
+        - Validation of partitioning parameters (e.g., `num_partitions`, `stride`).
 
-        This method generates partition indices with keys like 'full', 'train',
-        'test', and 'validation', utilizing lazy-loading techniques to ensure memory efficiency.
-
-        :return: A dictionary of partitions with their respective indices, or an iterator over them.
-        :rtype: Union[Dict[str, Dict[str, Tuple[int, int]]], Iterator[Dict[str, Dict[str, Tuple[int, int]]]]]
+        This step ensures consistency across partitioning methods and minimizes
+        runtime errors in subsequent stages.
 
         .. note::
-            Each partition dictionary should contain "full", "train", "test", and
-            optionally "validation" keys, where at least "train" and "test" must
-            be defined for logical partitioning.
+            This method should be idempotent and isolated. While optional for
+            end-users, implementations must ensure it is executed internally
+            before partitioning begins.
 
-            "Validation" may be ``None`` if not required.
-
-            Implementations should focus on generating these indices lazily to
-            optimize memory usage, particularly with large datasets.
-
-        :example:
-
-            .. code-block:: python
-
-                {
-                    "partition_1": {"full": (0, 10), "train": (0, 8), "test": (8, 10), "validation": None},
-                    "partition_2": {"full": (5, 15), "train": (5, 13), "test": (13, 15), "validation": None},
-                }
+        :raises ValueError: If any required input or parameter is invalid.
         """
         pass
 
-    def transform(
-        self,
-    ) -> Union[
-        Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]],
-        Iterator[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]]],
-    ]:
-        """Return the data for each partition.
+    def fit(self) -> Iterator[Dict[str, Any]]:
+        """Compute partition indices for slicing.
 
-        This method returns the data slices for each partition based on the
-        partition indices generated by the `fit` method.
+        This method generates partition indices based on partitioning parameters
+        such as `num_partitions`, `window_size`, and `stride`. It utilizes a lazy
+        generator pattern to ensure memory efficiency, especially for large datasets.
 
-        :return: A dictionary containing the data slices for each partition,
-                 or an iterator over them.
-        :rtype: Union[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]],
-                      Iterator[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame, pl.DataFrame]]]]]
+        :return: Generator yielding partition indices structured as dictionaries.
+        :rtype: Iterator[Dict[str, Any]]
 
         .. note::
-            This method returns the actual data slices for each partition
-            based on the indices generated by `fit`. The returned structure
-            mirrors the same dictionary format but contains actual data
-            instead of index ranges. The `transform` method should continue
-            to optimize for memory efficiency by using the pre-calculated
-            lazy indices to access only the necessary data.
-
-        :example:
-
-            .. code-block:: python
-
-                {
-                    "partition_1": {
-                        "full": DataFrame(...),
-                        "train": DataFrame(...),
-                        "test": DataFrame(...),
-                        "validation": None,
-                    },
-                    "partition_2": {
-                        "full": DataFrame(...),
-                        "train": DataFrame(...),
-                        "test": DataFrame(...),
-                        "validation": None,
-                    },
-                }
+            This method does not perform slicing; it only computes and returns indices.
         """
         pass
 
-    def check_data(self) -> None:
-        """Perform data validation checks.
+    def transform(self) -> Iterator[Dict[str, Any]]:
+        """Retrieve data slices using computed indices.
 
-        Implementing classes must provide their own data validation logic, such as ensuring sample size is sufficient,
-        checking for window overlaps, or validating the feature count.
+        This method slices the data based on indices generated by `fit`. It ensures
+        memory efficiency through lazy evaluation and supports various output formats
+        depending on the workflow mode (e.g., DataFrame slices, tensors, or datasets).
+
+        :return: Generator yielding dictionaries containing partitioned data slices.
+        :rtype: Iterator[Dict[str, Any]]
+
+        :raises ValueError: If `fit` has not been called prior to `transform`.
         """
         pass
 
-    def get_partition_data(self) -> Any:
-        """Return the partitioned data."""
+    def fit_transform(self) -> Iterator[Dict[str, Any]]:
+        """Combine `fit` and `transform` for eager execution.
+
+        This method computes partition indices and retrieves data slices in a
+        single step. It is ideal for workflows requiring immediate access to
+        partitioned data without intermediate steps.
+
+        :return: Generator yielding dictionaries containing partitioned data slices.
+        :rtype: Iterator[Dict[str, Any]]
+        """
         pass

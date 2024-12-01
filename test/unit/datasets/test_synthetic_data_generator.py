@@ -30,7 +30,7 @@ import polars as pl
 import pyarrow as pa
 import pytest
 
-from temporalscope.core.core_utils import MODE_SINGLE_STEP, TEMPORALSCOPE_CORE_BACKEND_TYPES
+from temporalscope.core.core_utils import MODE_SINGLE_TARGET, TEMPORALSCOPE_CORE_BACKEND_TYPES
 from temporalscope.core.exceptions import UnsupportedBackendError
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
@@ -44,7 +44,8 @@ T = TypeVar("T")
 
 def is_dask_df(obj: Any) -> bool:
     """Check if object is a Dask DataFrame."""
-    return type(obj).__module__.startswith("dask.")
+    # Check both the module name and string representation
+    return type(obj).__module__.startswith("dask.") or isinstance(obj, object) and "Dask DataFrame" in str(obj)
 
 
 def get_shape(df: Any) -> tuple[int, int]:
@@ -70,6 +71,16 @@ def get_row_value(df: Any, col_name: str, row_idx: int = 0) -> Any:
         return df.iloc[row_idx][col_name]
 
 
+def get_column_names(df: Any) -> set[str]:
+    """Get column names from DataFrame, handling different backends."""
+    if isinstance(df, pa.Table):
+        return set(df.schema.names)  # type: ignore
+    elif is_dask_df(df):
+        return set(df.columns)
+    else:
+        return set(df.columns)
+
+
 # ========================= Basic Data Generation Tests =========================
 
 
@@ -86,7 +97,7 @@ def test_generate_synthetic_time_series_basic(
         num_features=num_features,
         with_nulls=with_nulls,
         with_nans=with_nans,
-        mode=MODE_SINGLE_STEP,
+        mode=MODE_SINGLE_TARGET,
     )
 
     # Get shape and compute for Dask
@@ -146,7 +157,7 @@ def test_time_column_generation(backend: str, time_col_numeric: bool) -> None:
         num_samples=100,
         num_features=3,
         time_col_numeric=time_col_numeric,
-        mode=MODE_SINGLE_STEP,
+        mode=MODE_SINGLE_TARGET,
     )
 
     # Get first time value
@@ -184,12 +195,12 @@ def test_invalid_backend(backend: str) -> None:
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
 def test_unsupported_mode(backend: str) -> None:
     """Test that an unsupported mode raises the appropriate error."""
-    with pytest.raises(ValueError, match="Unsupported mode: multi_step. Only 'single_step' mode is supported."):
+    with pytest.raises(ValueError, match="Unsupported mode: multi_target"):
         generate_synthetic_time_series(
             backend=backend,
             num_samples=100,
             num_features=5,
-            mode="multi_step",
+            mode="multi_target",
         )
 
 
@@ -211,10 +222,7 @@ def test_generate_synthetic_time_series_with_nulls_and_nans(backend: str) -> Non
         backend=backend, num_samples=100, num_features=5, with_nulls=True, with_nans=True
     )
 
-    # Get first feature value
-    feature_val = get_row_value(df, "feature_1")
-
-    # Validate that both None and NaN values are present in the feature columns
+    # Get all feature values
     if isinstance(df, pa.Table):
         feature_field = df.schema.field("feature_1")  # type: ignore
         assert feature_field is not None, "Expected feature_1 column in PyArrow backend"
@@ -223,7 +231,12 @@ def test_generate_synthetic_time_series_with_nulls_and_nans(backend: str) -> Non
         has_nulls = df.select(pl.col("feature_1").is_null()).sum().item() > 0  # type: ignore
         assert has_nulls, "Expected None or NaN in Polars backend"
     else:
-        assert pd.isna(feature_val), "Expected None or NaN in Pandas-based backend"
+        # Check any row has null/nan
+        if hasattr(df["feature_1"], "compute"):  # For dask
+            feature_vals = pd.Series(df["feature_1"].compute())
+        else:  # For pandas and modin
+            feature_vals = pd.Series(df["feature_1"])
+        assert feature_vals.isna().any(), "Expected at least one None or NaN value"
 
 
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
@@ -260,3 +273,146 @@ def test_generate_synthetic_time_series_negative_values() -> None:
         )
     with pytest.raises(ValueError, match="`num_samples` and `num_features` must be non-negative."):
         generate_synthetic_time_series(backend="pandas", num_samples=100, num_features=-3)
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("drop_time", [True, False])
+def test_generate_synthetic_time_series_drop_time(backend: str, drop_time: bool) -> None:
+    """Test that drop_time parameter correctly handles time column inclusion/exclusion."""
+    num_samples = 3
+    df = generate_synthetic_time_series(
+        backend=backend,
+        num_samples=num_samples,
+        num_features=2,
+        drop_time=drop_time,
+        time_col_numeric=True,  # Use numeric time for easier verification
+    )
+
+    # Get column names
+    columns = get_column_names(df)
+
+    # Test the dictionary unpacking operation directly
+    time_dict = {"time": np.arange(num_samples, dtype=np.float64)} if not drop_time else {}
+    expected_cols = {
+        **time_dict,  # Test the same unpacking operation as in the implementation
+        "target": "value",  # Placeholder value
+        "feature_1": "value",
+        "feature_2": "value",
+    }.keys()
+
+    # Verify column names match expected set from dictionary unpacking
+    assert columns == set(expected_cols), "Column names don't match expected set from dictionary unpacking"
+
+    # Verify time column values when present
+    if not drop_time:
+        time_val = get_row_value(df, "time")
+        assert isinstance(time_val, (np.float64, float)), "time column should be numeric"
+        assert time_val == 0.0, "time column should start at 0"
+
+    # Verify target column values
+    target_val = get_row_value(df, "target")
+    assert isinstance(target_val, (np.float64, float)), "target column should be numeric"
+    assert 0.0 <= target_val <= 1.0, "target values should be between 0 and 1"
+
+
+def test_generate_synthetic_time_series_all_paths():
+    """Test all code paths in synthetic data generation."""
+    # Test with time column included
+    df1 = generate_synthetic_time_series(
+        backend="pandas",
+        num_samples=3,
+        num_features=2,
+        time_col_numeric=True,
+        drop_time=False,  # Include time column
+    )
+    assert "time" in df1.columns
+    assert df1["time"].dtype == np.float64
+    assert len(df1.columns) == 4  # time, target, feature_1, feature_2
+
+    # Test with time column dropped
+    df2 = generate_synthetic_time_series(
+        backend="pandas",
+        num_samples=3,
+        num_features=2,
+        drop_time=True,  # Drop time column
+    )
+    assert "time" not in df2.columns
+    assert len(df2.columns) == 3  # target, feature_1, feature_2
+
+    # Verify feature columns in both cases
+    for df in [df1, df2]:
+        for i in range(2):
+            col = f"feature_{i+1}"
+            assert col in df.columns
+            assert all(0 <= x <= 1 for x in df[col])
+
+
+def test_generate_synthetic_time_series_feature_loop():
+    """Test feature column generation loop."""
+    # Test with exactly one feature to force loop execution
+    df = generate_synthetic_time_series(backend="pandas", num_samples=1, num_features=1, drop_time=True)
+
+    # Verify feature column exists and has correct values
+    assert "feature_1" in df.columns
+    assert len(df["feature_1"]) == 1
+    assert 0 <= df["feature_1"].iloc[0] <= 1
+
+    # Test with zero features to cover loop initialization
+    df_empty = generate_synthetic_time_series(backend="pandas", num_samples=1, num_features=0, drop_time=True)
+    assert not any(col.startswith("feature_") for col in df_empty.columns)
+
+
+def test_generate_synthetic_time_series_feature_value():
+    """Test feature value generation."""
+    df = generate_synthetic_time_series(backend="pandas", num_samples=1, num_features=1, drop_time=True)
+
+    # Verify feature value is generated correctly
+    feature_val = df["feature_1"].values[0]
+    assert isinstance(feature_val, float)
+    assert 0 <= feature_val <= 1
+
+
+def test_generate_synthetic_time_series_dask():
+    """Test that Dask DataFrames are properly handled."""
+    # Skip if dask is not in TEMPORALSCOPE_CORE_BACKEND_TYPES
+    if "dask" not in TEMPORALSCOPE_CORE_BACKEND_TYPES:
+        pytest.skip("Dask backend not available")
+
+    df = generate_synthetic_time_series(backend="dask", num_samples=1, num_features=1, drop_time=True)
+
+    # Verify it's a Dask DataFrame
+    assert is_dask_df(df), "Expected Dask DataFrame"
+
+    # Get a value to trigger computation
+    value = get_row_value(df, "feature_1")
+    assert isinstance(value, float)
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_generate_synthetic_time_series_percentage_validation(backend: str) -> None:
+    """Test validation of null and nan percentage parameters."""
+    with pytest.raises(ValueError, match="null_percentage must be between 0.0 and 1.0"):
+        generate_synthetic_time_series(
+            backend=backend, num_samples=100, num_features=5, with_nulls=True, null_percentage=1.5
+        )
+
+    with pytest.raises(ValueError, match="nan_percentage must be between 0.0 and 1.0"):
+        generate_synthetic_time_series(
+            backend=backend, num_samples=100, num_features=5, with_nans=True, nan_percentage=-0.1
+        )
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_generate_synthetic_time_series_single_row(backend: str) -> None:
+    """Test handling of nulls and nans with single row datasets."""
+    # Test nulls take precedence
+    df = generate_synthetic_time_series(backend=backend, num_samples=1, num_features=2, with_nulls=True, with_nans=True)
+    feature_val = get_row_value(df, "feature_1")
+    assert pd.isna(feature_val), "Expected null/nan value for single row with both nulls and nans"
+
+    # Test nans only
+    df = generate_synthetic_time_series(
+        backend=backend, num_samples=1, num_features=2, with_nulls=False, with_nans=True
+    )
+    feature_val = get_row_value(df, "feature_1")
+    assert pd.isna(feature_val), "Expected null/nan value for single row with nans only"

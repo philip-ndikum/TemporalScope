@@ -69,15 +69,15 @@ class TargetColumnWarning(UserWarning):
     """Warning raised for potential issues with the target column.
 
     This warning is issued when the target column appears to contain sequential or vectorized data,
-    which may require transformation depending on the selected mode (e.g., `MODE_MULTI_STEP`).
+    which may require transformation depending on the selected mode (e.g., `MODE_MULTI_TARGET`).
 
     Example Usage:
     --------------
     .. code-block:: python
 
-        if mode == "multi_step" and target_col_is_vectorized:
+        if mode == "multi_target" and target_col_is_vectorized:
             warnings.warn(
-                "`target_col` appears to contain sequential data. Ensure it is transformed appropriately for MODE_MULTI_STEP.",
+                "`target_col` appears to contain sequential data. Ensure it is transformed appropriately for MODE_MULTI_TARGET.",
                 TargetColumnWarning,
             )
     """
