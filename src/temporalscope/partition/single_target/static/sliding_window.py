@@ -247,44 +247,44 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
             - If `mode` is invalid or unsupported.
         """
         # Validate mode
-        # if mode != MODE_SINGLE_TARGET:
-        #     raise ValueError(f"Unsupported mode: {mode}. This partitioner supports only `MODE_SINGLE_TARGET`.")
-        # self.mode = mode
+        if mode != MODE_SINGLE_TARGET:
+            raise ValueError(f"Unsupported mode: {mode}. This partitioner supports only `MODE_SINGLE_TARGET`.")
+        self.mode = mode
 
-        # # Validate percentages
-        # if not (0 <= train_pct <= 1):
-        #     raise ValueError("`train_pct` must be between 0 and 1.")
-        # if test_pct is not None and not (0 <= test_pct <= 1):
-        #     raise ValueError("`test_pct` must be between 0 and 1.")
-        # if val_pct is not None and not (0 <= val_pct <= 1):
-        #     raise ValueError("`val_pct` must be between 0 and 1.")
-        # total_pct = train_pct + (test_pct or 0) + (val_pct or 0)
-        # if not abs(total_pct - 1.0) < PRECISION:
-        #     raise ValueError("Train, test, and validation percentages must sum to 1.0.")
+        # Validate percentages
+        if not (0 <= train_pct <= 1):
+            raise ValueError("`train_pct` must be between 0 and 1.")
+        if test_pct is not None and not (0 <= test_pct <= 1):
+            raise ValueError("`test_pct` must be between 0 and 1.")
+        if val_pct is not None and not (0 <= val_pct <= 1):
+            raise ValueError("`val_pct` must be between 0 and 1.")
+        total_pct = train_pct + (test_pct or 0) + (val_pct or 0)
+        if not abs(total_pct - 1.0) < PRECISION:
+            raise ValueError("Train, test, and validation percentages must sum to 1.0.")
 
-        # # Validate `num_partitions` or `window_size`
-        # if num_partitions is None and window_size is None:
-        #     raise ValueError("Either `num_partitions` or `window_size` must be specified.")
-        # if num_partitions is not None and num_partitions <= 0:
-        #     raise ValueError("`num_partitions` must be a positive integer.")
-        # if window_size is not None and window_size <= 0:
-        #     raise ValueError("`window_size` must be a positive integer.")
-        # self.num_partitions = num_partitions
-        # self.window_size = window_size
+        # Validate `num_partitions` or `window_size`
+        if num_partitions is None and window_size is None:
+            raise ValueError("Either `num_partitions` or `window_size` must be specified.")
+        if num_partitions is not None and num_partitions <= 0:
+            raise ValueError("`num_partitions` must be a positive integer.")
+        if window_size is not None and window_size <= 0:
+            raise ValueError("`window_size` must be a positive integer.")
+        self.num_partitions = num_partitions
+        self.window_size = window_size
 
-        # # Default stride to window_size if not provided
-        # self.stride = stride or self.window_size
+        # Default stride to window_size if not provided
+        self.stride = stride or self.window_size
 
-        # if self.stride <= 0:
-        #     raise ValueError("`stride` must be a positive integer.")
+        if self.stride <= 0:
+            raise ValueError("`stride` must be a positive integer.")
 
-        # # Assign other parameters
-        # self.tf = tf
-        # self.train_pct = train_pct
-        # self.test_pct = test_pct
-        # self.val_pct = val_pct
-        # self.truncate = truncate
-        # self.verbose = verbose
+        # Assign other parameters
+        self.tf = tf
+        self.train_pct = train_pct
+        self.test_pct = test_pct
+        self.val_pct = val_pct
+        self.truncate = truncate
+        self.verbose = verbose
 
     # def precompute_percentages(
     #     self,
