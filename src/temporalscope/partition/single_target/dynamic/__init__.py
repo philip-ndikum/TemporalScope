@@ -18,12 +18,12 @@
 """TemporalScope/src/temporalscope/partition/single_target/dynamic/__init__.py.
 
 This module defines the namespace for dynamic partitioning algorithms for single-target workflows in TemporalScope.
-Dynamic partitioning refers to algorithmic or data-driven strategies, contrasting with static (human-defined) methods. 
+Dynamic partitioning refers to algorithmic or data-driven strategies, contrasting with static (human-defined) methods.
 These approaches dynamically adjust partitioning based on data properties, causal relationships, or optimization techniques.
 
 Dynamic Partitioning:
 ---------------------
-Dynamic partitioning encompasses adaptive techniques where partitions are derived through algorithms rather than fixed 
+Dynamic partitioning encompasses adaptive techniques where partitions are derived through algorithms rather than fixed
 rules. These methods are suited for:
 - Causal Discovery: Partitioning based on causal relationships in high-dimensional datasets.
 - SHAP/Explainability-Driven Partitioning: Optimizing partitions to maximize insights from model explainability methods.
@@ -31,31 +31,31 @@ rules. These methods are suited for:
 
 Single-Target Workflows:
 ------------------------
-This namespace supports DataFrame-centric workflows for scalar target models. Multi-target workflows, as described in 
-the TemporalPartitionerProtocol, will require further extensions to ensure compatibility with TensorFlow/PyTorch 
+This namespace supports DataFrame-centric workflows for scalar target models. Multi-target workflows, as described in
+the TemporalPartitionerProtocol, will require further extensions to ensure compatibility with TensorFlow/PyTorch
 datasets and sequence-target workflows.
 
 Extensibility:
 --------------
-TemporalScope provides the foundation for users to implement their own dynamic partitioning algorithms. While no 
-dynamic algorithms are implemented in this module at this stage, the flexible architecture of TemporalScope allows 
+TemporalScope provides the foundation for users to implement their own dynamic partitioning algorithms. While no
+dynamic algorithms are implemented in this module at this stage, the flexible architecture of TemporalScope allows
 users to integrate bespoke methods tailored to their specific domain requirements.
 
 .. note::
 
-    Users are encouraged to leverage the TemporalPartitionerProtocol for building custom dynamic partitioning workflows 
+    Users are encouraged to leverage the TemporalPartitionerProtocol for building custom dynamic partitioning workflows
     and refer to the foundational literature on dynamic partitioning techniques for guidance.
 
 .. seealso::
 
-    1. Shah, A., DePavia, A., Hudson, N., Foster, I., & Stevens, R. (2024). 
-       Causal Discovery over High-Dimensional Structured Hypothesis Spaces with Causal Graph Partitioning. 
+    1. Shah, A., DePavia, A., Hudson, N., Foster, I., & Stevens, R. (2024).
+       Causal Discovery over High-Dimensional Structured Hypothesis Spaces with Causal Graph Partitioning.
        *arXiv preprint arXiv:2406.06348.*
-    2. Nodoushan, A. N. (2023). Interpretability of Deep Learning Models for Time-Series Clinical Data. 
+    2. Nodoushan, A. N. (2023). Interpretability of Deep Learning Models for Time-Series Clinical Data.
        (Doctoral dissertation, The University of Arizona).
-    3. Saarela, M., & Podgorelec, V. (2024). Recent Applications of Explainable AI (XAI): A Systematic Literature Review. 
+    3. Saarela, M., & Podgorelec, V. (2024). Recent Applications of Explainable AI (XAI): A Systematic Literature Review.
        *Applied Sciences, 14(19), 8884.*
-    4. Nayebi, A., Tipirneni, S., Reddy, C. K., Foreman, B., & Subbian, V. (2023). 
-       WindowSHAP: An efficient framework for explaining time-series classifiers based on Shapley values. 
+    4. Nayebi, A., Tipirneni, S., Reddy, C. K., Foreman, B., & Subbian, V. (2023).
+       WindowSHAP: An efficient framework for explaining time-series classifiers based on Shapley values.
        *Journal of Biomedical Informatics, 144, 104438.*
 """

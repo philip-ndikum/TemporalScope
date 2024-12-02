@@ -102,14 +102,18 @@ the configured window size and stride.
        database applications.
 """
 
-from typing import Optional
+from typing import Iterator, Optional
+from tabulate import tabulate
 
-from temporalscope.core.core_utils import MODE_SINGLE_TARGET
+# Narwhals Imports
+import narwhals as nw
+
+from temporalscope.core.core_utils import MODE_SINGLE_TARGET, SupportedTemporalDataFrame
 from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.partition.base_protocol import TemporalPartitionerProtocol
 
 # Precision constant for floating-point comparisons
-PRECISION = 1e-6
+DEFAULT_PRECISION = 1e-6
 
 
 class SlidingWindowPartitioner(TemporalPartitionerProtocol):
@@ -215,6 +219,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         val_pct: Optional[float] = 0.0,
         truncate: bool = True,
         mode: str = MODE_SINGLE_TARGET,
+        precision: float = DEFAULT_PRECISION,  # Added precision parameter
         verbose: bool = False,
     ):
         """Initialize the SlidingWindowPartitioner with validation of input parameters.
@@ -237,6 +242,8 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         :type truncate: bool, optional
         :param mode: Operational mode, defaults to `MODE_SINGLE_TARGET`. Only `MODE_SINGLE_TARGET` is supported.
         :type mode: str
+        :param precision: Tolerance for floating-point imprecision when validating percentages. Default is 1e-6.
+        :type precision: float, optional
         :param verbose: Print partitioning details if True. Default is False.
         :type verbose: bool, optional
 
@@ -251,6 +258,9 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
             raise ValueError(f"Unsupported mode: {mode}. This partitioner supports only `MODE_SINGLE_TARGET`.")
         self.mode = mode
 
+        # Assign precision
+        self.precision = precision
+
         # Validate percentages
         if not (0 <= train_pct <= 1):
             raise ValueError("`train_pct` must be between 0 and 1.")
@@ -259,7 +269,7 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         if val_pct is not None and not (0 <= val_pct <= 1):
             raise ValueError("`val_pct` must be between 0 and 1.")
         total_pct = train_pct + (test_pct or 0) + (val_pct or 0)
-        if not abs(total_pct - 1.0) < PRECISION:
+        if not abs(total_pct - 1.0) < self.precision:  # Use precision for comparison
             raise ValueError("Train, test, and validation percentages must sum to 1.0.")
 
         # Validate `num_partitions` or `window_size`
@@ -286,542 +296,212 @@ class SlidingWindowPartitioner(TemporalPartitionerProtocol):
         self.truncate = truncate
         self.verbose = verbose
 
-    # def precompute_percentages(
-    #     self,
-    #     train_pct: float,
-    #     test_pct: Optional[float],
-    #     val_pct: Optional[float],
-    #     precision: float = PRECISION,  # Now using the precision constant
-    # ) -> Tuple[float, float, float]:
-    #     """Precompute and validate train, test, and validation percentages.
-
-    #     This function ensures that the sum of train, test, and validation percentages equals 1.0.
-    #     If test_pct is not provided, it will be set to the remaining percentage after the train percentage.
-
-    #     :param train_pct: Percentage of data allocated for training.
-    #     :type train_pct: float
-    #     :param test_pct: Optional. Percentage of data allocated for testing.
-    #     :type test_pct: Optional[float]
-    #     :param val_pct: Optional. Percentage of data allocated for validation.
-    #     :type val_pct: Optional[float]
-    #     :param precision: The tolerance level for floating-point imprecision, defaults to 1e-6.
-    #     :type precision: float
-    #     :return: A tuple containing the validated percentages for training, testing, and validation.
-    #     :rtype: Tuple[float, float, float]
-    #     :raises ValueError: If the percentages do not sum to 1.0 or are not within the valid range (0 to 1).
-    #     """
-    #     # Validate the train percentage
-    #     if not (0 <= train_pct <= 1):
-    #         raise ValueError("train_pct must be between 0 and 1.")
-    #     # Handle test_pct and val_pct cases explicitly
-    #     if test_pct is None and val_pct is None:
-    #         test_pct = 1.0 - train_pct
-    #         val_pct = 0.0
-    #     elif test_pct is not None and val_pct is None:
-    #         if not (0 <= test_pct <= 1):
-    #             raise ValueError("test_pct must be between 0 and 1.")
-    #         val_pct = 1.0 - train_pct - test_pct
-    #     elif test_pct is None and val_pct is not None:
-    #         if not (0 <= val_pct <= 1):
-    #             raise ValueError("val_pct must be between 0 and 1.")
-    #         test_pct = 1.0 - train_pct - val_pct
-    #     else:
-    #         # Both test_pct and val_pct are provided, ensure they are valid
-    #         if test_pct is not None and not (0 <= test_pct <= 1):
-    #             raise ValueError("test_pct must be between 0 and 1.")
-    #         if val_pct is not None and not (0 <= val_pct <= 1):
-    #             raise ValueError("val_pct must be between 0 and 1.")
-    #     # Ensure they sum to 1.0, handling floating-point imprecision with precision constant
-    #     total_pct = train_pct + (test_pct or 0) + (val_pct or 0)
-    #     if not (abs(total_pct - 1.0) < precision):  # Compare with the precision constant
-    #         raise ValueError("Train, test, and validation percentages must sum to 1.0.")
-    #     # Ensure test_pct and val_pct are float types, not None
-    #     return train_pct, float(test_pct or 0), float(val_pct or 0)
-
-    # def _fit_pandas_modin(self) -> Iterator[Dict[str, Dict[str, Tuple[int, int]]]]:
-    #     """Fit method for partitioning using TimeFrame data.
-
-    #     This method partitions the dataset retrieved from TimeFrame, irrespective of backend.
-
-    #     :return: Iterator yielding partition indices.
-    #     """
-    #     df = self.tf.get_data()  # Get the DataFrame from TimeFrame
-    #     partition_count = 1
-
-    #     num_rows = df.shape[0]
-    #     start_range = list(range(0, num_rows, self.stride))
-
-    #     if self.reverse:
-    #         start_range.reverse()
-
-    #     for start in start_range:
-    #         end = start + self.window_size
-
-    #         if end > num_rows:
-    #             if self.truncate:
-    #                 break
-    #             end = num_rows
-
-    #         train_end = start + int(self.train_pct * (end - start))
-    #         test_end = train_end + int(self.test_pct * (end - start)) if self.test_pct else train_end
-    #         validation_end = end if self.val_pct else test_end
-
-    #         # Yield the partition indices
-    #         yield {
-    #             f"partition_{partition_count}": {
-    #                 "full": (start, end),
-    #                 "train": (start, train_end),
-    #                 "test": (train_end, test_end),
-    #                 "validation": (test_end, validation_end) if self.val_pct else (0, 0),
-    #             }
-    #         }
-    #         partition_count += 1
-
-    # def _fit_polars(self) -> Iterator[Dict[str, Dict[str, Tuple[int, int]]]]:
-    #     """Fit method for partitioning using TimeFrame data.
-
-    #     This method partitions the dataset retrieved from TimeFrame, irrespective of backend.
-
-    #     :return: Iterator yielding partition indices.
-    #     """
-    #     df = self.tf.get_data()  # Get the DataFrame from TimeFrame
-    #     partition_count = 1
-
-    #     num_rows = df.shape[0]  # Use shape[0] to be consistent with other backends like Pandas/Modin
-    #     start_range = list(range(0, num_rows, self.stride))
-
-    #     if self.reverse:
-    #         start_range.reverse()
-
-    #     for start in start_range:
-    #         end = start + self.window_size
-
-    #         if end > num_rows:
-    #             if self.truncate:
-    #                 break
-    #             end = num_rows
-
-    #         train_end = start + int(self.train_pct * (end - start))
-    #         test_end = train_end + int(self.test_pct * (end - start)) if self.test_pct else train_end
-    #         validation_end = end if self.val_pct else test_end
-
-    #         # Yield the partition indices
-    #         yield {
-    #             f"partition_{partition_count}": {
-    #                 "full": (start, end),
-    #                 "train": (start, train_end),
-    #                 "test": (train_end, test_end),
-    #                 "validation": (test_end, validation_end) if self.val_pct else (0, 0),
-    #             }
-    #         }
-    #         partition_count += 1
-
-    # def _transform_pandas_modin(self) -> Iterator[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame]]]]:
-    #     """Transform method for Pandas/Modin backend.
-
-    #     This method transforms the partitioned dataset into slices, yielding the data slices corresponding to
-    #     the partition indices generated by the `fit` method.
-
-    #     It processes each partition and splits it into train, test, and optionally validation sets.
-    #     If a partition's size is smaller than the specified `window_size`, padding is applied using the selected
-    #     padding scheme (`zero_pad`, `forward_fill_pad`, `backward_fill_pad`, or `mean_fill_pad`) to ensure
-    #     uniform size across partitions, unless `truncate` is set to True.
-
-    #     :return: Iterator yielding partitioned DataFrame slices for Pandas/Modin backends.
-    #     :rtype: Iterator[Dict[str, Dict[str, Union[pd.DataFrame, mpd.DataFrame]]]]
-
-    #     Example Usage:
-    #     --------------
-    #     .. code-block:: python
-
-    #         partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
-
-    #         for partition_data in partitioner._transform_pandas_modin():
-    #             print(partition_data)
-
-    #     Output Format:
-    #     --------------
-    #     Each yielded partition has the following structure:
-
-    #     .. code-block:: python
-
-    #         {
-    #             'partition_1': {
-    #                 'full': <pd.DataFrame>,
-    #                 'train': <pd.DataFrame>,
-    #                 'test': <pd.DataFrame>,
-    #                 'validation': <pd.DataFrame>  # (Optional, if val_pct is provided)
-    #             }
-    #         }
-
-    #     Notes
-    #     -----
-    #     .. note::
-    #         - Padding is applied when the size of a partition is smaller than the `window_size`, unless truncation is enabled.
-    #         - The padding scheme is determined by the `pad_scheme` parameter in the constructor (e.g., 'zero', 'forward_fill').
-    #         - Ensure that the input DataFrame is not empty to avoid runtime errors.
-    #         - For very large datasets, the padding process may increase memory usage. Consider using Modin when handling
-    #           large datasets to take advantage of distributed processing.
-
-    #     """
-    #     partition_count = 1
-    #     df = self.tf.get_data()  # Fetch the data from TimeFrame
-
-    #     # Add a type check to ensure df is a DataFrame
-    #     if not isinstance(df, (pd.DataFrame, mpd.DataFrame)):
-    #         raise TypeError("Expected df to be a pandas or modin DataFrame")
-
-    #     for partition in self.fit():  # Partition indices generated by fit()
-    #         partitioned_data = {}
-
-    #         # Iterate through the partition and generate train, test, validation sets
-    #         if isinstance(partition, dict):
-    #             for key, partition_dict in partition.items():
-    #                 partitioned_data[key] = {
-    #                     part_name: df.iloc[start:end]  # Slice based on indices
-    #                     for part_name, (start, end) in partition_dict.items()
-    #                     if start is not None and end is not None
-    #                 }
-
-    #                 # Check if padding is needed (partition size is smaller than window_size and truncate is False)
-    #                 if partition_dict["full"][1] - partition_dict["full"][0] < self.window_size and not self.truncate:
-    #                     # Apply the chosen padding scheme
-    #                     if self.pad_scheme == "zero":
-    #                         partitioned_data[key]["full"] = zero_pad(
-    #                             partitioned_data[key]["full"], target_len=self.window_size
-    #                         )
-    #                     elif self.pad_scheme == "forward_fill":
-    #                         partitioned_data[key]["full"] = forward_fill_pad(
-    #                             partitioned_data[key]["full"],
-    #                             target_len=self.window_size,
-    #                             end=len(partitioned_data[key]["full"]),
-    #                             reverse=False,
-    #                         )
-    #                     elif self.pad_scheme == "backward_fill":
-    #                         partitioned_data[key]["full"] = backward_fill_pad(
-    #                             partitioned_data[key]["full"],
-    #                             target_len=self.window_size,
-    #                             end=len(partitioned_data[key]["full"]),
-    #                             reverse=False,
-    #                         )
-    #                     elif self.pad_scheme == "mean_fill":
-    #                         partitioned_data[key]["full"] = mean_fill_pad(
-    #                             partitioned_data[key]["full"],
-    #                             target_len=self.window_size,
-    #                             end=len(partitioned_data[key]["full"]),
-    #                             reverse=False,
-    #                         )
-
-    #         yield partitioned_data
-    #         partition_count += 1
-
-    # def _transform_polars(self) -> Iterator[Dict[str, Dict[str, pl.DataFrame]]]:
-    #     """Transform method for Polars backend.
-
-    #     This method generates partitioned data slices for the Polars backend, yielding the data slices corresponding
-    #     to the partition indices generated by the `fit` method. If the size of a partition is smaller than the
-    #     specified `window_size`, padding is applied using the selected padding scheme (`zero_pad`, `forward_fill_pad`,
-    #     `backward_fill_pad`, or `mean_fill_pad`), unless `truncate` is set to True.
-
-    #     :return: Iterator yielding partitioned DataFrame slices for Polars backend.
-    #     :rtype: Iterator[Dict[str, Dict[str, pl.DataFrame]]]
-
-    #     Example Usage:
-    #     --------------
-    #     .. code-block:: python
-
-    #         partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
-
-    #         for partition_data in partitioner._transform_polars():
-    #             print(partition_data)
-
-    #     Output Format:
-    #     --------------
-    #     Each yielded partition has the following structure:
-
-    #     .. code-block:: python
-
-    #         {
-    #             'partition_1': {
-    #                 'full': <pl.DataFrame>,
-    #                 'train': <pl.DataFrame>,
-    #                 'test': <pl.DataFrame>,
-    #                 'validation': <pl.DataFrame>  # (Optional, if val_pct is provided)
-    #             }
-    #         }
-
-    #     Notes
-    #     -----
-    #     .. note::
-    #         - Padding is applied when the size of a partition is smaller than the `window_size`, unless truncation is enabled.
-    #         - The padding scheme is determined by the `pad_scheme` parameter in the constructor (e.g., 'zero', 'forward_fill').
-    #         - Polars DataFrames offer better performance with large datasets, especially for complex operations.
-    #         - For very large datasets, Polars DataFrames are recommended due to their lower memory footprint and faster
-    #           performance when compared to Pandas. Use Polars for more efficient partitioning and transformations.
-
-    #     """
-    #     partition_count = 1
-    #     df = self.tf.get_data()  # Fetch the data from TimeFrame
-
-    #     for partition in self.fit():  # Partition indices generated by fit()
-    #         partitioned_data = {}
-
-    #         # Iterate through the partition and generate train, test, validation sets
-    #         if isinstance(partition, dict):
-    #             for key, partition_dict in partition.items():
-    #                 partitioned_data[key] = {
-    #                     part_name: df.slice(start, end - start)  # Slice based on indices
-    #                     for part_name, (start, end) in partition_dict.items()
-    #                     if start is not None and end is not None
-    #                 }
-
-    #                 # Apply padding if partition size is smaller than window_size and truncate is False
-    #                 if partition_dict["full"][1] - partition_dict["full"][0] < self.window_size and not self.truncate:
-    #                     # Apply the chosen padding scheme for Polars DataFrame
-    #                     if self.pad_scheme == "zero":
-    #                         partitioned_data[key]["full"] = zero_pad(
-    #                             partitioned_data[key]["full"], target_len=self.window_size
-    #                         )
-    #                     elif self.pad_scheme == "forward_fill":
-    #                         partitioned_data[key]["full"] = forward_fill_pad(
-    #                             partitioned_data[key]["full"],
-    #                             target_len=self.window_size,
-    #                             end=len(partitioned_data[key]["full"]),
-    #                             reverse=False,
-    #                         )
-    #                     elif self.pad_scheme == "backward_fill":
-    #                         partitioned_data[key]["full"] = backward_fill_pad(
-    #                             partitioned_data[key]["full"],
-    #                             target_len=self.window_size,
-    #                             end=len(partitioned_data[key]["full"]),
-    #                             reverse=False,
-    #                         )
-    #                     elif self.pad_scheme == "mean_fill":
-    #                         partitioned_data[key]["full"] = mean_fill_pad(
-    #                             partitioned_data[key]["full"],
-    #                             target_len=self.window_size,
-    #                             end=len(partitioned_data[key]["full"]),
-    #                             reverse=False,
-    #                         )
-
-    #         yield partitioned_data
-    #         partition_count += 1
-
-    # def fit(self) -> Iterator[Dict[str, Dict[str, Tuple[int, int]]]]:
-    #     """Generate partition indices for the dataset.
-
-    #     This method creates indices for sliding window partitions based on the specified `window_size`, `stride`,
-    #     and other parameters. It yields the start and end indices for each partition, as well as train, test,
-    #     and validation splits within each partition.
-
-    #     :return: Iterator that yields partition indices for training, testing, and validation.
-    #     :rtype: Iterator[Dict[str, Dict[str, Tuple[int, int]]]]
-    #     :raises ValueError: If an unsupported backend is encountered.
-
-    #     Example Usage:
-    #     --------------
-    #     .. code-block:: python
-
-    #         partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
-
-    #         for partition in partitioner.fit():
-    #             print(partition)
-
-    #     Output Format:
-    #     --------------
-    #     Each yielded partition has the following structure:
-
-    #     .. code-block:: python
-
-    #         {
-    #             "partition_1": {
-    #                 "full": (start_index, end_index),
-    #                 "train": (train_start, train_end),
-    #                 "test": (test_start, test_end),
-    #                 "validation": (validation_start, validation_end),  # (Optional, if val_pct is provided)
-    #             }
-    #         }
-
-    #     .. note::
-    #        - The indices refer to row indices in the dataset, and the format remains the same regardless of the backend.
-    #        - The partitioning occurs in a sliding window fashion with optional gaps, as specified by the stride.
-
-    #     .. seealso::
-    #        - :meth:`transform`: For generating the actual data slices corresponding to these indices.
-    #     """
-    #     # Call backend-specific partitioning method
-    #     if self.tf.dataframe_backend in [BACKEND_PANDAS, BACKEND_MODIN]:
-    #         return self._fit_pandas_modin()  # type: ignore[call-arg]
-    #     elif self.tf.dataframe_backend == BACKEND_POLARS:
-    #         return self._fit_polars()  # type: ignore[call-arg]
-    #     else:
-    #         raise ValueError(f"Unsupported backend: {self.tf.dataframe_backend}")
-
-    # def transform(self) -> Iterator[Dict[str, Dict[str, SupportedBackendDataFrame]]]:
-    #     """Generate partitioned data slices for the dataset.
-
-    #     This method yields the actual data slices corresponding to the partition indices generated by the `fit` method.
-    #     The slices are returned as generic DataFrames, regardless of the backend (e.g., Pandas, Modin, or Polars).
-
-    #     :return: Iterator yielding partitioned DataFrame slices.
-    #     :rtype: Iterator[Dict[str, Dict[str, DataFrame]]]
-    #     :raises ValueError: If an unsupported backend is encountered.
-
-    #     Example Usage:
-    #     --------------
-    #     .. code-block:: python
-
-    #         partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
-
-    #         for partition_data in partitioner.transform():
-    #             print(partition_data)
-
-    #     Output Format:
-    #     --------------
-    #     Each yielded partition has the following structure:
-
-    #     .. code-block:: python
-
-    #         {
-    #             'partition_1': {
-    #                 'full': <DataFrame>,
-    #                 'train': <DataFrame>,
-    #                 'test': <DataFrame>,
-    #                 'validation': <DataFrame>  # (Optional, if val_pct is provided)
-    #             }
-    #         }
-
-    #     .. note::
-    #        - This method transforms the dataset into partitioned slices based on indices created by `fit`.
-    #        - Ensure the dataset is preprocessed properly to avoid errors during slicing.
-    #        - The DataFrame format is agnostic to the backend.
-
-    #     .. seealso::
-    #        - :meth:`fit`: For generating the partition indices that are sliced in this method.
-    #     """
-    #     df = self.tf.get_data()  # Get the dataset from the TimeFrame
-
-    #     # Call backend-specific transformation method
-    #     if self.tf.dataframe_backend in [BACKEND_PANDAS, BACKEND_MODIN]:
-    #         return self._transform_pandas_modin(df)  # type: ignore[call-arg]
-    #     elif self.tf.dataframe_backend == BACKEND_POLARS:
-    #         return self._transform_polars(df)  # type: ignore[call-arg]
-    #     else:
-    #         raise ValueError(f"Unsupported backend: {self.tf.dataframe_backend}")
-
-    # def fit_transform(self) -> Iterator[Dict[str, Dict[str, SupportedBackendDataFrame]]]:
-    #     """Fit and transform the dataset in a single step.
-
-    #     This method combines the functionality of the `fit` and `transform` methods. It first generates partition indices
-    #     using `fit`, and then returns the partitioned data slices using `transform`. The DataFrame format is backend-agnostic.
-
-    #     :return: Iterator yielding partitioned DataFrame slices.
-    #     :rtype: Iterator[Dict[str, Dict[str, DataFrame]]]
-    #     :raises ValueError: If an unsupported backend is encountered.
-
-    #     Example Usage:
-    #     --------------
-    #     .. code-block:: python
-
-    #         partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
-
-    #         for partition_data in partitioner.fit_transform():
-    #             print(partition_data)
-
-    #     Output Format:
-    #     --------------
-    #     Each yielded partition has the following structure:
-
-    #     .. code-block:: python
-    #     `
-    #         {
-    #             'partition_1': {
-    #                 'full': <DataFrame>,
-    #                 'train': <DataFrame>,
-    #                 'test': <DataFrame>,
-    #                 'validation': <DataFrame>  # (Optional, if val_pct is provided)
-    #             }
-    #         }
-
-    #     .. note::
-    #        - This method is a convenient way to generate partition indices and their corresponding data slices in one step.
-    #        - Ensure that the dataset is preprocessed properly to avoid issues during partitioning.
-
-    #     .. seealso::
-    #        - :meth:`fit`: For generating partition indices.
-    #        - :meth:`transform`: For generating the actual partitioned slices.
-    #     """
-    #     for partition_indices in self.fit():
-    #         yield from self.transform()
-
-    # def check_data(self, partition_index: Optional[int] = None) -> None:
-    #     """Perform data checks on the entire dataset or a specific partition.
-
-    #     This method performs validation checks on the dataset or a specific partition, ensuring that
-    #     the sample size, feature-to-sample ratio, and class balance (if applicable) meet the expected criteria.
-
-    #     If a partition index is provided, it checks only that partition; otherwise, it checks the entire dataset.
-
-    #     :param partition_index: Index of the partition to check, or `None` to check the full dataset.
-    #     :type partition_index: Optional[int]
-    #     :raises ValueError: If the dataset or a partition fails validation checks.
-
-    #     Example Usage:
-    #     --------------
-    #     .. code-block:: python
-
-    #         partitioner = SlidingWindowPartitioner(tf=data_tf, window_size=5, stride=2, train_pct=0.7, test_pct=0.3)
-
-    #         # Perform checks on the full dataset
-    #         partitioner.check_data()
-
-    #         # Perform checks on the first partition
-    #         partitioner.check_data(partition_index=0)
-
-    #     .. note::
-    #        - This method ensures that the data's structure and integrity (sample size, feature ratio, class balance)
-    #          meet expectations for further processing.
-    #        - Ensure the dataset or partition is not empty to avoid runtime errors.
-    #     """
-    #     df = self.tf.get_data()  # Get the DataFrame (could be Pandas, Modin, or Polars)
-
-    #     if partition_index is not None:
-    #         partition = next(itertools.islice(self.fit(), partition_index, None))
-    #         start, end = partition[f"partition_{partition_index + 1}"]["full"]
-
-    #         # Slice the DataFrame based on its type (Pandas/Modin vs Polars)
-    #         if isinstance(df, (pd.DataFrame, mpd.DataFrame)):
-    #             df_to_check = df.iloc[start:end]
-    #         elif isinstance(df, pl.DataFrame):
-    #             df_to_check = df.slice(start, end - start)
-    #         else:
-    #             raise ValueError(f"Unsupported DataFrame type: {type(df)}")
-
-    #         context = f"Partition {partition_index + 1}"
-    #         min_samples = 100
-    #     else:
-    #         df_to_check = df
-    #         context = "Full dataset"
-    #         min_samples = 3000
-
-    #     # Perform sample size, feature ratio, and class balance checks
-    #     check_sample_size(
-    #         df_to_check,
-    #         backend=self.tf.dataframe_backend,
-    #         min_samples=min_samples,
-    #         max_samples=100000,
-    #         enable_warnings=True,
-    #     )
-    #     check_feature_to_sample_ratio(
-    #         df_to_check, backend=self.tf.dataframe_backend, max_ratio=0.2, enable_warnings=True
-    #     )
-    #     if self.tf.target_col:
-    #         check_class_balance(
-    #             df_to_check,
-    #             target_col=self.tf.target_col,
-    #             backend=self.tf.dataframe_backend,
-    #             enable_warnings=True,
-    #         )
-
-    #     if self.verbose:
-    #         print(f"{context} checks completed with warnings where applicable.")
+        # Finally store metadata after fit
+        self.metadata = None  # Store metadata after fit
+
+    def _print_partition_table(self, total_rows: int) -> None:
+        """Private method to print partitioning configuration as a table.
+
+        :param total_rows: Total number of rows in the dataset.
+        :type total_rows: int
+        """
+        table_data = [
+            ["Total Rows", total_rows],
+            ["Partition Scheme", self.PARTITION_SCHEME],
+            ["Number of Partitions", self.num_partitions],
+            ["Window Size", self.window_size],
+            ["Stride", self.stride],
+            ["Train Percentage", self.train_pct],
+            ["Test Percentage", self.test_pct],
+            ["Validation Percentage", self.val_pct],
+            ["Truncate", self.truncate],
+        ]
+        print(tabulate(table_data, headers=["Parameter", "Value"], tablefmt="grid"))
+
+    def setup(self) -> None:
+        """Prepare and validate input parameters for partitioning.
+
+        This method validates all input parameters, determines the partitioning scheme
+        (`num_partitions` or `window_size`), and ensures that the configuration is consistent
+        with the dataset's cardinality. Verbose mode provides a summary of the configuration
+        in tabular form.
+
+        :raises ValueError:
+            - If both `num_partitions` and `window_size` are `None`.
+            - If any percentage is outside the range [0, 1].
+            - If train, test, and validation percentages do not sum to 1.0.
+            - If `num_partitions` or `window_size` are invalid for the dataset's cardinality.
+        """
+        # Step 1: Validate percentages
+        if not (0 <= self.train_pct <= 1):
+            raise ValueError("`train_pct` must be between 0 and 1.")
+        if self.test_pct is not None and not (0 <= self.test_pct <= 1):
+            raise ValueError("`test_pct` must be between 0 and 1.")
+        if self.val_pct is not None and not (0 <= self.val_pct <= 1):
+            raise ValueError("`val_pct` must be between 0 and 1.")
+
+        # Compute missing percentages
+        if self.test_pct is None and self.val_pct is None:
+            self.test_pct = 1.0 - self.train_pct
+            self.val_pct = 0.0
+        elif self.test_pct is not None and self.val_pct is None:
+            self.val_pct = 1.0 - self.train_pct - self.test_pct
+        elif self.test_pct is None and self.val_pct is not None:
+            self.test_pct = 1.0 - self.train_pct - self.val_pct
+
+        # Ensure percentages sum to 1.0
+        total_pct = self.train_pct + self.test_pct + self.val_pct
+        if not abs(total_pct - 1.0) < self.precision:
+            raise ValueError("Train, test, and validation percentages must sum to 1.0.")
+
+        # Step 2: Validate and set partition scheme
+        if self.num_partitions is None and self.window_size is None:
+            raise ValueError("Either `num_partitions` or `window_size` must be specified.")
+
+        total_rows = self.tf.df.select([nw.col(self.tf._time_col)]).collect().shape[0]
+
+        if self.num_partitions is not None:
+            if self.num_partitions <= 0:
+                raise ValueError("`num_partitions` must be a positive integer.")
+            self.window_size = total_rows // self.num_partitions
+            self.PARTITION_SCHEME = "num_partitions"
+        elif self.window_size is not None:
+            if self.window_size <= 0:
+                raise ValueError("`window_size` must be a positive integer.")
+            self.num_partitions = (total_rows - self.window_size) // (self.stride or self.window_size) + 1
+            self.PARTITION_SCHEME = "window_size"
+
+        # Ensure valid cardinality
+        if self.num_partitions > total_rows:
+            raise ValueError(f"Insufficient rows ({total_rows}) for `num_partitions={self.num_partitions}`.")
+        if self.window_size > total_rows:
+            raise ValueError(f"Insufficient rows ({total_rows}) for `window_size={self.window_size}`.")
+
+        # Step 3: Set default stride if not provided
+        self.stride = self.stride or self.window_size
+        if self.stride <= 0:
+            raise ValueError("`stride` must be a positive integer.")
+
+        # Step 4: Verbose output
+        if self.verbose:
+            self._print_partition_table(total_rows)
+
+        # Reset metadata
+        self.metadata = None
+
+    @nw.narwhalify
+    def fit(self, df: SupportedTemporalDataFrame) -> None:
+        """Generate partition metadata using time column boundaries.
+
+        This method computes partition start and end boundaries based on the time column,
+        window size, and stride. These boundaries are stored as metadata for lazy partitioning.
+
+        :param df: Input DataFrame to compute partition metadata.
+        :type df: SupportedTemporalDataFrame
+
+        :raises ValueError:
+            - If the total rows in the DataFrame are insufficient for the requested partitions.
+            - If metadata already exists, indicating `setup` has not been completed.
+
+        .. note::
+            - Uses `select()` to retrieve time column values.
+            - Calculates boundaries using time-based filtering.
+            - Compatible with Narwhals backends (Pandas, Polars, PyArrow).
+        """
+        time_col_values = df.select([nw.col(self.tf._time_col)]).collect().to_numpy().flatten()
+        total_rows = len(time_col_values)
+
+        if total_rows < (self.window_size or total_rows // self.num_partitions):
+            raise ValueError(f"Total rows ({total_rows}) are insufficient for the requested partitions.")
+
+        window_size = self.window_size or total_rows // self.num_partitions
+        stride = self.stride or window_size
+
+        partitions = []
+        for i in range(0, total_rows - window_size + 1, stride):
+            start_time = time_col_values[i]
+            end_time = time_col_values[i + window_size - 1]
+            partitions.append(
+                {
+                    "train": (start_time, start_time + (end_time - start_time) * self.train_pct),
+                    "test": (start_time + (end_time - start_time) * self.train_pct, end_time),
+                    "validation": None
+                    if not self.val_pct
+                    else (end_time, end_time + (end_time - start_time) * self.val_pct),
+                }
+            )
+
+        self.metadata = {
+            "partitions": partitions,
+            "window_size": window_size,
+            "stride": stride,
+            "total_rows": total_rows,
+        }
+
+        if self.verbose:
+            print(f"Fit complete with {len(partitions)} partitions, window size {window_size}, stride {stride}.")
+
+    @nw.narwhalify
+    def transform(self, df: SupportedTemporalDataFrame) -> Iterator[dict[str, SupportedTemporalDataFrame]]:
+        """Apply time-based partitioning using metadata.
+
+        This method filters the DataFrame based on the time column boundaries stored
+        in the metadata. Partitions are lazily yielded for memory efficiency.
+
+        :param df: Input DataFrame to partition.
+        :type df: SupportedTemporalDataFrame
+        :return: An iterator yielding dictionaries of DataFrame partitions.
+        :rtype: Iterator[dict[str, SupportedTemporalDataFrame]]
+
+        :raises RuntimeError: If `fit` has not been called prior to `transform`.
+
+        .. note::
+            - Leverages `filter()` for time-based slicing.
+            - Maintains compatibility with all Narwhals-supported backends.
+            - Lazy evaluation minimizes memory usage.
+        """
+        if self.metadata is None:
+            raise RuntimeError("Call `fit` before `transform`.")
+
+        for partition in self.metadata["partitions"]:
+            yield {
+                "train": df.filter(
+                    (nw.col(self.tf._time_col) >= partition["train"][0])
+                    & (nw.col(self.tf._time_col) < partition["train"][1])
+                ),
+                "test": df.filter(
+                    (nw.col(self.tf._time_col) >= partition["test"][0])
+                    & (nw.col(self.tf._time_col) < partition["test"][1])
+                ),
+                "validation": None
+                if not partition["validation"]
+                else df.filter(
+                    (nw.col(self.tf._time_col) >= partition["validation"][0])
+                    & (nw.col(self.tf._time_col) < partition["validation"][1])
+                ),
+            }
+
+    @property
+    def partitions(self) -> list[dict[str, SupportedTemporalDataFrame]]:
+        """Provide indexed access to partitioned data.
+
+        This property allows users to access partitioned data slices by index, slice, or iteration.
+        Partitions are generated lazily and cached for efficient reuse.
+
+        :return: A list of dictionaries containing train, test, and validation DataFrame slices.
+        :rtype: list[dict[str, SupportedTemporalDataFrame]]
+
+        :raises RuntimeError: If `fit` has not been called prior to accessing partitions.
+
+        Example Usage:
+        --------------
+        .. code-block:: python
+
+            partition = partitioner.partitions[0]
+            print(partition["train"])
+        """
+        if self.metadata is None:
+            raise RuntimeError("Call `fit` before accessing `partitions`.")
+
+        # Generate all partitions lazily
+        return list(self.transform(self.tf.df))
