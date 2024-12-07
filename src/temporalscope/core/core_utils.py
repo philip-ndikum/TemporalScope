@@ -1096,7 +1096,7 @@ def sort_dataframe_time(
 
 
 @nw.narwhalify
-def check_temporal_order_and_uniqueness(
+def validate_temporal_uniqueness(
     df: SupportedTemporalDataFrame, time_col: str, raise_error: bool = True, context: str = ""
 ) -> None:
     """Validate strict temporal ordering and uniqueness in the given DataFrame.
@@ -1125,11 +1125,11 @@ def check_temporal_order_and_uniqueness(
 
         # Create a test DataFrame with numeric timestamps
         df = pd.DataFrame({"time": [1, 2, 3, 4], "value": [10, 20, 30, 40]})
-        check_temporal_order_and_uniqueness(df, time_col="time")  # Will pass
+        validate_temporal_uniqueness(df, time_col="time")  # Will pass
 
         # Create DataFrame with datetime timestamps
         df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=4), "value": [10, 20, 30, 40]})
-        check_temporal_order_and_uniqueness(df, time_col="time")  # Will pass
+        validate_temporal_uniqueness(df, time_col="time")  # Will pass
 
         # Create DataFrame with duplicates
         df_duplicates = pd.DataFrame(
@@ -1139,7 +1139,7 @@ def check_temporal_order_and_uniqueness(
             }
         )
         # This will raise ValueError: "Duplicate timestamps in column 'time'."
-        check_temporal_order_and_uniqueness(df_duplicates, time_col="time")
+        validate_temporal_uniqueness(df_duplicates, time_col="time")
 
     .. note::
         - Use `nw.from_native` only when chaining `@nw.narwhalify` functions, as each
@@ -1153,8 +1153,12 @@ def check_temporal_order_and_uniqueness(
         raise TimeColumnError(f"Invalid time column: {str(e)}")
 
     # Step 2: Materialize lazy DataFrames
-    if is_lazy_evaluation(df):  # Desensive programming for lazy evaluation
+    if is_lazy_evaluation(df):  # Defensive programming for lazy evaluation
         df = df.collect() if hasattr(df, "collect") else df.compute()  # pragma: no cover
+
+    # Handle PyArrow's unique count differently
+    if get_dataframe_backend(df) == "pyarrow":
+        df = nw.from_native(df.to_pandas()) # pragma: no cover
 
     # Step 3: Check for duplicates using proper aggregation
     duplicate_check_df = df.select(
@@ -1185,7 +1189,7 @@ def check_temporal_order_and_uniqueness(
 
 
 @nw.narwhalify
-def check_strict_temporal_ordering(
+def sort_and_validate_temporal_order(
     df: SupportedTemporalDataFrame,
     time_col: str,
     group_col: Optional[str] = None,
@@ -1224,7 +1228,7 @@ def check_strict_temporal_ordering(
         df = pd.DataFrame({"time": [1, 2, 3, 4], "value": [10, 20, 30, 40]})
 
         # Check temporal ordering - will pass
-        check_strict_temporal_ordering(df, time_col="time")
+        sort_and_validate_temporal_order(df, time_col="time")
 
         # Create DataFrame with duplicates
         df_duplicates = pd.DataFrame(
@@ -1235,7 +1239,7 @@ def check_strict_temporal_ordering(
         )
 
         # This will raise ValueError: "Duplicate timestamps in column 'time'."
-        check_strict_temporal_ordering(df_duplicates, time_col="time")
+        sort_and_validate_temporal_order(df_duplicates, time_col="time")
 
         # Check within groups
         df_grouped = pd.DataFrame(
@@ -1245,7 +1249,7 @@ def check_strict_temporal_ordering(
                 "value": [10, 20, 30, 40],
             }
         )
-        check_strict_temporal_ordering(df_grouped, time_col="time", group_col="group")
+        sort_and_validate_temporal_order(df_grouped, time_col="time", group_col="group")
 
     .. note::
         - This function assumes strict temporal ordering and will fail if duplicate
@@ -1282,8 +1286,20 @@ def check_strict_temporal_ordering(
         df = df.sort(by=[id_col, time_col])
         df = nw.from_native(df)
 
+        # Get unique groups
+        group_values = df.select(nw.col(id_col).unique())
+        if is_lazy_evaluation(group_values):  # Same pattern as Step 2
+            group_values = (
+                group_values.collect() if hasattr(group_values, "collect") else group_values.compute()
+            )  # pragma: no cover
+
+        # Validate each group's order
+        for group_val in group_values[id_col]:
+            group_df = df.filter(nw.col(id_col) == group_val)
+            validate_temporal_uniqueness(group_df, time_col, raise_error, context=f"group '{group_val}' ")
+
     # Step 6: Group validation
-    if group_col:
+    elif group_col:
         if group_col not in df.columns:
             raise ValueError(f"Column '{group_col}' does not exist in the DataFrame.")
 
@@ -1299,7 +1315,7 @@ def check_strict_temporal_ordering(
         # Validate each group's order
         for group_val in group_values[group_col]:
             group_df = df.filter(nw.col(group_col) == group_val)
-            check_temporal_order_and_uniqueness(group_df, time_col, raise_error, context=f"group '{group_val}' ")
+            validate_temporal_uniqueness(group_df, time_col, raise_error, context=f"group '{group_val}' ")
     else:
         # Step 7: Final validation of entire sorted DataFrame
-        check_temporal_order_and_uniqueness(df, time_col, raise_error)
+        validate_temporal_uniqueness(df, time_col, raise_error)  # pragma: no cover

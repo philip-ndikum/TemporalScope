@@ -33,8 +33,9 @@ from temporalscope.core.core_utils import (
     MODE_SINGLE_TARGET,
     TEMPORALSCOPE_CORE_BACKEND_TYPES,
     SupportedTemporalDataFrame,
+    convert_to_backend,
 )
-from temporalscope.core.exceptions import TimeColumnError, UnsupportedBackendError
+from temporalscope.core.exceptions import UnsupportedBackendError
 from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
@@ -309,3 +310,200 @@ def test_metadata_property(df_basic):
     assert (
         tf.metadata["extra_info"]["notes"] == "This is a unit test"
     ), "Metadata extra_info notes value does not match expected."
+
+
+# ========================= Direct Parameter Validation Tests =========================
+
+
+def test_validate_parameters_direct_invalid_time_col(df_basic):
+    """Test _validate_parameters directly with invalid time_col."""
+    tf = TimeFrame(df_basic, time_col="time", target_col="target")  # Create instance first
+    with pytest.raises(TypeError, match="`time_col` must be a string"):
+        tf._validate_parameters(
+            time_col=123,  # Invalid
+            target_col="target",
+            dataframe_backend=None,
+            sort=True,
+            ascending=True,
+            verbose=False,
+            time_col_conversion=None,
+            id_col=None,
+        )
+
+
+def test_validate_parameters_direct_invalid_target_col(df_basic):
+    """Test _validate_parameters directly with invalid target_col."""
+    tf = TimeFrame(df_basic, time_col="time", target_col="target")
+    with pytest.raises(TypeError, match="`target_col` must be a string"):
+        tf._validate_parameters(
+            time_col="time",
+            target_col=456,  # Invalid
+            dataframe_backend=None,
+            sort=True,
+            ascending=True,
+            verbose=False,
+            time_col_conversion=None,
+            id_col=None,
+        )
+
+
+def test_validate_parameters_direct_invalid_backend(df_basic):
+    """Test _validate_parameters directly with invalid dataframe_backend."""
+    tf = TimeFrame(df_basic, time_col="time", target_col="target")
+    with pytest.raises(TypeError, match="`dataframe_backend` must be a string or None"):
+        tf._validate_parameters(
+            time_col="time",
+            target_col="target",
+            dataframe_backend=123,  # Invalid
+            sort=True,
+            ascending=True,
+            verbose=False,
+            time_col_conversion=None,
+            id_col=None,
+        )
+
+
+def test_validate_parameters_direct_invalid_sort(df_basic):
+    """Test _validate_parameters directly with invalid sort."""
+    tf = TimeFrame(df_basic, time_col="time", target_col="target")
+    with pytest.raises(TypeError, match="`sort` must be a boolean"):
+        tf._validate_parameters(
+            time_col="time",
+            target_col="target",
+            dataframe_backend=None,
+            sort="true",  # Invalid
+            ascending=True,
+            verbose=False,
+            time_col_conversion=None,
+            id_col=None,
+        )
+
+
+def test_validate_parameters_direct_invalid_ascending(df_basic):
+    """Test _validate_parameters directly with invalid ascending."""
+    tf = TimeFrame(df_basic, time_col="time", target_col="target")
+    with pytest.raises(TypeError, match="`ascending` must be a boolean"):
+        tf._validate_parameters(
+            time_col="time",
+            target_col="target",
+            dataframe_backend=None,
+            sort=True,
+            ascending="false",  # Invalid
+            verbose=False,
+            time_col_conversion=None,
+            id_col=None,
+        )
+
+
+def test_validate_parameters_direct_invalid_verbose(df_basic):
+    """Test _validate_parameters directly with invalid verbose."""
+    tf = TimeFrame(df_basic, time_col="time", target_col="target")
+    with pytest.raises(TypeError, match="`verbose` must be a boolean"):
+        tf._validate_parameters(
+            time_col="time",
+            target_col="target",
+            dataframe_backend=None,
+            sort=True,
+            ascending=True,
+            verbose="yes",  # Invalid
+            time_col_conversion=None,
+            id_col=None,
+        )
+
+
+def test_validate_parameters_direct_invalid_id_col(df_basic):
+    """Test _validate_parameters directly with invalid id_col."""
+    tf = TimeFrame(df_basic, time_col="time", target_col="target")
+    with pytest.raises(TypeError, match="`id_col` must be a string or None"):
+        tf._validate_parameters(
+            time_col="time",
+            target_col="target",
+            dataframe_backend=None,
+            sort=True,
+            ascending=True,
+            verbose=False,
+            time_col_conversion=None,
+            id_col=123,  # Invalid
+        )
+
+
+# ========================= Strict Temporal Ordering Tests =========================
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_setup_strict_temporal_ordering_invalid_time_column(backend):
+    """Test setup with invalid time column when strict_temporal_order is True."""
+    df = pd.DataFrame({"time": ["a", "b", "c"], "target": [1, 2, 3]})
+    df = convert_to_backend(df, backend)
+    with pytest.raises(ValueError, match=r".*neither numeric nor datetime.*"):
+        TimeFrame(df, time_col="time", target_col="target", strict_temporal_order=True)
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_setup_strict_temporal_ordering_missing_columns(backend):
+    """Test setup with missing columns when strict_temporal_order is True."""
+    df = pd.DataFrame({"other": [1, 2, 3]})
+    df = convert_to_backend(df, backend)
+
+    # Test missing time column
+    with pytest.raises(ValueError, match=r"Column 'time' does not exist"):
+        TimeFrame(df, time_col="time", target_col="target", strict_temporal_order=True)
+
+    # Test missing id column
+    df_with_time = pd.DataFrame({"time": [1, 2, 3], "target": [1, 2, 3]})
+    df_with_time = convert_to_backend(df_with_time, backend)
+    with pytest.raises(ValueError, match=r"Column 'id' does not exist"):
+        TimeFrame(df_with_time, time_col="time", target_col="target", strict_temporal_order=True, id_col="id")
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_setup_strict_temporal_ordering_empty_dataframe(backend):
+    """Test setup with empty DataFrame when strict_temporal_order is True."""
+    df = pd.DataFrame(columns=["time", "target"])
+    df = convert_to_backend(df, backend)
+    with pytest.raises(ValueError, match="Empty DataFrame provided."):
+        TimeFrame(df, time_col="time", target_col="target", strict_temporal_order=True)
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_setup_strict_temporal_ordering_duplicates(backend):
+    """Test setup with duplicate timestamps when strict_temporal_order is True."""
+    df = pd.DataFrame(
+        {
+            "time": [1, 1, 2, 3],  # Duplicate timestamp
+            "target": [10, 20, 30, 40],
+        }
+    )
+    df = convert_to_backend(df, backend)
+    with pytest.raises(ValueError, match="Duplicate timestamps in column 'time'"):
+        TimeFrame(df, time_col="time", target_col="target", strict_temporal_order=True)
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_setup_strict_temporal_ordering_group_validation(backend):
+    """Test setup with group-based validation."""
+    df = pd.DataFrame({
+        "time": [2, 1, 2, 1],  # Unsorted times that will be valid after sorting
+        "group": [1, 1, 2, 2],  # Using numeric groups since validate_dataframe_column_types requires numeric
+        "target": [20, 10, 40, 30]
+    })
+    df = convert_to_backend(df, backend)
+    # Should pass - after sorting, each group will have [1,2] timestamps
+    tf = TimeFrame(df, time_col="time", target_col="target", 
+                  strict_temporal_order=True, id_col="group")
+    assert tf._id_col == "group"
+
+
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_setup_strict_temporal_ordering_valid_data(backend):
+    """Test setup with valid temporal ordering."""
+    df = pd.DataFrame(
+        {
+            "time": [1, 2, 3, 4],  # Strictly increasing
+            "target": [10, 20, 30, 40],
+        }
+    )
+    df = convert_to_backend(df, backend)
+    # Should pass - timestamps are strictly increasing
+    tf = TimeFrame(df, time_col="time", target_col="target", strict_temporal_order=True)
+    assert tf._strict_temporal_order is True

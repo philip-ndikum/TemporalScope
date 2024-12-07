@@ -47,8 +47,8 @@ from temporalscope.core.core_utils import (
     UnsupportedBackendError,
     check_dataframe_empty,
     check_dataframe_nulls_nans,
-    check_strict_temporal_ordering,
-    check_temporal_order_and_uniqueness,
+    sort_and_validate_temporal_order,
+    validate_temporal_uniqueness,
     convert_to_backend,
     convert_to_datetime,
     convert_to_numeric,
@@ -1061,50 +1061,50 @@ def test_sort_dataframe_time_with_missing_time_column():
         sort_dataframe_time(df, time_col="time", ascending=True)
 
 
-# ======================= check_temporal_order_and_uniqueness Tests =======================
+# ======================= validate_temporal_uniqueness Tests =======================
 
 
-def test_check_temporal_order_and_uniqueness_no_duplicates():
-    """Test check_temporal_order_and_uniqueness with no duplicates or violations."""
+def test_validate_temporal_uniqueness_no_duplicates():
+    """Test validate_temporal_uniqueness with no duplicates or violations."""
     df = pd.DataFrame({"time": [1, 2, 3, 4, 5]})
-    check_temporal_order_and_uniqueness(df, time_col="time")
+    validate_temporal_uniqueness(df, time_col="time")
 
 
-def test_check_temporal_order_and_uniqueness_duplicates():
-    """Test check_temporal_order_and_uniqueness raises error for duplicate timestamps."""
+def test_validate_temporal_uniqueness_duplicates():
+    """Test validate_temporal_uniqueness raises error for duplicate timestamps."""
     df = pd.DataFrame({"time": [1, 1, 2, 3]})
     # Convert to Narwhals backend and check
     df_backend = nw.from_native(df)  # Ensure proper Narwhalification
     with pytest.raises(ValueError, match="Duplicate timestamps"):
-        check_temporal_order_and_uniqueness(df_backend, time_col="time")
+        validate_temporal_uniqueness(df_backend, time_col="time")
 
 
-def test_check_temporal_order_and_uniqueness_non_monotonic():
-    """Test check_temporal_order_and_uniqueness raises error for non-monotonic timestamps."""
+def test_validate_temporal_uniqueness_non_monotonic():
+    """Test validate_temporal_uniqueness raises error for non-monotonic timestamps."""
     df = pd.DataFrame({"time": [1, 3, 2, 4]})
     # Let @nw.narwhalify handle conversion
     with pytest.raises(ValueError, match=r".*strictly increasing.*"):  # Use regex pattern
-        check_temporal_order_and_uniqueness(df, time_col="time")
+        validate_temporal_uniqueness(df, time_col="time")
 
 
-def test_check_temporal_order_and_uniqueness_warn_on_failure():
-    """Test check_temporal_order_and_uniqueness warns instead of erroring."""
+def test_validate_temporal_uniqueness_warn_on_failure():
+    """Test validate_temporal_uniqueness warns instead of erroring."""
     df = pd.DataFrame({"time": [1, 1, 2, 3]})
     with pytest.warns(UserWarning, match="Duplicate timestamps"):
-        check_temporal_order_and_uniqueness(df, time_col="time", raise_error=False)
+        validate_temporal_uniqueness(df, time_col="time", raise_error=False)
 
 
-def test_check_temporal_order_and_uniqueness_with_context():
-    """Test check_temporal_order_and_uniqueness includes context in error message."""
+def test_validate_temporal_uniqueness_with_context():
+    """Test validate_temporal_uniqueness includes context in error message."""
     df = pd.DataFrame({"time": [1, 1, 2, 3]})
     with pytest.raises(ValueError, match="group 'A'"):
-        check_temporal_order_and_uniqueness(df, time_col="time", context="group 'A'")
+        validate_temporal_uniqueness(df, time_col="time", context="group 'A'")
 
 
 # Generalized Backend-Agnostic Test
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_check_temporal_order_and_uniqueness_all_backends(backend):
-    """Test check_temporal_order_and_uniqueness across all supported backends."""
+def test_validate_temporal_uniqueness_all_backends(backend):
+    """Test validate_temporal_uniqueness across all supported backends."""
     test_cases = {
         "no_duplicates": pd.DataFrame({"time": [1, 2, 3, 4, 5]}),
         "duplicates": pd.DataFrame({"time": [1, 1, 2, 3]}),
@@ -1113,17 +1113,17 @@ def test_check_temporal_order_and_uniqueness_all_backends(backend):
 
     for case_name, df in test_cases.items():
         if case_name == "no_duplicates":
-            check_temporal_order_and_uniqueness(df, time_col="time")
+            validate_temporal_uniqueness(df, time_col="time")
         elif case_name == "duplicates":
             with pytest.raises(ValueError, match=r"(?i).*duplicate.*"):
-                check_temporal_order_and_uniqueness(df, time_col="time")
+                validate_temporal_uniqueness(df, time_col="time")
         else:  # non_monotonic
             with pytest.raises(ValueError, match=r".*strictly increasing.*"):
-                check_temporal_order_and_uniqueness(df, time_col="time")
+                validate_temporal_uniqueness(df, time_col="time")
 
 
-def test_check_temporal_order_and_uniqueness_invalid_time_column():
-    """Test check_temporal_order_and_uniqueness with invalid time column.
+def test_validate_temporal_uniqueness_invalid_time_column():
+    """Test validate_temporal_uniqueness with invalid time column.
 
     Tests the first validation step:
     try:
@@ -1133,39 +1133,39 @@ def test_check_temporal_order_and_uniqueness_invalid_time_column():
     """
     df = pd.DataFrame({"time": ["a", "b", "c"]})
     with pytest.raises(TimeColumnError, match=r"Invalid time column:.*"):
-        check_temporal_order_and_uniqueness(df, time_col="time")
+        validate_temporal_uniqueness(df, time_col="time")
 
 
-# ======================== check_strict_temporal_ordering Tests =========================
+# ======================== sort_and_validate_temporal_order Tests =========================
 
 
-def test_check_strict_temporal_ordering_invalid_time_column():
-    """Test check_strict_temporal_ordering with invalid time column.
+def test_sort_and_validate_temporal_order_invalid_time_column():
+    """Test sort_and_validate_temporal_order with invalid time column.
 
     Tests the validation in sort_dataframe_time():
     validate_time_column_type(time_col, df.schema.get(time_col, None))
     """
     df = pd.DataFrame({"time": ["a", "b", "c"]})
     with pytest.raises(ValueError, match=r".*neither numeric nor datetime.*"):
-        check_strict_temporal_ordering(df, time_col="time")
+        sort_and_validate_temporal_order(df, time_col="time")
 
 
-def test_check_strict_temporal_ordering_missing_group_col():
-    """Test check_strict_temporal_ordering raises error for missing group column."""
+def test_sort_and_validate_temporal_order_missing_group_col():
+    """Test sort_and_validate_temporal_order raises error for missing group column."""
     df = pd.DataFrame({"time": [1, 2, 3], "value": [10, 20, 30]})
     with pytest.raises(ValueError, match="Column 'group_col' does not exist"):
-        check_strict_temporal_ordering(df, time_col="time", group_col="group_col")
+        sort_and_validate_temporal_order(df, time_col="time", group_col="group_col")
 
 
-def test_check_strict_temporal_ordering_empty_group():
-    """Test check_strict_temporal_ordering with empty group."""
+def test_sort_and_validate_temporal_order_empty_group():
+    """Test sort_and_validate_temporal_order with empty group."""
     df = pd.DataFrame({"group_col": [], "time": [], "value": []})
     with pytest.raises(ValueError, match="Invalid or empty DataFrame"):
-        check_strict_temporal_ordering(df, time_col="time", group_col="group_col")
+        sort_and_validate_temporal_order(df, time_col="time", group_col="group_col")
 
 
-def test_check_strict_temporal_ordering_complex_sorting():
-    """Test check_strict_temporal_ordering handles sorting with id_col."""
+def test_sort_and_validate_temporal_order_complex_sorting():
+    """Test sort_and_validate_temporal_order handles sorting with id_col."""
     df = pd.DataFrame(
         {
             "id_col": [2, 1, 2, 1],
@@ -1173,11 +1173,11 @@ def test_check_strict_temporal_ordering_complex_sorting():
             "value": [10, 20, 30, 40],
         }
     )
-    check_strict_temporal_ordering(df, time_col="time", id_col="id_col")
+    sort_and_validate_temporal_order(df, time_col="time", id_col="id_col")
 
 
-def test_check_strict_temporal_ordering_missing_columns():
-    """Test check_strict_temporal_ordering with missing columns.
+def test_sort_and_validate_temporal_order_missing_columns():
+    """Test sort_and_validate_temporal_order with missing columns.
 
     Tests step 3 and step 5:
     # Step 3: Column validation
@@ -1198,16 +1198,16 @@ def test_check_strict_temporal_ordering_missing_columns():
 
     # Test missing time column
     with pytest.raises(ValueError, match=r"Column 'time' does not exist in the DataFrame"):
-        check_strict_temporal_ordering(df, time_col="time")
+        sort_and_validate_temporal_order(df, time_col="time")
 
     # Test missing id column
     df["time"] = [1, 2, 3]  # Add valid time column
     with pytest.raises(ValueError, match=r"Column 'id' does not exist in the DataFrame"):
-        check_strict_temporal_ordering(df, time_col="time", id_col="id")
+        sort_and_validate_temporal_order(df, time_col="time", id_col="id")
 
 
-def test_check_strict_temporal_ordering_group_validation():
-    """Test check_strict_temporal_ordering with group validation."""
+def test_sort_and_validate_temporal_order_group_validation():
+    """Test sort_and_validate_temporal_order with group validation."""
     # Create DataFrame with valid groups
     df = pd.DataFrame(
         {
@@ -1220,4 +1220,4 @@ def test_check_strict_temporal_ordering_group_validation():
     )
 
     # Should pass - each group has monotonic time
-    check_strict_temporal_ordering(df, time_col="time", group_col="group")
+    sort_and_validate_temporal_order(df, time_col="time", group_col="group")

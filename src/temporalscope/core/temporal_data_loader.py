@@ -350,60 +350,6 @@ class TimeFrame:
         if self._mode not in VALID_MODES:
             raise ValueError(f"Invalid mode '{self._mode}'. Must be one of {VALID_MODES}.")
 
-    def _validate_parameters(
-        self,
-        time_col: str,
-        target_col: str,
-        dataframe_backend: Optional[str],
-        sort: bool,
-        ascending: bool,
-        verbose: bool,
-        time_col_conversion: Optional[str],
-        id_col: Optional[str],
-    ) -> None:
-        """Validate input parameters for the TimeFrame initialization.
-
-        :param time_col: Name of the time column.
-        :type time_col: str
-        :param target_col: Name of the target column.
-        :type target_col: str
-        :param dataframe_backend: Backend to use for the DataFrame. Default is None.
-        :type dataframe_backend: Optional[str]
-        :param sort: Indicates whether the DataFrame should be sorted. Default is True.
-        :type sort: bool
-        :param ascending: Indicates sorting direction if `sort` is enabled. Default is True.
-        :type ascending: bool
-        :param verbose: Enables logging during initialization if True. Default is False.
-        :type verbose: bool
-        :param time_col_conversion: Conversion type for `time_col`: 'numeric', 'datetime', or None.
-        :type time_col_conversion: Optional[str]
-        :param id_col: Column for grouped validation. Default is None.
-        :type id_col: Optional[str]
-        :raises TypeError: If any parameter has an invalid type.
-        :raises ValueError: If a parameter value is invalid or unsupported.
-        """
-        if not isinstance(time_col, str):
-            raise TypeError(f"`time_col` must be a string. Got {type(time_col).__name__}.")
-        if not isinstance(target_col, str):
-            raise TypeError(f"`target_col` must be a string. Got {type(target_col).__name__}.")
-        if dataframe_backend is not None and not isinstance(dataframe_backend, str):
-            raise TypeError(f"`dataframe_backend` must be a string or None. Got {type(dataframe_backend).__name__}.")
-        if not isinstance(sort, bool):
-            raise TypeError(f"`sort` must be a boolean. Got {type(sort).__name__}.")
-        if not isinstance(ascending, bool):
-            raise TypeError(f"`ascending` must be a boolean. Got {type(ascending).__name__}.")
-        if not isinstance(verbose, bool):
-            raise TypeError(f"`verbose` must be a boolean. Got {type(verbose).__name__}.")
-        if id_col is not None and not isinstance(id_col, str):
-            raise TypeError(f"`id_col` must be a string or None. Got {type(id_col).__name__}.")
-        if time_col_conversion not in {None, "numeric", "datetime"}:
-            raise ValueError(
-                f"Invalid `time_col_conversion` value '{time_col_conversion}'. "
-                f"Must be one of {{None, 'numeric', 'datetime'}}."
-            )
-        if self._mode not in VALID_MODES:
-            raise ValueError(f"Invalid mode '{self._mode}'. Must be one of {VALID_MODES}.")
-
     def _initialize_backend(self, df: SupportedTemporalDataFrame, dataframe_backend: Optional[str]) -> str:
         """Determine and validate the backend for the DataFrame.
 
