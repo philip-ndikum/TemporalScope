@@ -133,9 +133,8 @@ def test_init_invalid_time_col_conversion(df_basic):
 
 def test_init_invalid_mode(df_basic):
     """Test initialization with unsupported `mode`."""
-    with pytest.warns(UserWarning, match="Mode 'unsupported_mode' is not currently supported"):
-        tf = TimeFrame(df_basic, time_col="time", target_col="target", mode="unsupported_mode")
-        assert tf.mode == "unsupported_mode"  # Ensure the mode is stored
+    with pytest.raises(ValueError, match="Invalid mode 'unsupported_mode'. Must be one of"):
+        TimeFrame(df_basic, time_col="time", target_col="target", mode="unsupported_mode")
 
 
 def test_init_unsupported_backend_error():
@@ -178,16 +177,14 @@ def test_verbose_logging_tf_validate_dataframe(df_basic, capsys):
 
 
 def test_mode_warning(df_basic):
-    """Test that non-single-target modes emit a warning but are stored as metadata."""
+    """Test that multi-target mode is accepted."""
     # Test with multi-target mode
-    with pytest.warns(UserWarning):
-        tf = TimeFrame(df_basic, time_col="time", target_col="target", mode=MODE_MULTI_TARGET)
-        assert tf.mode == MODE_MULTI_TARGET
+    tf = TimeFrame(df_basic, time_col="time", target_col="target", mode=MODE_MULTI_TARGET)
+    assert tf.mode == MODE_MULTI_TARGET
 
-    # Test with custom mode
-    with pytest.warns(UserWarning):
-        tf = TimeFrame(df_basic, time_col="time", target_col="target", mode="custom_mode")
-        assert tf.mode == "custom_mode"
+    # Test invalid mode raises error
+    with pytest.raises(ValueError, match="Invalid mode"):
+        TimeFrame(df_basic, time_col="time", target_col="target", mode="custom_mode")
 
 
 # ========================= Columns =========================
@@ -195,7 +192,7 @@ def test_mode_warning(df_basic):
 
 def test_init_missing_columns(df_basic):
     """Test initialization with missing columns."""
-    with pytest.raises(TimeColumnError):
+    with pytest.raises(ValueError, match="Column 'nonexistent' does not exist"):
         TimeFrame(df_basic, time_col="nonexistent", target_col="target")
 
 

@@ -23,6 +23,8 @@ including validation and computation of train/test/validation split percentages.
 
 from typing import Optional, Tuple
 
+from tabulate import tabulate  # type: ignore[import-untyped]
+
 
 def validate_percentages(
     train_pct: float, test_pct: Optional[float], val_pct: Optional[float], precision: float = 1e-6
@@ -52,20 +54,29 @@ def validate_percentages(
         raise ValueError("`val_pct` must be between 0 and 1.")
 
     # Compute missing percentages
+    test_pct_val: float = 0.0
+    val_pct_val: float = 0.0
+
     if test_pct is None and val_pct is None:
-        test_pct = 1.0 - train_pct
-        val_pct = 0.0
+        test_pct_val = 1.0 - train_pct
+        val_pct_val = 0.0
     elif test_pct is not None and val_pct is None:
-        val_pct = 1.0 - train_pct - test_pct
+        test_pct_val = test_pct
+        val_pct_val = 1.0 - train_pct - test_pct
     elif test_pct is None and val_pct is not None:
-        test_pct = 1.0 - train_pct - val_pct
+        val_pct_val = val_pct
+        test_pct_val = 1.0 - train_pct - val_pct
+    else:
+        # Both are not None
+        test_pct_val = test_pct if test_pct is not None else 0.0
+        val_pct_val = val_pct if val_pct is not None else 0.0
 
     # Ensure percentages sum to 1.0
-    total_pct = train_pct + test_pct + val_pct
+    total_pct = train_pct + test_pct_val + val_pct_val
     if not abs(total_pct - 1.0) < precision:
         raise ValueError("Train, test, and validation percentages must sum to 1.0.")
 
-    return float(train_pct), float(test_pct), float(val_pct)
+    return train_pct, test_pct_val, val_pct_val
 
 
 def determine_partition_scheme(
@@ -94,14 +105,18 @@ def determine_partition_scheme(
     if num_partitions is not None:
         if num_partitions <= 0:
             raise ValueError("`num_partitions` must be a positive integer.")
-        window_size = total_rows // num_partitions
-        return "num_partitions", num_partitions, window_size
+        window_size_val = total_rows // num_partitions
+        return "num_partitions", num_partitions, window_size_val
 
     if window_size is not None:
         if window_size <= 0:
             raise ValueError("`window_size` must be a positive integer.")
-        num_partitions = (total_rows - window_size) // (stride or window_size) + 1
-        return "window_size", num_partitions, window_size
+        stride_val = stride if stride is not None else window_size
+        num_partitions_val = (total_rows - window_size) // stride_val + 1
+        return "window_size", num_partitions_val, window_size
+
+    # This should never happen due to the first check
+    raise ValueError("Either `num_partitions` or `window_size` must be specified.")
 
 
 def validate_cardinality(num_partitions: int, window_size: int, total_rows: int) -> None:
@@ -132,8 +147,6 @@ def print_config(config: dict) -> None:
     :type config: dict
     :raises TypeError: If any value in the config dictionary is not an allowed type.
     """
-    from tabulate import tabulate
-
     # Allowed data types for config values
     allowed_types = (int, float, bool, str)
 

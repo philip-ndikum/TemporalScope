@@ -29,23 +29,7 @@
 
 """TemporalScope/test/unit/core/test_core_utils.py
 
-This module contains unit tests for core utility functions. When testing narwhalified functions
-(decorated with @nw.narwhalify), follow these key patterns:
-
-1. DataFrame Creation & Input
-   - Always generate test data through synthetic_df fixture for consistent backend testing
-   - Always wrap input DataFrames with nw.from_native() before passing to narwhalified functions
-   - Test both native and narwhalified DataFrame inputs to ensure both paths work
-
-2. DataFrame Validation & Comparison
-   - Never call backend-specific methods directly on function results
-   - Always use nw.from_native(df).to_pandas() to convert results for comparison
-   - Use pandas.testing.assert_frame_equal for DataFrame equality checks
-
-3. Backend & Evaluation Handling
-   - Test all supported backends using pytest.mark.parametrize with VALID_BACKENDS
-   - Handle lazy evaluation explicitly (dask, polars lazy) using is_lazy_evaluation
-   - Validate both eager and lazy paths where applicable
+This module contains unit tests for core utility functions.
 """
 
 from typing import Any, Callable, Dict
@@ -63,6 +47,8 @@ from temporalscope.core.core_utils import (
     UnsupportedBackendError,
     check_dataframe_empty,
     check_dataframe_nulls_nans,
+    check_strict_temporal_ordering,
+    check_temporal_order_and_uniqueness,
     convert_to_backend,
     convert_to_datetime,
     convert_to_numeric,
@@ -77,8 +63,8 @@ from temporalscope.core.core_utils import (
     print_divider,
     sort_dataframe_time,
     validate_and_convert_time_column,
-    validate_column_type,
-    validate_column_types,
+    validate_dataframe_column_types,
+    validate_time_column_type,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
@@ -581,25 +567,25 @@ def test_convert_to_numeric_error_handling():
         convert_to_numeric(df, "invalid_col", nw.col("invalid_col"), df["invalid_col"].dtype)
 
 
-def test_validate_column_type():
-    """Test validate_column_type for various scenarios."""
+def test_validate_time_column_type():
+    """Test validate_time_column_type for various scenarios."""
     # Test valid numeric column
-    validate_column_type("numeric_col", "float64")  # Should not raise an error
+    validate_time_column_type("numeric_col", "float64")  # Should not raise an error
 
     # Test valid datetime column
-    validate_column_type("datetime_col", "datetime64[ns]")  # Should not raise an error
+    validate_time_column_type("datetime_col", "datetime64[ns]")  # Should not raise an error
 
     # Test invalid column type
     with pytest.raises(ValueError, match="neither numeric nor datetime"):
-        validate_column_type("invalid_col", "string")
+        validate_time_column_type("invalid_col", "string")
 
     # Test mixed-type column (invalid)
     with pytest.raises(ValueError, match="neither numeric nor datetime"):
-        validate_column_type("mixed_col", "object")
+        validate_time_column_type("mixed_col", "object")
 
     # Test custom/user-defined types (invalid)
     with pytest.raises(ValueError, match="neither numeric nor datetime"):
-        validate_column_type("custom_col", "custom_type")
+        validate_time_column_type("custom_col", "custom_type")
 
 
 def test_convert_to_datetime_error_handling():
@@ -612,17 +598,17 @@ def test_convert_to_datetime_error_handling():
         convert_to_datetime(df, "invalid_col", nw.col("invalid_col"), df["invalid_col"].dtype)
 
 
-def test_validate_column_type_edge_cases():
-    """Test validate_column_type for edge cases."""
+def test_validate_time_column_type_edge_cases():
+    """Test validate_time_column_type for edge cases."""
     # Test very long column name
     long_col_name = "a" * 300
-    validate_column_type(long_col_name, "datetime64[ns]")  # Should not raise an error
+    validate_time_column_type(long_col_name, "datetime64[ns]")  # Should not raise an error
 
     # Test numeric column with unusual dtype
-    validate_column_type("unusual_numeric", "float128")  # Should not raise an error
+    validate_time_column_type("unusual_numeric", "float128")  # Should not raise an error
 
     # Test datetime column with timezone
-    validate_column_type("tz_datetime", "datetime64[ns, UTC]")  # Should not raise an error
+    validate_time_column_type("tz_datetime", "datetime64[ns, UTC]")  # Should not raise an error
 
 
 def test_convert_to_datetime_with_string_column():
@@ -703,12 +689,12 @@ def test_validate_and_convert_time_column_validation_only():
     assert pd.api.types.is_datetime64_any_dtype(result["time"]), "Expected datetime dtype for 'time' column."
 
 
-# ========================= validate_column_types Tests =========================
+# ========================= validate_dataframe_column_types Tests =========================
 
 
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_validate_column_types_basic(backend: str) -> None:
-    """Test validate_column_types with valid numeric and datetime columns."""
+def test_validate_dataframe_column_types_basic(backend: str) -> None:
+    """Test validate_dataframe_column_types with valid numeric and datetime columns."""
     df = generate_synthetic_time_series(
         backend=backend,
         num_samples=3,
@@ -717,12 +703,12 @@ def test_validate_column_types_basic(backend: str) -> None:
         drop_time=False,
     )
     df = nw.from_native(df)
-    validate_column_types(df, "time")  # Should not raise error
+    validate_dataframe_column_types(df, "time")  # Should not raise error
 
 
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_validate_column_types_with_lazy_evaluation(backend: str) -> None:
-    """Test validate_column_types handles lazy evaluation correctly."""
+def test_validate_dataframe_column_types_with_lazy_evaluation(backend: str) -> None:
+    """Test validate_dataframe_column_types handles lazy evaluation correctly."""
     df = generate_synthetic_time_series(backend=backend, num_samples=3, num_features=2, drop_time=False)
     df = nw.from_native(df)
 
@@ -731,12 +717,12 @@ def test_validate_column_types_with_lazy_evaluation(backend: str) -> None:
         df = df.to_native().lazy()
         df = nw.from_native(df)
 
-    validate_column_types(df, "time")  # Should not raise error
+    validate_dataframe_column_types(df, "time")  # Should not raise error
 
 
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_validate_column_types_missing_column(backend: str) -> None:
-    """Test validate_column_types raises error for missing column."""
+def test_validate_dataframe_column_types_missing_column(backend: str) -> None:
+    """Test validate_dataframe_column_types raises error for missing column."""
     df = generate_synthetic_time_series(
         backend=backend,
         num_samples=3,
@@ -746,34 +732,32 @@ def test_validate_column_types_missing_column(backend: str) -> None:
     df = nw.from_native(df)
 
     with pytest.raises(ValueError, match="Column 'nonexistent' does not exist"):
-        validate_column_types(df, "nonexistent")
+        validate_dataframe_column_types(df, "nonexistent")
 
 
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_validate_column_types_invalid_type(backend: str) -> None:
-    """Test validate_column_types raises error for invalid column type."""
+def test_validate_dataframe_column_types_invalid_type(backend: str) -> None:
+    """Test validate_dataframe_column_types raises error for invalid column type."""
     # Create DataFrame with string column
     if backend == "pandas":
         df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3), "string_col": ["a", "b", "c"]})
     else:
-        # Convert pandas DataFrame to target backend
         df = convert_to_backend(
             pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3), "string_col": ["a", "b", "c"]}), backend
         )
 
-    df = nw.from_native(df)
-    with pytest.raises(ValueError, match="Column 'string_col' is neither numeric nor datetime"):
-        validate_column_types(df, "time")  # This will fail on string_col validation
+    with pytest.raises(ValueError, match="Column 'string_col' must be numeric but found type 'String'"):
+        validate_dataframe_column_types(df, "time")
 
 
 @pytest.mark.parametrize("backend", ["dask"])
-def test_validate_column_types_lazy_compute(backend: str) -> None:
-    """Test validate_column_types handles lazy computation correctly."""
+def test_validate_dataframe_column_types_lazy_compute(backend: str) -> None:
+    """Test validate_dataframe_column_types handles lazy computation correctly."""
     df = generate_synthetic_time_series(backend=backend, num_samples=3, num_features=2, drop_time=False)
     df = nw.from_native(df)
 
     # The function should handle compute() internally
-    validate_column_types(df, "time")  # Should not raise error
+    validate_dataframe_column_types(df, "time")  # Should not raise error
 
 
 # ========================= Tests for sort_dataframe_time =========================
@@ -1023,15 +1007,15 @@ def test_validate_and_convert_time_column_unsupported_dataframe() -> None:
         validate_and_convert_time_column(df, time_col="time", conversion_type="numeric")
 
 
-def test_validate_column_types_unsupported_dataframe() -> None:
-    """Test validate_column_types raises UnsupportedBackendError for unsupported DataFrame."""
+def test_validate_dataframe_column_types_unsupported_dataframe() -> None:
+    """Test validate_dataframe_column_types raises UnsupportedBackendError for unsupported DataFrame."""
 
     class UnsupportedDataFrame:
         pass
 
     df = UnsupportedDataFrame()
     with pytest.raises(UnsupportedBackendError, match=f"Unsupported DataFrame type: {type(df).__name__}"):
-        validate_column_types(df, time_col="time")
+        validate_dataframe_column_types(df, time_col="time")
 
 
 def test_sort_dataframe_time_unsupported_dataframe() -> None:
@@ -1043,3 +1027,197 @@ def test_sort_dataframe_time_unsupported_dataframe() -> None:
     df = UnsupportedDataFrame()
     with pytest.raises(UnsupportedBackendError, match=f"Unsupported DataFrame type: {type(df).__name__}"):
         sort_dataframe_time(df, time_col="time", ascending=True)
+
+
+def test_sort_dataframe_time_with_numeric_column():
+    """Test sort_dataframe_time function with a numeric time column."""
+    df = pd.DataFrame({"time": [3, 1, 2], "value": [30, 10, 20]})
+
+    # Sort the DataFrame by the numeric time column
+    sorted_df = sort_dataframe_time(df, time_col="time", ascending=True)
+
+    # Assert the time column is sorted
+    expected = pd.DataFrame({"time": [1, 2, 3], "value": [10, 20, 30]})
+    pd.testing.assert_frame_equal(sorted_df.reset_index(drop=True), expected)
+
+
+def test_sort_dataframe_time_with_datetime_column():
+    """Test sort_dataframe_time function with a datetime time column."""
+    df = pd.DataFrame({"time": pd.to_datetime(["2023-01-03", "2023-01-01", "2023-01-02"]), "value": [30, 10, 20]})
+
+    # Sort the DataFrame by the datetime time column
+    sorted_df = sort_dataframe_time(df, time_col="time", ascending=True)
+
+    # Assert the time column is sorted
+    expected = pd.DataFrame({"time": pd.to_datetime(["2023-01-01", "2023-01-02", "2023-01-03"]), "value": [10, 20, 30]})
+    pd.testing.assert_frame_equal(sorted_df.reset_index(drop=True), expected)
+
+
+def test_sort_dataframe_time_with_missing_time_column():
+    """Test sort_dataframe_time raises an error for missing time column."""
+    df = pd.DataFrame({"value": [30, 10, 20]})
+
+    with pytest.raises(ValueError, match="Column 'time' does not exist in the DataFrame."):
+        sort_dataframe_time(df, time_col="time", ascending=True)
+
+
+# ======================= check_temporal_order_and_uniqueness Tests =======================
+
+
+def test_check_temporal_order_and_uniqueness_no_duplicates():
+    """Test check_temporal_order_and_uniqueness with no duplicates or violations."""
+    df = pd.DataFrame({"time": [1, 2, 3, 4, 5]})
+    check_temporal_order_and_uniqueness(df, time_col="time")
+
+
+def test_check_temporal_order_and_uniqueness_duplicates():
+    """Test check_temporal_order_and_uniqueness raises error for duplicate timestamps."""
+    df = pd.DataFrame({"time": [1, 1, 2, 3]})
+    # Convert to Narwhals backend and check
+    df_backend = nw.from_native(df)  # Ensure proper Narwhalification
+    with pytest.raises(ValueError, match="Duplicate timestamps"):
+        check_temporal_order_and_uniqueness(df_backend, time_col="time")
+
+
+def test_check_temporal_order_and_uniqueness_non_monotonic():
+    """Test check_temporal_order_and_uniqueness raises error for non-monotonic timestamps."""
+    df = pd.DataFrame({"time": [1, 3, 2, 4]})
+    # Let @nw.narwhalify handle conversion
+    with pytest.raises(ValueError, match=r".*strictly increasing.*"):  # Use regex pattern
+        check_temporal_order_and_uniqueness(df, time_col="time")
+
+
+def test_check_temporal_order_and_uniqueness_warn_on_failure():
+    """Test check_temporal_order_and_uniqueness warns instead of erroring."""
+    df = pd.DataFrame({"time": [1, 1, 2, 3]})
+    with pytest.warns(UserWarning, match="Duplicate timestamps"):
+        check_temporal_order_and_uniqueness(df, time_col="time", raise_error=False)
+
+
+def test_check_temporal_order_and_uniqueness_with_context():
+    """Test check_temporal_order_and_uniqueness includes context in error message."""
+    df = pd.DataFrame({"time": [1, 1, 2, 3]})
+    with pytest.raises(ValueError, match="group 'A'"):
+        check_temporal_order_and_uniqueness(df, time_col="time", context="group 'A'")
+
+
+# Generalized Backend-Agnostic Test
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_check_temporal_order_and_uniqueness_all_backends(backend):
+    """Test check_temporal_order_and_uniqueness across all supported backends."""
+    test_cases = {
+        "no_duplicates": pd.DataFrame({"time": [1, 2, 3, 4, 5]}),
+        "duplicates": pd.DataFrame({"time": [1, 1, 2, 3]}),
+        "non_monotonic": pd.DataFrame({"time": [1, 3, 2, 4]}),
+    }
+
+    for case_name, df in test_cases.items():
+        if case_name == "no_duplicates":
+            check_temporal_order_and_uniqueness(df, time_col="time")
+        elif case_name == "duplicates":
+            with pytest.raises(ValueError, match=r"(?i).*duplicate.*"):
+                check_temporal_order_and_uniqueness(df, time_col="time")
+        else:  # non_monotonic
+            with pytest.raises(ValueError, match=r".*strictly increasing.*"):
+                check_temporal_order_and_uniqueness(df, time_col="time")
+
+
+def test_check_temporal_order_and_uniqueness_invalid_time_column():
+    """Test check_temporal_order_and_uniqueness with invalid time column.
+
+    Tests the first validation step:
+    try:
+        df = nw.from_native(validate_and_convert_time_column(df, time_col))
+    except Exception as e:
+        raise TimeColumnError(f"Invalid time column: {str(e)}")
+    """
+    df = pd.DataFrame({"time": ["a", "b", "c"]})
+    with pytest.raises(TimeColumnError, match=r"Invalid time column:.*"):
+        check_temporal_order_and_uniqueness(df, time_col="time")
+
+
+# ======================== check_strict_temporal_ordering Tests =========================
+
+
+def test_check_strict_temporal_ordering_invalid_time_column():
+    """Test check_strict_temporal_ordering with invalid time column.
+
+    Tests the validation in sort_dataframe_time():
+    validate_time_column_type(time_col, df.schema.get(time_col, None))
+    """
+    df = pd.DataFrame({"time": ["a", "b", "c"]})
+    with pytest.raises(ValueError, match=r".*neither numeric nor datetime.*"):
+        check_strict_temporal_ordering(df, time_col="time")
+
+
+def test_check_strict_temporal_ordering_missing_group_col():
+    """Test check_strict_temporal_ordering raises error for missing group column."""
+    df = pd.DataFrame({"time": [1, 2, 3], "value": [10, 20, 30]})
+    with pytest.raises(ValueError, match="Column 'group_col' does not exist"):
+        check_strict_temporal_ordering(df, time_col="time", group_col="group_col")
+
+
+def test_check_strict_temporal_ordering_empty_group():
+    """Test check_strict_temporal_ordering with empty group."""
+    df = pd.DataFrame({"group_col": [], "time": [], "value": []})
+    with pytest.raises(ValueError, match="Invalid or empty DataFrame"):
+        check_strict_temporal_ordering(df, time_col="time", group_col="group_col")
+
+
+def test_check_strict_temporal_ordering_complex_sorting():
+    """Test check_strict_temporal_ordering handles sorting with id_col."""
+    df = pd.DataFrame(
+        {
+            "id_col": [2, 1, 2, 1],
+            "time": [3, 1, 4, 2],
+            "value": [10, 20, 30, 40],
+        }
+    )
+    check_strict_temporal_ordering(df, time_col="time", id_col="id_col")
+
+
+def test_check_strict_temporal_ordering_missing_columns():
+    """Test check_strict_temporal_ordering with missing columns.
+
+    Tests step 3 and step 5:
+    # Step 3: Column validation
+    if time_col not in df.columns:
+        raise ValueError(f"Column '{time_col}' does not exist in the DataFrame.")
+
+    # Step 5: Additional sort by id_col if provided
+    if id_col:
+        if id_col not in df.columns:
+            raise ValueError(f"Column '{id_col}' does not exist in the DataFrame.")
+    """
+    # Create DataFrame with some data
+    df = pd.DataFrame(
+        {
+            "other": [1, 2, 3],  # Some other column
+        }
+    )
+
+    # Test missing time column
+    with pytest.raises(ValueError, match=r"Column 'time' does not exist in the DataFrame"):
+        check_strict_temporal_ordering(df, time_col="time")
+
+    # Test missing id column
+    df["time"] = [1, 2, 3]  # Add valid time column
+    with pytest.raises(ValueError, match=r"Column 'id' does not exist in the DataFrame"):
+        check_strict_temporal_ordering(df, time_col="time", id_col="id")
+
+
+def test_check_strict_temporal_ordering_group_validation():
+    """Test check_strict_temporal_ordering with group validation."""
+    # Create DataFrame with valid groups
+    df = pd.DataFrame(
+        {
+            "time": [1, 2, 1, 2],
+            "group": ["A", "A", "B", "B"],
+            "feature_1": [10, 20, 30, 40],
+            "feature_2": [50, 60, 70, 80],
+            "target": [90, 100, 110, 120],
+        }
+    )
+
+    # Should pass - each group has monotonic time
+    check_strict_temporal_ordering(df, time_col="time", group_col="group")
