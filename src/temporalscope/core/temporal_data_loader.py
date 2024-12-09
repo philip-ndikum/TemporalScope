@@ -17,62 +17,77 @@
 
 """TemporalScope/src/temporalscope/core/temporal_data_loader.py.
 
-This module provides `TimeFrame`, a flexible, universal data loader for time series forecasting, tailored for
-state-of-the-art models, including multi-modal and mixed-frequency approaches. Assuming users employ universal
-models without built-in grouping or ID-based segmentation, `TimeFrame` enables integration with custom
-preprocessing, loss functions, and explainability techniques such as SHAP, LIME, and Boruta-SHAP. TemporalScope
-imposes no engineering constraints, allowing users full flexibility in data preparation and model design.
+This module provides `TimeFrame`, a universal data loader for time series forecasting,
+designed for state-of-the-art models, including multi-modal and mixed-frequency workflows.
+It supports integration with explainability tools such as SHAP, LIME, and Boruta-SHAP,
+enabling advanced insights for supported models. TemporalScope prioritizes flexibility,
+allowing users to adapt the package for causal partitioning and other custom workflows,
+while leaving data preparation and preprocessing entirely to the end user.
 
-Engineering Design
---------------------
 
-    TemporalScope is designed with several key assumptions to ensure performance, scalability, and flexibility
-    across a wide range of time series forecasting and XAI workflows.
+AI Modeling for Time Series Data:
+--------------------------------
 
-    1. Preprocessed Data Assumption:
-       TemporalScope assumes that the user provides clean, preprocessed data. This includes handling categorical
-       encoding, missing data imputation, and feature scaling prior to using TemporalScope's partitioning and explainability
-       methods. Similar assumptions are seen in popular packages such as TensorFlow and GluonTS, which expect the
-       user to manage data preprocessing outside of the core workflow.
+TemporalScope is designed with several key assumptions to ensure performance,
+scalability, and flexibility across a wide range of time series forecasting and
+XAI workflows:
 
-    2. Time Column Constraints:
-       The `time_col` must be either a numeric index or a timestamp. TemporalScope relies on this temporal ordering for
-       key operations like sliding window partitioning and temporal explainability workflows (e.g., SHAP).
++------------------------+-----------------------------------------------+
+| Approach               | Description                                   |
++------------------------+-----------------------------------------------+
+| Implicit & Static Time | The `time_col` is treated as a feature,       |
+| Series                 | enabling ML/DL workflows with mixed-frequency |
+|                        | datasets. By default, `enforce_temporal_uniqueness` |
+|                        | is False.                                     |
++------------------------+-----------------------------------------------+
+| Strict Time Series     | Enforces temporal ordering and uniqueness,    |
+|                        | suited for forecasting. Group or segment      |
+|                        | validation is supported via the `id_col`      |
+|                        | parameter.                                    |
++------------------------+-----------------------------------------------+
 
-    3. Numeric Features Requirement:
-       Aside from the `time_col`, all other features in the dataset must be numeric. This ensures compatibility with machine
-       learning and deep learning models that require numeric inputs. As seen in frameworks like TensorFlow, users are expected
-       to preprocess categorical features (e.g., one-hot encoding or embeddings) before applying modeling or partitioning algorithms.
+1. Preprocessed Data Requirement:
+   TemporalScope assumes users provide preprocessed data, including categorical
+   encoding, missing value imputation, and feature scaling. The focus remains on
+   explainability and partitioning, leaving general preprocessing to user
+   workflows. This design aligns with standards in libraries like TensorFlow
+   and GluonTS.
 
-    4. Universal Model Assumption:
-       TemporalScope is designed with the assumption that models trained will operate on the entire dataset without
-       automatically applying hidden groupings or segmentations (e.g., for mixed-frequency data). This ensures that users
-       can leverage frameworks like SHAP, Boruta-SHAP, and LIME for model-agnostic explainability without limitations.
+2. Time Column Flexibility:
+   The `time_col` must be numeric or timestamp-like. TemporalScope supports
+   workflows with partial temporal ordering for flexible partitioning while
+   enabling strict validation with `enforce_temporal_uniqueness` where needed,
+   especially for grouped forecasts or sequence validation.
 
-    5. Supported Data Modes:
+3. Mixed-Frequency and Asynchronous Support:
+   Designed to handle mixed-frequency datasets and asynchronous records (e.g.,
+   sensor or trading data), TemporalScope does not enforce uniform temporal
+   spacing. Users can define their temporal logic through preprocessing while
+   benefiting from backend-agnostic sorting and validation.
 
-       TemporalScope also integrates seamlessly with model-agnostic explainability techniques like SHAP, LIME, and
-       Boruta-SHAP, allowing insights to be extracted from most machine learning and deep learning models.
+4. Universal Workflow Design:
+   TemporalScope assumes models operate on the entire dataset without implicit
+   groupings, ensuring compatibility with model-agnostic XAI tools like SHAP,
+   LIME, and Boruta-SHAP. This design choice supports both static feature
+   modeling and forecasting across diverse use cases.
 
-       The following table illustrates the two primary modes supported by TemporalScope and their typical use cases:
+5. Supported Data Modes:
 
-       +--------------------+----------------------------------------------------+--------------------------------------------+
-       | **Mode**           | **Description**                                    | **Compatible Frameworks**                  |
-       +--------------------+----------------------------------------------------+--------------------------------------------+
-       | Single-step mode   | Suitable for scalar target machine learning tasks. | Scikit-learn, XGBoost, LightGBM, SHAP      |
-       |                    | Each row represents a single time step.            | TensorFlow (for standard regression tasks) |
-       +--------------------+----------------------------------------------------+--------------------------------------------+
-       | Multi-step mode    | Suitable for deep learning tasks like sequence     | TensorFlow, PyTorch, Keras, SHAP, LIME     |
-       |                    | forecasting. Input sequences (`X`) and output      | (for seq2seq models, sequence forecasting) |
-       |                    | sequences (`Y`) are handled as separate datasets.  |                                            |
-       +--------------------+----------------------------------------------------+--------------------------------------------+
++--------------------+-------------------------------------------+---------------------------+
+| Mode               | Description                               | Compatible Frameworks     |
++--------------------+-------------------------------------------+---------------------------+
+| Single-step mode   | For scalar target machine learning tasks. | Scikit-learn, XGBoost,    |
+|                    | Each row represents a single time step.   | LightGBM, SHAP, TensorFlow|
+|                    |                                           | (standard regression)     |
++--------------------+-------------------------------------------+---------------------------+
+| Multi-step mode    | For sequence forecasting tasks. Input     | TensorFlow, PyTorch,      |
+|                    | sequences (`X`) and output sequences      | Keras, SHAP, LIME         |
+|                    | (`Y`) are handled as separate datasets.   |                           |
++--------------------+-------------------------------------------+---------------------------+
 
-       These modes follow standard assumptions in time series forecasting libraries, allowing for seamless integration
-       with different models while requiring the user to manage their own data preprocessing.
-
-    By enforcing these constraints, TemporalScope focuses on its core purpose—time series partitioning, explainability,
-    and scalability—while leaving more general preprocessing tasks to the user. This follows industry standards seen in
-    popular time series libraries.
+By enforcing these constraints, TemporalScope focuses on its core purpose—time series
+partitioning,  explainability, and scalability—while leaving more general preprocessing
+tasks to the user. This follows industry standards seen in popular time series libraries.
 
 .. seealso::
 
@@ -97,15 +112,17 @@ Engineering Design
        forecasting. Neural Computing and Applications, pp.1-25.
 
 .. note::
-
-    - **Multi-Step Mode Limitation**: Multi-step mode is currently not implemented due to limitations across
-      DataFrames like Modin and Polars, which do not natively support vectorized (sequence-based) targets within a single cell.
-      A future interoperability layer is planned to convert multi-step datasets into compatible formats, such as TensorFlow's
-      `tf.data.Dataset`, or to flatten target sequences for these backends.
-    - **Single-Step Mode Support**: With Narwhals as the backend-agnostic layer, all Narwhals-supported backends (Pandas, Modin, Polars)
-      support single-step mode without requiring additional adjustments, ensuring compatibility with workflows using scalar target variables.
-    - **Recommendation**: For current multi-step workflows, Pandas is recommended as it best supports the necessary data structures.
-      Future releases will include interoperability enhancements to manage vectorized targets across all supported backends.
+    - Multi-Step Mode Limitation: Currently unsupported due to limitations in
+      backends like Modin and Polars, which lack native support for vectorized
+      (sequence-based) targets in a single cell. Future updates will include
+      compatibility with formats like TensorFlow's `tf.data.Dataset` or flattened
+      target sequences.
+    - Single-Step Mode Support: Narwhals-backed operations ensure that single-step
+      mode is fully supported across Pandas, Modin, and Polars without additional
+      adjustments, handling scalar target workflows seamlessly.
+    - Recommendation: Use Pandas for multi-step workflows as it best supports
+      the necessary data structures. Future releases will extend compatibility
+      for vectorized targets across all backends.
 
 .. seealso::
 
@@ -115,7 +132,6 @@ Engineering Design
    - LIME documentation: https://lime-ml.readthedocs.io/
 """
 
-import warnings
 from typing import Any, Dict, Optional
 
 import narwhals as nw
@@ -126,12 +142,14 @@ from temporalscope.core.core_utils import (
     VALID_MODES,
     SupportedTemporalDataFrame,
     check_dataframe_nulls_nans,
+    convert_datetime_column_to_numeric,
+    convert_time_column_to_datetime,
     get_dataframe_backend,
     is_valid_temporal_backend,
     is_valid_temporal_dataframe,
     sort_dataframe_time,
-    validate_and_convert_time_column,
-    validate_column_types,
+    validate_dataframe_column_types,
+    validate_temporal_uniqueness,
 )
 from temporalscope.core.exceptions import UnsupportedBackendError
 
@@ -147,11 +165,6 @@ class TimeFrame:
     compatibility with temporal XAI techniques (SHAP, Boruta-SHAP, LIME etc) supporting larger data workflows in
     production.
 
-    Backend Handling
-    ----------------
-    - If a `dataframe_backend` is explicitly provided, it takes precedence over backend inference.
-    - If no backend is specified, the class infers the backend from the DataFrame type, supporting Polars, Pandas, and Modin.
-
     Engineering Design Assumptions
     ------------------
     - Universal Models: This class is designed assuming the user has pre-processed their data for compatibility with
@@ -165,6 +178,11 @@ class TimeFrame:
       types will raise validation errors.
     - All non-time columns are expected to be numeric. Users are responsible for handling non-numeric features
       (e.g., encoding categorical features).
+
+    Backend Handling
+    ----------------
+    - If a `dataframe_backend` is explicitly provided, it takes precedence over backend inference.
+    - If no backend is specified, the class infers the backend from the DataFrame type, supporting Polars, Pandas, and Modin.
 
     Example Usage
     -------------
@@ -182,27 +200,46 @@ class TimeFrame:
         df: SupportedTemporalDataFrame,
         time_col: str,
         target_col: str,
+        time_col_conversion: Optional[str] = None,
         dataframe_backend: Optional[str] = None,
         sort: bool = True,
         ascending: bool = True,
         mode: str = MODE_SINGLE_TARGET,
-        time_col_conversion: Optional[str] = None,
+        enforce_temporal_uniqueness: bool = False,
+        id_col: Optional[str] = None,
         verbose: bool = False,
     ) -> None:
         """Initialize a TimeFrame object with required validations, backend handling, and optional time column conversion.
 
-        This constructor initializes the `TimeFrame` object, validates the input DataFrame, and performs optional
-        sorting based on the specified `time_col`. It also allows for validation and conversion of the `time_col`
-        to ensure compatibility with downstream processing. Designed for universal workflows supporting
-        state-of-the-art AI models, this class accommodates mixed-frequency time series data.
+        This constructor initializes the `TimeFrame` object, validates the input DataFrame,
+        and performs optional sorting based on the specified `time_col`. It also allows for
+        validation and conversion of the `time_col` to numeric for compatibility with downstream
+        processing. Designed for universal workflows supporting state-of-the-art AI models,
+        this class accommodates mixed-frequency time series data.
 
-        :param df: The input DataFrame, which can be any TemporalScope-supported backend (e.g., Pandas, Modin, Polars).
+        There are two common use cases for `TimeFrame`:
+
+            1. Implicit & Static Time Series:
+            For workflows where `time_col` is treated as a feature, such as in static
+            modeling for ML/DL applications, `enforce_temporal_uniqueness` can remain
+            `False` (default). This mode emphasizes a universal design, accommodating
+            mixed-frequency data.
+
+            2. Strict Time Series:
+            For workflows requiring strict temporal ordering and uniqueness (e.g.,
+            forecasting), set `enforce_temporal_uniqueness=True`. Additionally,
+            specify `id_col` for grouped or segmented validation.
+
+        :param df: The input DataFrame, which can be any TemporalScope-supported backend
+                (e.g., Pandas, Modin, Polars).
         :type df: SupportedTemporalDataFrame
-        :param time_col: The name of the column representing time. Must be numeric or timestamp-like for sorting.
+        :param time_col: The name of the column representing time. Must be numeric or
+                        timestamp-like for sorting.
         :type time_col: str
         :param target_col: The name of the column representing the target variable.
         :type target_col: str
-        :param dataframe_backend: The backend to use. If not provided, it will be inferred based on the DataFrame type.
+        :param dataframe_backend: The backend to use. If not provided, it will be inferred
+                                based on the DataFrame type.
         :type dataframe_backend: Optional[str]
         :param sort: If True, the data will be sorted by `time_col`. Default is True.
         :type sort: bool
@@ -216,11 +253,21 @@ class TimeFrame:
                                     - None: Validate only.
                                     Default is None.
         :type time_col_conversion: Optional[str]
+        :param enforce_temporal_uniqueness: If True, ensures that timestamps in `time_col` are unique within
+                                            each group (defined by `id_col`) or globally if `id_col` is None.
+                                            This setting is essential for workflows requiring temporal
+                                            consistency, such as forecasting or explainability analysis.
+                                            Default is False.
+        :type enforce_temporal_uniqueness: bool
+        :param id_col: Optional column for grouped or segmented strict temporal validation.
+                    Default is None.
+        :type id_col: Optional[str]
         :param verbose: If True, enables logging for validation and setup stages.
         :type verbose: bool
         :raises ModeValidationError: If the specified mode is invalid.
         :raises UnsupportedBackendError: If the specified or inferred backend is not supported.
-        :raises ValueError: If required columns are missing, invalid, or if the time column conversion fails.
+        :raises ValueError: If required columns are missing, invalid, or if the time column
+                            conversion fails.
 
         :ivar _metadata: A private metadata dictionary to allow end-users flexibility in extending the TimeFrame object.
                         This provides storage for any additional attributes or information during runtime.
@@ -237,7 +284,7 @@ class TimeFrame:
             df = pd.DataFrame({"time": pd.date_range(start="2023-01-01", periods=10, freq="D"), "value": range(10)})
 
             # Initialize TimeFrame with automatic time column conversion to numeric
-            tf = TimeFrame(df, time_col="time", target_col="value", time_col_conversion="numeric", mode=MODE_SINGLE_TARGET)
+            tf = TimeFrame(df, time_col="time", target_col="value", time_col_convert_numeric=True, mode=MODE_SINGLE_TARGET)
             print(tf.df.head())
 
         .. note::
@@ -250,90 +297,84 @@ class TimeFrame:
             and extend functionality for advanced workflows, such as future conversion to TensorFlow or PyTorch types
             in multi-target explainable AI workflows.
         """
-        # Step 1: Initialize instance variables
+        # Initialize instance variables
         self._time_col = time_col
         self._target_col = target_col
+        self._time_col_conversion = time_col_conversion
         self._mode = mode
         self._ascending = ascending
         self._sort = sort
         self._verbose = verbose
-        self._metadata: Dict[str, Any] = {}  # Metadata container
+        self._enforce_temporal_uniqueness = enforce_temporal_uniqueness
+        self._id_col = id_col
+        self._metadata: Dict[str, Any] = {}
 
-        # Step 2: Validate parameter types
-        if not isinstance(time_col, str):
-            raise TypeError(f"`time_col` must be a string. Got {type(time_col).__name__}.")
-        if not isinstance(target_col, str):
-            raise TypeError(f"`target_col` must be a string. Got {type(target_col).__name__}.")
-        if dataframe_backend is not None and not isinstance(dataframe_backend, str):
-            raise TypeError(f"`dataframe_backend` must be a string or None. Got {type(dataframe_backend).__name__}.")
-        if not isinstance(sort, bool):
-            raise TypeError(f"`sort` must be a boolean. Got {type(sort).__name__}.")
-        if not isinstance(ascending, bool):
-            raise TypeError(f"`ascending` must be a boolean. Got {type(ascending).__name__}.")
-        if not isinstance(verbose, bool):
-            raise TypeError(f"`verbose` must be a boolean. Got {type(verbose).__name__}.")
+        # Initialize backend
+        self._backend = self._initialize_backend(df, dataframe_backend)
 
-        # Validate time_col_conversion if provided
-        if time_col_conversion not in {None, "numeric", "datetime"}:
-            raise ValueError(
-                f"Invalid `time_col_conversion` value '{time_col_conversion}'. "
-                f"Must be one of {{None, 'numeric', 'datetime'}}."
-            )
+        # Validate parameters
+        self._validate_parameters()
 
-        # Step 3: Validate and store mode
-        if mode not in VALID_MODES or mode != MODE_SINGLE_TARGET:
-            warnings.warn(
-                f"Mode '{mode}' is not currently supported in TemporalScope. "
-                f"Note that some operations require MODE_SINGLE_TARGET.",
-                UserWarning,
-            )
-        self._mode = mode
+        # Setup DataFrame
+        self._df = self.setup(
+            df,
+            sort=self._sort,
+            ascending=self._ascending,
+            time_col_conversion=time_col_conversion,
+            enforce_temporal_uniqueness=self._enforce_temporal_uniqueness,
+            id_col=self._id_col,
+        )
 
-        # Step 4: Set the backend (inferred or user-provided)
-        if dataframe_backend:
-            is_valid_temporal_backend(dataframe_backend)
-            self._backend = dataframe_backend
-        else:
-            is_valid, _ = is_valid_temporal_dataframe(df)
-            if not is_valid:
-                raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
-            self._backend = get_dataframe_backend(df)
-
-        # Step 5: Setup the DataFrame (validate and preprocess)
-        self._df = self.setup(df, sort=self._sort, ascending=self._ascending)
-
-        # Optional: Verbose logging
         if self._verbose:
             print(f"TimeFrame successfully initialized with backend: {self._backend}")
 
-    def _to_narwhals(self, df: SupportedTemporalDataFrame) -> SupportedTemporalDataFrame:
-        """Convert DataFrame to Narwhals DataFrame if not already.
+    def _validate_parameters(self) -> None:
+        """Validate input parameters for the TimeFrame initialization.
 
-        This method ensures consistent backend-agnostic operations by converting native DataFrames
-        to Narwhals DataFrames. It checks if the DataFrame is already a Narwhals DataFrame to avoid
-        unnecessary conversions.
-
-        :param df: DataFrame to convert
-        :type df: SupportedTemporalDataFrame
-        :return: Narwhals DataFrame
-        :rtype: SupportedTemporalDataFrame
-
-        Example Usage:
-        -------------
-        .. code-block:: python
-
-            # Convert native DataFrame to Narwhals DataFrame
-            nw_df = self._to_narwhals(df)
-
-            # Use Narwhals operations
-            result = nw_df.select([...])
-
-        .. note::
-            - Uses hasattr check for efficiency to avoid converting already Narwhals DataFrames
-            - Supports all TemporalScope-supported backends (Pandas, Modin, PyArrow, Polars, Dask)
-            - Used internally by TimeFrame methods to ensure consistent backend-agnostic operations
+        :raises TypeError: If any parameter has an invalid type.
+        :raises ValueError: If a parameter value is invalid or unsupported.
         """
-        return nw.from_native(df) if not hasattr(df, "__narwhals_dataframe__") else df
+        if not isinstance(self._time_col, str):
+            raise TypeError(f"`time_col` must be a string. Got {type(self._time_col).__name__}.")
+        if not isinstance(self._target_col, str):
+            raise TypeError(f"`target_col` must be a string. Got {type(self._target_col).__name__}.")
+        if self._backend is not None and not isinstance(self._backend, str):
+            raise TypeError(f"`dataframe_backend` must be a string or None. Got {type(self._backend).__name__}.")
+        if not isinstance(self._sort, bool):
+            raise TypeError(f"`sort` must be a boolean. Got {type(self._sort).__name__}.")
+        if not isinstance(self._ascending, bool):
+            raise TypeError(f"`ascending` must be a boolean. Got {type(self._ascending).__name__}.")
+        if not isinstance(self._verbose, bool):
+            raise TypeError(f"`verbose` must be a boolean. Got {type(self._verbose).__name__}.")
+        if self._id_col is not None and not isinstance(self._id_col, str):
+            raise TypeError(f"`id_col` must be a string or None. Got {type(self._id_col).__name__}.")
+        if self._time_col_conversion not in {None, "numeric", "datetime"}:
+            raise ValueError(
+                f"Invalid `time_col_conversion` value '{self._time_col_conversion}'. "
+                f"Must be one of {{None, 'numeric', 'datetime'}}."
+            )
+        if self._mode not in VALID_MODES:
+            raise ValueError(f"Invalid mode '{self._mode}'. Must be one of {VALID_MODES}.")
+
+    def _initialize_backend(self, df: SupportedTemporalDataFrame, dataframe_backend: Optional[str]) -> str:
+        """Determine and validate the backend for the DataFrame.
+
+        :param df: Input DataFrame to initialize the backend.
+        :type df: SupportedTemporalDataFrame
+        :param dataframe_backend: Backend to use. If None, it is inferred from the DataFrame type.
+        :type dataframe_backend: Optional[str]
+        :return: Initialized backend for the DataFrame.
+        :rtype: str
+        :raises UnsupportedBackendError: If the backend is invalid or unsupported.
+        """
+        if dataframe_backend:
+            is_valid_temporal_backend(dataframe_backend)
+            return dataframe_backend
+
+        is_valid, _ = is_valid_temporal_dataframe(df)
+        if not is_valid:
+            raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
+        return get_dataframe_backend(df)
 
     @nw.narwhalify
     def sort_dataframe_time(self, df: SupportedTemporalDataFrame, ascending: bool = True) -> SupportedTemporalDataFrame:
@@ -369,17 +410,15 @@ class TimeFrame:
 
         This function validates the DataFrame by:
         1. Ensuring all columns are non-null and contain no NaNs.
-        2. Validating and optionally converting the `time_col` to the desired type.
-        3. Checking if `time_col` is in datetime format and emitting a warning.
-        4. Ensuring all non-time columns are numeric.
+        2. Validating the `time_col` and ensuring all non-time columns are numeric.
 
         The method is designed to support backend-agnostic operations through Narwhals and handles
         different DataFrame backends such as Pandas, Polars, and Modin.
 
         :param df: Input DataFrame to validate.
         :type df: SupportedTemporalDataFrame
-        :raises TimeColumnError: If `time_col` is missing or not numeric/datetime.
-        :raises ValueError: If other columns contain nulls, NaNs, or non-numeric values.
+        :raises ValueError: If any columns contain nulls/NaNs or invalid data types.
+        :raises UnsupportedBackendError: If the backend is not supported.
 
         Example Usage:
         --------------
@@ -405,28 +444,15 @@ class TimeFrame:
         .. note::
             - This function ensures that `time_col` is valid and optionally convertible.
             - All other columns must be numeric and free from null values.
-            - If `time_col` is in datetime format, a warning is emitted, suggesting conversion
-            to numeric for downstream compatibility with TemporalScope partitioning algorithms.
-
-        .. warning::
-            If the `time_col` is in datetime format, consider converting it to numeric using
-            the `time_col_conversion='numeric'` option during `TimeFrame` initialization for better
-            compatibility with most AI libraries.
         """
-        nw_df = self._to_narwhals(df)
-
         # Step 1: Ensure all columns are free of nulls and NaNs
-        null_counts = check_dataframe_nulls_nans(nw_df, nw_df.columns)
+        null_counts = check_dataframe_nulls_nans(df, df.columns)
         null_columns = [col for col, count in null_counts.items() if count > 0]
         if null_columns:
             raise ValueError(f"Missing values detected in columns: {', '.join(null_columns)}")
 
-        # Step 2: Validate all columns including time column
-        # This will validate the time column and return a DataFrame with proper types
-        nw_df = validate_and_convert_time_column(nw_df, self._time_col)
-
-        # Step 3: Validate all column types using the new function
-        validate_column_types(nw_df, self._time_col)
+        # Step 2: Validate column types (time_col and others)
+        validate_dataframe_column_types(df, self._time_col)
 
         # If verbose, notify the user about validation success
         if self._verbose:
@@ -434,46 +460,109 @@ class TimeFrame:
 
     @nw.narwhalify
     def setup(
-        self, df: SupportedTemporalDataFrame, sort: bool = True, ascending: bool = True
+        self,
+        df: SupportedTemporalDataFrame,
+        sort: bool = True,
+        ascending: bool = True,
+        time_col_conversion: Optional[str] = None,
+        enforce_temporal_uniqueness: bool = False,
+        id_col: Optional[str] = None,
     ) -> SupportedTemporalDataFrame:
         """Initialize and validate a TimeFrame's DataFrame with proper sorting and validation.
 
-        This method performs the necessary validation and sorting operations to prepare
+        This method performs the necessary validation, conversion, and sorting operations to prepare
         the input DataFrame for use in TemporalScope workflows. The method is idempotent.
 
-        :param df: Input DataFrame to set up and validate
+        Steps:
+        ------
+            1. Validate the input DataFrame using the `validate_dataframe` method.
+            2. Optionally convert the `time_col` to the specified type (`numeric` or `datetime`).
+            3. Perform temporal uniqueness validation within groups if enabled.
+            4. Optionally sort the DataFrame by `time_col` in the specified order.
+
+        :param df: Input DataFrame to set up and validate.
         :type df: SupportedTemporalDataFrame
-        :param sort: Whether to sort by `time_col`, defaults to True
+        :param sort: Whether to sort the DataFrame by `time_col`. Defaults to True.
         :type sort: bool
-        :param ascending: Sort order if sorting is enabled, defaults to True
+        :param ascending: Sort order if sorting is enabled. Defaults to True.
         :type ascending: bool
-        :return: Validated and optionally sorted DataFrame
+        :param time_col_conversion: Optional. Specify the conversion type for the `time_col`:
+                                    - 'numeric': Convert to Float64.
+                                    - 'datetime': Convert to Datetime.
+                                    - None: Validate only.
+                                    Default is None.
+        :type time_col_conversion: Optional[str]
+        :param enforce_temporal_uniqueness: If True, validates that timestamps in the `time_col` are
+                                            unique within the groups defined by the `id_col` parameter
+                                            (if specified) or across the entire DataFrame. Default is False.
+        :type enforce_temporal_uniqueness: bool
+        :param id_col: An optional column name to define groups for temporal uniqueness validation. If None,
+                    validation is performed across the entire DataFrame. Default is None.
+        :type id_col: Optional[str]
+        :return: Validated, converted, and optionally sorted DataFrame.
         :rtype: SupportedTemporalDataFrame
 
-        Example Usage:
+        Example usage:
         --------------
-        .. code-block:: python
+            .. code-block:: python
 
-            import polars as pl
-            from temporalscope.core.temporal_data_loader import TimeFrame
+                import pandas as pd
+                from temporalscope.core.temporal_data_loader import TimeFrame
 
-            data = pl.DataFrame({"time": [3, 1, 4, 2, 5], "value": range(5)})
-            tf = TimeFrame(data, time_col="time", target_col="value", sort=False)
+                df = pd.DataFrame(
+                    {
+                        "patient_id": [1, 1, 2, 2],
+                        "time": ["2023-01-01", "2023-01-02", "2023-01-01", "2023-01-03"],
+                        "value": [10, 20, 30, 40],
+                    }
+                )
 
-            # Validate and sort the DataFrame
-            sorted_df = tf.setup(data, sort=True, ascending=True)
-            print(sorted_df)
+                tf = TimeFrame(
+                    df,
+                    time_col="time",
+                    target_col="value",
+                )
+                sorted_df = tf.setup(df, time_col_conversion="datetime", enforce_temporal_uniqueness=True, id_col="patient_id")
+                print(sorted_df)
+
+        This example is provided under the Apache License, Version 2.0, and is distributed "AS IS" without warranties or
+        conditions of any kind. Users should refer to the license for details.
+
 
         .. note::
-            - This method is designed to be idempotent; ensuring safe revalidation or reinitialization.
+            - This method is designed to be idempotent, ensuring safe revalidation or reinitialization.
+            - The `time_col_conversion` parameter allows you to convert the `time_col` to a numeric or datetime type.
             - Sorting is performed only if explicitly enabled via the `sort` parameter.
-            - While this method validates and sorts the DataFrame, it does not modify the TimeFrame's internal state
-              unless explicitly used within another method (e.g., `update_dataframe`).
+            - While this method validates, converts, and sorts the DataFrame, it does not modify the TimeFrame's
+            internal state unless explicitly used within another method (e.g., `update_dataframe`).
+            - The `enforce_temporal_uniqueness` parameter can be set dynamically in this method, allowing
+            validation of temporal uniqueness to be turned on/off as needed.
+            - The `id_col` parameter can also be set dynamically, defining the scope of the temporal uniqueness validation.
+
+        .. seealso::
+            The `id_col` parameter enables validation of temporal uniqueness within each group's records, ensuring no duplicate
+            timestamps exist per group while allowing different groups to have events on the same dates. This is particularly
+            useful for multi-entity time series datasets (e.g., patient data, stock prices). Note: Users must check the Apache License
+            for the complete terms of use. This software is distributed "AS-IS" and may require adjustments for specific use cases.
         """
-        # Step 1: Validate the DataFrame using validate_dataframe
+        # Step 1: Basic validation
         self.validate_dataframe(df)
 
-        # Step 2: Sort DataFrame by time column if enabled
+        # Step 2: Time column conversion
+        if time_col_conversion == "numeric":
+            df = convert_datetime_column_to_numeric(df, self._time_col)
+            if self._verbose:
+                print(f"Converted column '{self._time_col}' to numeric (Unix timestamp).")
+        elif time_col_conversion == "datetime":
+            df = convert_time_column_to_datetime(df, self._time_col, nw.col(self._time_col), df.schema[self._time_col])
+            if self._verbose:
+                print(f"Converted column '{self._time_col}' to datetime.")
+
+        # Step 3: If enforce temporal uniqueness is enabled, validate with `validate_temporal_uniqueness`
+        if enforce_temporal_uniqueness:
+            validate_temporal_uniqueness(df, self._time_col, raise_error=True, id_col=id_col)
+
+        # Step 4: Optional sorting (user's choice for data organization)
         if sort:
             df = self.sort_dataframe_time(df, ascending=ascending)
 

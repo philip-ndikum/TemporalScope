@@ -23,7 +23,7 @@ marker is used to separate these execution tests from standard unit tests, as th
 different purposes:
 
 - Unit tests: Verify specific functionality and code correctness
-- Notebook tests: Ensure notebooks can execute end-to-end without errors
+- Notebook tests: Ensure notebooks can run end-to-end without errors
 
 This separation allows for more efficient CI/CD pipelines and clearer test organization.
 """
@@ -48,9 +48,15 @@ def test_notebook_runs(notebook_path, tmp_path):
     Uses the notebook marker to separate execution tests from unit tests,
     focusing solely on verifying that notebooks can run successfully.
     """
-    output_path = tmp_path / notebook_path.name
+    # Generate a distinct output filename to avoid any accidental overwrite
+    output_filename = notebook_path.stem + "_executed.ipynb"
+    output_path = tmp_path / output_filename
+
     try:
         # Execute notebook and save to temporary directory
+        # Note: No 'cwd' parameter is set, ensuring no changes to the original notebook's directory.
+        # Papermill reads from 'notebook_path' and writes the executed version to 'output_path' only,
+        # leaving the original notebook file intact.
         pm.execute_notebook(
             str(notebook_path),
             str(output_path),

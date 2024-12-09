@@ -96,6 +96,9 @@ or custom padding strategies can be integrated seamlessly.
        arXiv preprint arXiv:2302.02077.
 """
 
+# Ignore given that this is a protocol and does not require implementation.
+# coverage: ignore
+
 from typing import Any, Dict, Iterator, Protocol
 
 
@@ -106,7 +109,7 @@ class TemporalPartitionerProtocol(Protocol):
     single-target (dataframe-centric) and multi-target (tensor/dataset-centric) use cases.
     """
 
-    def setup(self) -> None:
+    def setup(self) -> None:  # pragma: no cover
         """Prepare and validate input data for partitioning.
 
         This method performs preprocessing and ensures the data is compatible
@@ -127,7 +130,7 @@ class TemporalPartitionerProtocol(Protocol):
         """
         pass
 
-    def fit(self) -> Iterator[Dict[str, Any]]:
+    def fit(self) -> Iterator[Dict[str, Any]]:  # pragma: no cover
         """Compute partition indices for slicing.
 
         This method generates partition indices based on partitioning parameters
@@ -156,7 +159,7 @@ class TemporalPartitionerProtocol(Protocol):
         """
         pass
 
-    def fit_transform(self) -> Iterator[Dict[str, Any]]:
+    def fit_transform(self) -> Iterator[Dict[str, Any]]:  # pragma: no cover
         """Combine `fit` and `transform` for eager execution.
 
         This method computes partition indices and retrieves data slices in a

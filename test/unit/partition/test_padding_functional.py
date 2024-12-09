@@ -49,7 +49,7 @@ from temporalscope.core.core_utils import (
     is_lazy_evaluation,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
-from temporalscope.partition.padding.functional import mean_fill_pad
+from temporalscope.partition.single_target.padding.functional import mean_fill_pad
 
 
 @pytest.fixture(params=get_temporalscope_backends())

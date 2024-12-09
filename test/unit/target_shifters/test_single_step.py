@@ -256,7 +256,7 @@ def test_fit_transform_equivalence(sample_df: Tuple[SupportedTemporalDataFrame, 
     result1 = shifter1.fit_transform(df)
     result2 = shifter2.fit(df).transform(df)
 
-    # Convert both to pandas for comparison
+    # Convert both to pandas for comparn
     if hasattr(result1, "compute"):  # For Dask DataFrame
         result1_pd = result1.compute()
     elif hasattr(result1, "collect"):  # For LazyFrame
