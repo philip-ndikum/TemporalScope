@@ -47,10 +47,9 @@ from temporalscope.core.core_utils import (
     UnsupportedBackendError,
     check_dataframe_empty,
     check_dataframe_nulls_nans,
-    sort_and_validate_temporal_order,
-    validate_temporal_uniqueness,
+    convert_datetime_column_to_numeric,
+    convert_time_column_to_datetime,
     convert_to_backend,
-    convert_to_datetime,
     convert_to_numeric,
     get_api_keys,
     get_dataframe_backend,
@@ -64,6 +63,7 @@ from temporalscope.core.core_utils import (
     sort_dataframe_time,
     validate_and_convert_time_column,
     validate_dataframe_column_types,
+    validate_temporal_uniqueness,
     validate_time_column_type,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
@@ -588,14 +588,14 @@ def test_validate_time_column_type():
         validate_time_column_type("custom_col", "custom_type")
 
 
-def test_convert_to_datetime_error_handling():
-    """Test convert_to_datetime error handling for invalid column types."""
+def test_convert_time_column_to_datetime_error_handling():
+    """Test convert_time_column_to_datetime error handling for invalid column types."""
     # Create a DataFrame with an invalid column type
     df = pd.DataFrame({"invalid_col": ["not_a_datetime", "nope", "still_not"]})
 
     # Test invalid column type
     with pytest.raises(ValueError, match="neither string nor numeric"):
-        convert_to_datetime(df, "invalid_col", nw.col("invalid_col"), df["invalid_col"].dtype)
+        convert_time_column_to_datetime(df, "invalid_col", nw.col("invalid_col"), df["invalid_col"].dtype)
 
 
 def test_validate_time_column_type_edge_cases():
@@ -611,8 +611,8 @@ def test_validate_time_column_type_edge_cases():
     validate_time_column_type("tz_datetime", "datetime64[ns, UTC]")  # Should not raise an error
 
 
-def test_convert_to_datetime_with_string_column():
-    """Test convert_to_datetime with string datetime column."""
+def test_convert_time_column_to_datetime_with_string_column():
+    """Test convert_time_column_to_datetime with string datetime column."""
     # Create a DataFrame with a string datetime column
     df = pd.DataFrame(
         {
@@ -620,8 +620,8 @@ def test_convert_to_datetime_with_string_column():
         }
     )
 
-    # Call convert_to_datetime for the string column
-    result = convert_to_datetime(df, "string_datetime", nw.col("string_datetime"), "string")
+    # Call convert_time_column_to_datetime for the string column
+    result = convert_time_column_to_datetime(df, "string_datetime", nw.col("string_datetime"), "string")
 
     # Check that the column was converted correctly
     assert "string_datetime" in result.columns, "Column 'string_datetime' not found in result."
@@ -630,8 +630,8 @@ def test_convert_to_datetime_with_string_column():
     ), "Expected column 'string_datetime' to be converted to datetime."
 
 
-def test_convert_to_datetime_with_numeric_column():
-    """Test convert_to_datetime with numeric timestamp column."""
+def test_convert_time_column_to_datetime_with_numeric_column():
+    """Test convert_time_column_to_datetime with numeric timestamp column."""
     # Create a DataFrame with a numeric timestamp column
     df = pd.DataFrame(
         {
@@ -639,8 +639,8 @@ def test_convert_to_datetime_with_numeric_column():
         }
     )
 
-    # Call convert_to_datetime for the numeric column
-    result = convert_to_datetime(df, "numeric_timestamp", nw.col("numeric_timestamp"), "float")
+    # Call convert_time_column_to_datetime for the numeric column
+    result = convert_time_column_to_datetime(df, "numeric_timestamp", nw.col("numeric_timestamp"), "float")
 
     # Check that the column was converted correctly
     assert "numeric_timestamp" in result.columns, "Column 'numeric_timestamp' not found in result."
@@ -985,15 +985,15 @@ def test_get_dataframe_backend_unknown_type() -> None:
 # ========================= Unsupported DataFrame Tests =========================
 
 
-def test_convert_to_datetime_unsupported_dataframe() -> None:
-    """Test convert_to_datetime raises UnsupportedBackendError for unsupported DataFrame."""
+def test_convert_time_column_to_datetime_unsupported_dataframe() -> None:
+    """Test convert_time_column_to_datetime raises UnsupportedBackendError for unsupported DataFrame."""
 
     class UnsupportedDataFrame:
         pass
 
     df = UnsupportedDataFrame()
     with pytest.raises(UnsupportedBackendError, match=f"Unsupported DataFrame type: {type(df).__name__}"):
-        convert_to_datetime(df, time_col="time", col_expr=None, col_dtype="string")
+        convert_time_column_to_datetime(df, time_col="time", col_expr=None, col_dtype="string")
 
 
 def test_validate_and_convert_time_column_unsupported_dataframe() -> None:
@@ -1064,160 +1064,181 @@ def test_sort_dataframe_time_with_missing_time_column():
 # ======================= validate_temporal_uniqueness Tests =======================
 
 
-def test_validate_temporal_uniqueness_no_duplicates():
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_validate_temporal_uniqueness_no_duplicates(backend):
     """Test validate_temporal_uniqueness with no duplicates or violations."""
-    df = pd.DataFrame({"time": [1, 2, 3, 4, 5]})
-    validate_temporal_uniqueness(df, time_col="time")
+    df = generate_synthetic_time_series(backend=backend, num_samples=10, num_features=1, time_col_numeric=False)
+    validate_temporal_uniqueness(df, time_col="time")  # Should not raise any errors
 
 
-def test_validate_temporal_uniqueness_duplicates():
-    """Test validate_temporal_uniqueness raises error for duplicate timestamps."""
-    df = pd.DataFrame({"time": [1, 1, 2, 3]})
-    # Convert to Narwhals backend and check
-    df_backend = nw.from_native(df)  # Ensure proper Narwhalification
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_validate_temporal_uniqueness_with_duplicates(backend):
+    """Test that validate_temporal_uniqueness raises ValueError for duplicate timestamps."""
+    # Create a simple pandas DataFrame with duplicates and ensure 'time' is datetime
+    df_pandas = pd.DataFrame({"time": ["2023-01-01", "2023-01-01", "2023-02-15"], "value": [100.0, 150.0, 200.0]})
+    df_pandas["time"] = pd.to_datetime(df_pandas["time"])  # Convert to datetime
+
+    # Convert this pandas DataFrame to the desired backend
+    df_converted = convert_to_backend(df_pandas, backend=backend)
+
+    # Expect a ValueError due to duplicates
     with pytest.raises(ValueError, match="Duplicate timestamps"):
-        validate_temporal_uniqueness(df_backend, time_col="time")
+        validate_temporal_uniqueness(df_converted, time_col="time")
 
 
-def test_validate_temporal_uniqueness_non_monotonic():
-    """Test validate_temporal_uniqueness raises error for non-monotonic timestamps."""
-    df = pd.DataFrame({"time": [1, 3, 2, 4]})
-    # Let @nw.narwhalify handle conversion
-    with pytest.raises(ValueError, match=r".*strictly increasing.*"):  # Use regex pattern
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_validate_temporal_uniqueness_with_nulls(backend):
+    """Test that validate_temporal_uniqueness raises ValueError for null values in the time column."""
+    # Create a pandas DataFrame with one of the time values as NaT (null datetime)
+    df_pandas = pd.DataFrame(
+        {"time": [pd.Timestamp("2023-01-01"), pd.NaT, pd.Timestamp("2023-01-03")], "value": [100.0, 200.0, 300.0]}
+    )
+
+    # Convert this pandas DataFrame to the desired backend
+    df_converted = convert_to_backend(df_pandas, backend=backend)
+
+    # Expect a ValueError due to null values in the time column
+    with pytest.raises(ValueError, match="Null values found"):
+        validate_temporal_uniqueness(df_converted, time_col="time")
+
+
+def test_validate_temporal_uniqueness_missing_time_column():
+    """Test validate_temporal_uniqueness raises error for missing time column."""
+    df = pd.DataFrame({"value": [1, 2, 3]})  # No 'time' column
+    with pytest.raises(TimeColumnError, match="Invalid time column: Column 'time' does not exist"):
         validate_temporal_uniqueness(df, time_col="time")
 
 
-def test_validate_temporal_uniqueness_warn_on_failure():
-    """Test validate_temporal_uniqueness warns instead of erroring."""
-    df = pd.DataFrame({"time": [1, 1, 2, 3]})
+def test_validate_temporal_uniqueness_non_datetime_column():
+    """Test validate_temporal_uniqueness raises error for non-datetime time column."""
+    df = pd.DataFrame({"time": ["a", "b", "c"]})  # Invalid column type
+    with pytest.raises(TimeColumnError, match="Invalid time column: Column 'time' is neither numeric nor datetime"):
+        validate_temporal_uniqueness(df, time_col="time")
+
+
+def test_validate_temporal_uniqueness_warn_on_duplicates_simple():
+    """Check that validate_temporal_uniqueness issues a UserWarning.
+
+    This occurs when duplicates are present and raise_error=False.
+    """
+    # Create a simple Pandas DataFrame with duplicate timestamps and ensure 'time' is datetime
+    df = pd.DataFrame({"time": ["2023-01-01", "2023-01-01", "2023-02-15"], "value": [100.0, 150.0, 200.0]})
+    df["time"] = pd.to_datetime(df["time"])  # Convert to datetime
+
+    # Now call the function with raise_error=False and expect a UserWarning due to duplicates
     with pytest.warns(UserWarning, match="Duplicate timestamps"):
         validate_temporal_uniqueness(df, time_col="time", raise_error=False)
 
 
-def test_validate_temporal_uniqueness_with_context():
-    """Test validate_temporal_uniqueness includes context in error message."""
-    df = pd.DataFrame({"time": [1, 1, 2, 3]})
-    with pytest.raises(ValueError, match="group 'A'"):
-        validate_temporal_uniqueness(df, time_col="time", context="group 'A'")
-
-
-# Generalized Backend-Agnostic Test
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
-def test_validate_temporal_uniqueness_all_backends(backend):
-    """Test validate_temporal_uniqueness across all supported backends."""
-    test_cases = {
-        "no_duplicates": pd.DataFrame({"time": [1, 2, 3, 4, 5]}),
-        "duplicates": pd.DataFrame({"time": [1, 1, 2, 3]}),
-        "non_monotonic": pd.DataFrame({"time": [1, 3, 2, 4]}),
-    }
+def test_validate_temporal_uniqueness_with_id_col(backend):
+    """Test validate_temporal_uniqueness includes id_col in the error message."""
+    # Create a pandas DataFrame with duplicates and a datetime time column
+    df_pandas = pd.DataFrame({"time": ["2023-01-01", "2023-01-01", "2023-02-15"], "value": [100.0, 150.0, 200.0]})
+    df_pandas["time"] = pd.to_datetime(df_pandas["time"])  # Ensure datetime
 
-    for case_name, df in test_cases.items():
-        if case_name == "no_duplicates":
-            validate_temporal_uniqueness(df, time_col="time")
-        elif case_name == "duplicates":
-            with pytest.raises(ValueError, match=r"(?i).*duplicate.*"):
-                validate_temporal_uniqueness(df, time_col="time")
-        else:  # non_monotonic
-            with pytest.raises(ValueError, match=r".*strictly increasing.*"):
-                validate_temporal_uniqueness(df, time_col="time")
+    # Convert to the desired backend
+    df_converted = convert_to_backend(df_pandas, backend=backend)
+
+    # Expect a ValueError mentioning id_col due to duplicates
+    with pytest.raises(ValueError, match=r"Column 'patient_id' does not exist"):
+        validate_temporal_uniqueness(df_converted, time_col="time", id_col="patient_id")
 
 
-def test_validate_temporal_uniqueness_invalid_time_column():
-    """Test validate_temporal_uniqueness with invalid time column.
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_validate_temporal_uniqueness_lazy_evaluation(backend):
+    """Test validate_temporal_uniqueness handles lazy evaluation correctly."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=10, num_features=1, time_col_numeric=False)
+    validate_temporal_uniqueness(df, time_col="time")
+    assert len(df) == 10, "Expected the same number of rows after validation."
 
-    Tests the first validation step:
-    try:
-        df = nw.from_native(validate_and_convert_time_column(df, time_col))
-    except Exception as e:
-        raise TimeColumnError(f"Invalid time column: {str(e)}")
-    """
-    df = pd.DataFrame({"time": ["a", "b", "c"]})
-    with pytest.raises(TimeColumnError, match=r"Invalid time column:.*"):
+
+def test_validate_temporal_uniqueness_empty_dataframe():
+    """Test validate_temporal_uniqueness raises error for empty DataFrame."""
+    df = pd.DataFrame({"time": []})
+    with pytest.raises(ValueError, match="Empty DataFrame provided."):
         validate_temporal_uniqueness(df, time_col="time")
 
 
-# ======================== sort_and_validate_temporal_order Tests =========================
+# ========================= Tests for convert_datetime_column_to_numeric =========================
 
 
-def test_sort_and_validate_temporal_order_invalid_time_column():
-    """Test sort_and_validate_temporal_order with invalid time column.
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("time_unit", ["us", "ms", "ns"])
+def test_convert_datetime_column_to_numeric_conversion(backend: str, time_unit: str) -> None:
+    """Test convert_datetime_column_to_numeric converts datetime column to numeric format correctly."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=10, num_features=2, time_col_numeric=False)
 
-    Tests the validation in sort_dataframe_time():
-    validate_time_column_type(time_col, df.schema.get(time_col, None))
-    """
+    result = convert_datetime_column_to_numeric(df, time_col="time", time_unit=time_unit)
+
+    if backend == "pyarrow":
+        assert "time" in result.schema.names, f"Expected 'time' column in PyArrow schema for backend '{backend}'."
+    else:
+        assert "time" in result.columns, f"Expected 'time' column in DataFrame for backend '{backend}'."
+
+
+def test_convert_datetime_column_to_numeric_invalid_time_col():
+    """Test convert_datetime_column_to_numeric raises ValueError for invalid or missing time column."""
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    with pytest.raises(ValueError, match="Column 'time' does not exist"):
+        convert_datetime_column_to_numeric(df, time_col="time")
+
+
+def test_convert_datetime_column_to_numeric_null_handling():
+    """Test convert_datetime_column_to_numeric raises error for null or NaN values in the time column."""
+    df = pd.DataFrame({"time": [pd.NaT, pd.Timestamp("2023-01-02"), pd.Timestamp("2023-01-03")]})
+    with pytest.raises(ValueError, match="Null or NaN values detected"):
+        convert_datetime_column_to_numeric(df, time_col="time")
+
+
+def test_convert_datetime_column_to_numeric_invalid_column_type():
+    """Test convert_datetime_column_to_numeric raises ValueError for unsupported column types."""
     df = pd.DataFrame({"time": ["a", "b", "c"]})
-    with pytest.raises(ValueError, match=r".*neither numeric nor datetime.*"):
-        sort_and_validate_temporal_order(df, time_col="time")
+    with pytest.raises(ValueError, match="must specifically be a datetime type"):
+        convert_datetime_column_to_numeric(df, time_col="time")
 
 
-def test_sort_and_validate_temporal_order_missing_group_col():
-    """Test sort_and_validate_temporal_order raises error for missing group column."""
-    df = pd.DataFrame({"time": [1, 2, 3], "value": [10, 20, 30]})
-    with pytest.raises(ValueError, match="Column 'group_col' does not exist"):
-        sort_and_validate_temporal_order(df, time_col="time", group_col="group_col")
+@pytest.mark.parametrize("backend", VALID_BACKENDS)
+def test_convert_datetime_column_to_numeric_lazy_evaluation(backend: str) -> None:
+    """Test convert_datetime_column_to_numeric handles lazy evaluation correctly."""
+    df = generate_synthetic_time_series(backend=backend, num_samples=10, num_features=1, time_col_numeric=False)
+    result = convert_datetime_column_to_numeric(df, time_col="time")
+    assert len(result) == 10, "Expected the same number of rows after conversion."
 
 
-def test_sort_and_validate_temporal_order_empty_group():
-    """Test sort_and_validate_temporal_order with empty group."""
-    df = pd.DataFrame({"group_col": [], "time": [], "value": []})
-    with pytest.raises(ValueError, match="Invalid or empty DataFrame"):
-        sort_and_validate_temporal_order(df, time_col="time", group_col="group_col")
+def test_convert_datetime_column_to_numeric_empty_dataframe():
+    """Test convert_datetime_column_to_numeric handles empty DataFrame gracefully."""
+    df = pd.DataFrame({"time": []})
+    result = convert_datetime_column_to_numeric(df, time_col="time")
+    assert result.equals(df), "Empty DataFrame should remain unchanged."
 
 
-def test_sort_and_validate_temporal_order_complex_sorting():
-    """Test sort_and_validate_temporal_order handles sorting with id_col."""
-    df = pd.DataFrame(
-        {
-            "id_col": [2, 1, 2, 1],
-            "time": [3, 1, 4, 2],
-            "value": [10, 20, 30, 40],
-        }
-    )
-    sort_and_validate_temporal_order(df, time_col="time", id_col="id_col")
+def test_convert_datetime_column_to_numeric_invalid_numeric_column():
+    """Test convert_datetime_column_to_numeric skips numeric columns gracefully."""
+    df = pd.DataFrame({"time": [1, 2, 3]})
+    result = convert_datetime_column_to_numeric(df, time_col="time")
+    assert result.equals(df), "Numeric column should remain unchanged."
 
 
-def test_sort_and_validate_temporal_order_missing_columns():
-    """Test sort_and_validate_temporal_order with missing columns.
+def test_convert_datetime_column_to_numeric_edge_cases():
+    """Test convert_datetime_column_to_numeric with edge-case inputs."""
+    # Single-row DataFrame
+    single_row_df = pd.DataFrame({"time": [pd.Timestamp("2023-01-01")]})
+    result = convert_datetime_column_to_numeric(single_row_df, time_col="time")
+    assert len(result) == 1, "Expected single-row DataFrame as output."
 
-    Tests step 3 and step 5:
-    # Step 3: Column validation
-    if time_col not in df.columns:
-        raise ValueError(f"Column '{time_col}' does not exist in the DataFrame.")
-
-    # Step 5: Additional sort by id_col if provided
-    if id_col:
-        if id_col not in df.columns:
-            raise ValueError(f"Column '{id_col}' does not exist in the DataFrame.")
-    """
-    # Create DataFrame with some data
-    df = pd.DataFrame(
-        {
-            "other": [1, 2, 3],  # Some other column
-        }
-    )
-
-    # Test missing time column
-    with pytest.raises(ValueError, match=r"Column 'time' does not exist in the DataFrame"):
-        sort_and_validate_temporal_order(df, time_col="time")
-
-    # Test missing id column
-    df["time"] = [1, 2, 3]  # Add valid time column
-    with pytest.raises(ValueError, match=r"Column 'id' does not exist in the DataFrame"):
-        sort_and_validate_temporal_order(df, time_col="time", id_col="id")
+    # No rows but valid schema
+    no_row_df = pd.DataFrame({"time": pd.Series([], dtype="datetime64[ns]")})
+    with pytest.raises(ValueError, match="Null or NaN values detected"):
+        convert_datetime_column_to_numeric(no_row_df, time_col="time")
 
 
-def test_sort_and_validate_temporal_order_group_validation():
-    """Test sort_and_validate_temporal_order with group validation."""
-    # Create DataFrame with valid groups
-    df = pd.DataFrame(
-        {
-            "time": [1, 2, 1, 2],
-            "group": ["A", "A", "B", "B"],
-            "feature_1": [10, 20, 30, 40],
-            "feature_2": [50, 60, 70, 80],
-            "target": [90, 100, 110, 120],
-        }
-    )
+def test_convert_datetime_column_to_numeric_unsupported_dataframe() -> None:
+    """Test convert_datetime_column_to_numeric raises UnsupportedBackendError for unsupported DataFrame."""
 
-    # Should pass - each group has monotonic time
-    sort_and_validate_temporal_order(df, time_col="time", group_col="group")
+    class UnsupportedDataFrame:
+        pass
+
+    df = UnsupportedDataFrame()
+    with pytest.raises(UnsupportedBackendError, match=f"Unsupported DataFrame type: {type(df).__name__}"):
+        convert_datetime_column_to_numeric(df, time_col="time")

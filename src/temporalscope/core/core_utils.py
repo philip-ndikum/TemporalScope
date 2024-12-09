@@ -166,13 +166,20 @@ The following naming conventions are used for utility functions in this module:
 +--------------------------+------------------------------------------------------------+
 | `sort_<object>`          | Orders an object based on specified criteria.              |
 +--------------------------+------------------------------------------------------------+
+
+- Narwhals functions always return the native format of the backend (e.g., Pandas,
+  Polars, Modin) after execution. This behavior ensures backend-agnostic compatibility.
+- Use `nw.from_native` when chaining `@nw.narwhalify` functions to maintain compatibility
+  with backend-agnostic workflows, as each function outputs a native DataFrame format.
+- The `@nw.narwhalify` decorator automatically manages backend detection and format
+  conversion at the entry and exit points of the function.
 """
 
 # Standard Library Imports
 import os
 import warnings
 from importlib import util
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
 
 import dask.dataframe as dd
 import modin.pandas as mpd
@@ -608,13 +615,28 @@ def convert_to_backend(
 
     # Convert to target backend using the converter dictionary
     try:
-        conversion_func = backend_converter_dict[backend]
-        return conversion_func(df, npartitions)
+        conversion_func = TEMPORALSCOPE_BACKEND_CONVERTERS[backend]
+        converted_df = conversion_func(df, npartitions)
+
+        # Ensure Pandas compatibility if converting to Pandas
+        if backend == "pandas":
+            # Import inline to avoid unnecessary global imports
+            if "pyarrow" in str(type(converted_df)):  # Check if it's a pyarrow object
+                import pyarrow  # pragma: no cover
+
+                if isinstance(converted_df, (pyarrow.Table, pyarrow.lib.ChunkedArray)):  # pragma: no cover
+                    converted_df = converted_df.to_pandas()  # pragma: no cover
+            elif "polars" in str(type(converted_df)):  # Check if it's a polars object
+                import polars  # pragma: no cover
+
+                if isinstance(converted_df, polars.DataFrame):  # pragma: no cover
+                    converted_df = converted_df.to_pandas()  # pragma: no cover
+
+        return converted_df
+
     except KeyError:  # pragma: no cover
-        # This exception is unlikely because `is_valid_temporal_backend` already validates the backend.
         raise UnsupportedBackendError(f"The backend '{backend}' is not supported by TemporalScope.")
     except Exception as e:  # pragma: no cover
-        # This exception safeguards against unforeseen errors during conversion.
         raise UnsupportedBackendError(f"Failed to convert DataFrame: {str(e)}")
 
 
@@ -818,7 +840,85 @@ def convert_to_numeric(
 
 
 @nw.narwhalify
-def convert_to_datetime(
+def convert_datetime_column_to_numeric(
+    df: SupportedTemporalDataFrame, time_col: str, time_unit: Literal["us", "ms", "ns"] = "us"
+) -> SupportedTemporalDataFrame:
+    """Convert a datetime column to a numeric representation.
+
+    This function converts the specified datetime column into a numeric
+    representation (e.g., Unix timestamp) with precision control using
+    microseconds ("us") by default. It ensures compatibility across all
+    Narwhals-supported backends.
+
+    :param df: Input DataFrame containing the datetime column.
+    :type df: SupportedTemporalDataFrame
+    :param time_col: Name of the column to convert. Must be of datetime type.
+    :type time_col: str
+    :param time_unit: Time unit for conversion ("us", "ms", "ns"). Default is "us".
+                      The choice of "us" provides optimal compatibility across
+                      Pandas, Polars, and PyArrow backends.
+    :type time_unit: Literal["us", "ms", "ns"]
+    :return: DataFrame with the converted time column.
+    :rtype: SupportedTemporalDataFrame
+    :raises UnsupportedBackendError: If the DataFrame's backend is not supported.
+    :raises ValueError: If the specified column is not a datetime type or does not exist.
+
+    Example Usage:
+    --------------
+    .. code-block:: python
+
+        from temporalscope.core.core_utils import convert_datetime_column_to_numeric
+        import pandas as pd
+
+        # Create example DataFrame with a datetime column
+        df = pd.DataFrame({"time": pd.date_range(start="2023-01-01", periods=3, freq="D"), "value": [10, 20, 30]})
+
+        # Convert 'time' column to numeric (microseconds precision)
+        df = convert_datetime_column_to_numeric(df, time_col="time", time_unit="us")
+        print(df)
+
+    .. note::
+        - Supports microseconds ("us"), milliseconds ("ms"), and nanoseconds ("ns").
+        - Preserves timezone-aware datetimes during conversion.
+        - Handles null values consistently across all supported backends.
+        - Does not enforce monotonicity or data sorting. Use a sorting utility if required.
+        - When using `"ns"` precision, values are cast to `Int64` to avoid overflow issues with large timestamps.
+    """
+    # Step 1: Validate the DataFrame
+    is_valid, _ = is_valid_temporal_dataframe(df)
+    if not is_valid:
+        raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
+
+    # Step 2: Validate the time column exists
+    if time_col not in df.columns:
+        raise ValueError(f"Column '{time_col}' does not exist in the DataFrame.")
+
+    # Step 3: Check if the column is already numeric
+    col_dtype = df.schema.get(time_col) if hasattr(df, "schema") else df[time_col].dtype
+    if "int" in str(col_dtype).lower() or "float" in str(col_dtype).lower():
+        return df  # No conversion needed for already numeric columns
+
+    # Step 4: Check if DataFrame is empty before checking nulls
+    if check_dataframe_empty(df):
+        raise ValueError("Null or NaN values detected")
+
+    # Now safely call check_dataframe_nulls_nans, since we know DF is not empty
+    null_counts = check_dataframe_nulls_nans(df, [time_col])
+    if null_counts.get(time_col, 0) > 0:
+        raise ValueError(f"Null or NaN values detected in column '{time_col}'.")
+
+    # Step 5: Ensure it is strictly a datetime column
+    if "datetime" not in str(col_dtype).lower():
+        raise ValueError(f"Column '{time_col}' must specifically be a datetime type to convert.")
+
+    # Step 6: Perform the conversion to numeric with specified time unit
+    # For ns, use Int64 due to range issues. For us/ms, Float64 is safe.
+    target_dtype = nw.Int64() if time_unit == "ns" else nw.Float64()
+    return df.with_columns([nw.col(time_col).dt.timestamp(time_unit=time_unit).cast(target_dtype).alias(time_col)])
+
+
+@nw.narwhalify
+def convert_time_column_to_datetime(
     df: SupportedTemporalDataFrame, time_col: str, col_expr: Any, col_dtype: Any
 ) -> SupportedTemporalDataFrame:
     """Convert a string or numeric column to datetime using Narwhals API.
@@ -841,7 +941,7 @@ def convert_to_datetime(
     .. code-block:: python
 
         df = pd.DataFrame({"time": [1672531200000, 1672617600000]})  # Unix timestamps
-        df = convert_to_datetime(df, "time", nw.col("time"), df["time"].dtype)
+        df = convert_time_column_to_datetime(df, "time", nw.col("time"), df["time"].dtype)
         print(df)
 
     .. note::
@@ -960,7 +1060,7 @@ def validate_and_convert_time_column(
         return convert_to_numeric(df, time_col, nw.col(time_col), col_dtype)
 
     if conversion_type == "datetime":
-        return convert_to_datetime(df, time_col, nw.col(time_col), col_dtype)
+        return convert_time_column_to_datetime(df, time_col, nw.col(time_col), col_dtype)
 
     # Validation-only path
     validate_time_column_type(time_col, col_dtype)
@@ -1097,13 +1197,13 @@ def sort_dataframe_time(
 
 @nw.narwhalify
 def validate_temporal_uniqueness(
-    df: SupportedTemporalDataFrame, time_col: str, raise_error: bool = True, context: str = ""
+    df: SupportedTemporalDataFrame, time_col: str, raise_error: bool = True, id_col: str = ""
 ) -> None:
-    """Validate strict temporal ordering and uniqueness in the given DataFrame.
+    """Validate temporal uniqueness in the given DataFrame.
 
-    This function checks that:
-    1. Timestamps in the specified `time_col` are unique.
-    2. Timestamps in the specified `time_col` are in strictly increasing order.
+    This function checks that timestamps in the specified `time_col` are unique within
+    the groups defined by the `id_col` (e.g., within a patient's records). It does not enforce ordering,
+    allowing for mixed-frequency data and flexible temporal patterns.
 
     :param df: The DataFrame to validate.
     :type df: SupportedTemporalDataFrame
@@ -1111,8 +1211,8 @@ def validate_temporal_uniqueness(
     :type time_col: str
     :param raise_error: Whether to raise an error if validation fails.
     :type raise_error: bool
-    :param context: An optional string to indicate the validation context (e.g., group name).
-    :type context: str
+    :param id_col: An optional string to indicate the grouping identifier (e.g., group name).
+    :type id_col: str
     :raises ValueError: If validation fails and `raise_error` is True.
     :warns UserWarning: If validation fails and `raise_error` is False.
 
@@ -1123,28 +1223,44 @@ def validate_temporal_uniqueness(
         import narwhals as nw
         import pandas as pd
 
-        # Create a test DataFrame with numeric timestamps
-        df = pd.DataFrame({"time": [1, 2, 3, 4], "value": [10, 20, 30, 40]})
-        validate_temporal_uniqueness(df, time_col="time")  # Will pass
-
-        # Create DataFrame with datetime timestamps
-        df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=4), "value": [10, 20, 30, 40]})
-        validate_temporal_uniqueness(df, time_col="time")  # Will pass
-
-        # Create DataFrame with duplicates
-        df_duplicates = pd.DataFrame(
+        # Create insurance claims data with patient visits
+        df = pd.DataFrame(
             {
-                "time": [1, 1, 2, 3],  # Note duplicate timestamp
-                "value": [10, 10, 20, 30],
+                "patient_id": [1, 1, 1, 2, 2],
+                "time": [
+                    "2023-01-01",
+                    "2023-02-15",
+                    "2023-04-01",  # Patient 1's visits
+                    "2023-01-01",
+                    "2023-03-15",
+                ],  # Patient 2's visits
+                "claim_amount": [100.0, 250.0, 150.0, 300.0, 200.0],
             }
         )
-        # This will raise ValueError: "Duplicate timestamps in column 'time'."
-        validate_temporal_uniqueness(df_duplicates, time_col="time")
+
+        # Validate timestamps within each patient's records
+        for patient in df["patient_id"].unique():
+            patient_records = df[df["patient_id"] == patient]
+            validate_temporal_uniqueness(
+                patient_records, time_col="time", id_col=f"patient {patient} "
+            )  # Will pass - each patient has unique visit dates
+
+        # Example with duplicate timestamps
+        df_invalid = pd.DataFrame(
+            {
+                "patient_id": [1, 1, 1],
+                "time": ["2023-01-01", "2023-01-01", "2023-02-15"],  # Duplicate visit date
+                "claim_amount": [100.0, 150.0, 200.0],
+            }
+        )
+
+        # This will raise ValueError: "Duplicate timestamps in patient 1 column 'time'."
+        validate_temporal_uniqueness(df_invalid, time_col="time", id_col="patient 1 ")
 
     .. note::
-        - Use `nw.from_native` only when chaining `@nw.narwhalify` functions, as each
-          returns the native format after execution.
-        - This ensures compatibility with Narwhals operations in multi-function pipelines.
+        - This function only validates uniqueness within the given `id_col` (e.g., per patient).
+        - It does not enforce temporal ordering, allowing for mixed-frequency data.
+        - Different `id_col` groups (e.g., different patients) can have events on the same dates.
     """
     # Step 1: Validate time column type and convert if needed
     try:
@@ -1152,170 +1268,50 @@ def validate_temporal_uniqueness(
     except Exception as e:
         raise TimeColumnError(f"Invalid time column: {str(e)}")
 
-    # Step 2: Materialize lazy DataFrames
-    if is_lazy_evaluation(df):  # Defensive programming for lazy evaluation
-        df = df.collect() if hasattr(df, "collect") else df.compute()  # pragma: no cover
+    # Step 2: Check for existence of id_col
+    if id_col and id_col not in df.columns:
+        raise ValueError(f"Column '{id_col}' does not exist.")
+
+    # Step 3: Check for null values in the time column
+    null_counts = check_dataframe_nulls_nans(df, [time_col])
+    if null_counts.get(time_col, 0) > 0:
+        message = f"Null values found in {id_col}column '{time_col}'."
+        if raise_error:
+            raise ValueError(message)
+        warnings.warn(message)  # pragma: no cover
+
+    # Step 4: Materialize lazy DataFrames
+    if is_lazy_evaluation(df):
+        df = df.collect() if hasattr(df, "collect") else df.compute()
 
     # Handle PyArrow's unique count differently
     if get_dataframe_backend(df) == "pyarrow":
-        df = nw.from_native(df.to_pandas()) # pragma: no cover
+        df = nw.from_native(df.to_pandas())
 
-    # Step 3: Check for duplicates using proper aggregation
-    duplicate_check_df = df.select(
-        [nw.col(time_col).n_unique().alias("unique_count"), nw.col(time_col).count().alias("total_count")]
-    )
-    duplicate_check_series = duplicate_check_df.select(
-        [(nw.col("unique_count") < nw.col("total_count")).alias("has_duplicates")]
-    )
-
-    # Step 4: Raise error if duplicates found
-    if duplicate_check_series.select([nw.col("has_duplicates").any()]).item():
-        message = f"Duplicate timestamps in {context}column '{time_col}'."
-        if raise_error:
-            raise ValueError(message)
-        warnings.warn(message)
-
-    # Step 5: Check temporal ordering in current data
-    non_monotonic_series = df.select(  # Use df instead of sorted_df
-        [(nw.col(time_col).shift(-1) <= nw.col(time_col)).sum().alias("non_monotonic_count")]
-    )
-
-    # Step 6: Raise error if non-monotonic
-    if non_monotonic_series.select([nw.col("non_monotonic_count") > 0]).item():
-        message = f"Timestamps not strictly increasing in {context}column '{time_col}'."
-        if raise_error:
-            raise ValueError(message)
-        warnings.warn(message)
-
-
-@nw.narwhalify
-def sort_and_validate_temporal_order(
-    df: SupportedTemporalDataFrame,
-    time_col: str,
-    group_col: Optional[str] = None,
-    id_col: Optional[str] = None,
-    raise_error: bool = True,
-) -> None:
-    """Validate strict temporal ordering and uniqueness in the given DataFrame.
-
-    This function checks that:
-    1. Timestamps in the specified `time_col` are unique.
-    2. Timestamps in the specified `time_col` are in strictly increasing order.
-    3. If `group_col` is provided, temporal order is validated within each group.
-    4. If `id_col` is provided, the DataFrame is sorted by `id_col` and `time_col` before validation.
-
-    :param df: The DataFrame to validate.
-    :type df: SupportedTemporalDataFrame
-    :param time_col: The column representing time.
-    :type time_col: str
-    :param group_col: Optional column for grouping data before validation.
-    :type group_col: Optional[str]
-    :param id_col: Optional column for sorting data before validation.
-    :type id_col: Optional[str]
-    :param raise_error: Whether to raise an error if validation fails.
-    :type raise_error: bool
-    :raises ValueError: If validation fails and `raise_error` is True.
-    :raises ValueError: If required columns (`time_col`, `group_col`, or `id_col`) do not exist.
-    :raises ValueError: If the input DataFrame is invalid or empty.
-
-    Example Usage:
-    --------------
-    .. code-block:: python
-
-        import pandas as pd
-
-        # Create a test DataFrame
-        df = pd.DataFrame({"time": [1, 2, 3, 4], "value": [10, 20, 30, 40]})
-
-        # Check temporal ordering - will pass
-        sort_and_validate_temporal_order(df, time_col="time")
-
-        # Create DataFrame with duplicates
-        df_duplicates = pd.DataFrame(
-            {
-                "time": [1, 1, 2, 3],  # Note duplicate timestamp
-                "value": [10, 10, 20, 30],
-            }
-        )
-
-        # This will raise ValueError: "Duplicate timestamps in column 'time'."
-        sort_and_validate_temporal_order(df_duplicates, time_col="time")
-
-        # Check within groups
-        df_grouped = pd.DataFrame(
-            {
-                "group": ["A", "A", "B", "B"],
-                "time": [1, 2, 1, 2],
-                "value": [10, 20, 30, 40],
-            }
-        )
-        sort_and_validate_temporal_order(df_grouped, time_col="time", group_col="group")
-
-    .. note::
-        - This function assumes strict temporal ordering and will fail if duplicate
-          or unordered timestamps are found in `time_col`. Grouping and sorting
-          options (`group_col` and `id_col`) can help ensure correct validation
-          in more complex datasets.
-        - Use `nw.from_native` only when chaining `@nw.narwhalify` functions, as
-          each returns the native format after execution.
-        - This ensures compatibility with Narwhals operations in multi-function
-          pipelines.
-    """
-    # Step 1: Initial validation
-    is_valid, _ = is_valid_temporal_dataframe(df)
-    if not is_valid or check_dataframe_empty(df):
-        raise ValueError("Invalid or empty DataFrame provided.")
-
-    # Step 2: Materialize lazy DataFrames
-    if is_lazy_evaluation(df):  # Defensive programming for lazy evaluation
-        df = df.collect() if hasattr(df, "collect") else df.compute()  # pragma: no cover
-
-    # Step 3: Column validation
-    if time_col not in df.columns:
-        raise ValueError(f"Column '{time_col}' does not exist in the DataFrame.")
-
-    # Step 4: Sort entire DataFrame by time first
-    df = sort_dataframe_time(df, time_col=time_col, ascending=True)
-    df = nw.from_native(df)  # Convert back after narwhalified function
-
-    # Step 5: Additional sort by id_col if provided
+    # Step 5: Check for duplicates using proper aggregation and raise error if found
     if id_col:
-        if id_col not in df.columns:
-            raise ValueError(f"Column '{id_col}' does not exist in the DataFrame.")
-        # Sort by id_col while maintaining time order within each id
-        df = df.sort(by=[id_col, time_col])
-        df = nw.from_native(df)
-
-        # Get unique groups
-        group_values = df.select(nw.col(id_col).unique())
-        if is_lazy_evaluation(group_values):  # Same pattern as Step 2
-            group_values = (
-                group_values.collect() if hasattr(group_values, "collect") else group_values.compute()
-            )  # pragma: no cover
-
-        # Validate each group's order
-        for group_val in group_values[id_col]:
-            group_df = df.filter(nw.col(id_col) == group_val)
-            validate_temporal_uniqueness(group_df, time_col, raise_error, context=f"group '{group_val}' ")
-
-    # Step 6: Group validation
-    elif group_col:
-        if group_col not in df.columns:
-            raise ValueError(f"Column '{group_col}' does not exist in the DataFrame.")
-
-        # Get unique groups
-        group_values = df.select(nw.col(group_col).unique())
-
-        # Defensive programming for lazy evaluation backends
-        if is_lazy_evaluation(group_values):  # Same pattern as Step 2
-            group_values = (
-                group_values.collect() if hasattr(group_values, "collect") else group_values.compute()
-            )  # pragma: no cover
-
-        # Validate each group's order
-        for group_val in group_values[group_col]:
-            group_df = df.filter(nw.col(group_col) == group_val)
-            validate_temporal_uniqueness(group_df, time_col, raise_error, context=f"group '{group_val}' ")
+        # Count occurrences of each timestamp within each group
+        duplicate_check_df = df.group_by([id_col, time_col], drop_null_keys=True).agg(
+            [nw.col(time_col).count().alias("count")]
+        )
+        # If any timestamp appears more than once in its group, it's a duplicate
+        has_duplicates = duplicate_check_df.select([(nw.col("count") > 1).any()]).item()
+        if has_duplicates:
+            message = f"Duplicate timestamps in id_col '{id_col}' column '{time_col}'."
+            if raise_error:
+                raise ValueError(message)
+            warnings.warn(message)  # pragma: no cover
     else:
-        # Step 7: Final validation of entire sorted DataFrame
-        validate_temporal_uniqueness(df, time_col, raise_error)  # pragma: no cover
+        # Global duplicate check
+        duplicate_check_df = df.select(
+            [nw.col(time_col).n_unique().alias("unique_count"), nw.col(time_col).count().alias("total_count")]
+        )
+        if (
+            duplicate_check_df.select([(nw.col("unique_count") < nw.col("total_count")).alias("has_duplicates")])
+            .select([nw.col("has_duplicates").any()])
+            .item()
+        ):
+            message = f"Duplicate timestamps in id_col '' column '{time_col}'."
+            if raise_error:
+                raise ValueError(message)
+            warnings.warn(message)
