@@ -25,7 +25,7 @@ targets) are planned for future releases. This protocol is designed to be flexib
 enough to accommodate both modes when multi-target support is added.
 
 Partitioning for modern XAI Time-Series Pipelines:
---------------------------------------------
+--------------------------------------------------
 Partitioning is foundational to modern time-series workflows. It ensures computational efficiency,
 robust validation, and interpretable insights. Key use cases include:
 

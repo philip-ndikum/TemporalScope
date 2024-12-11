@@ -58,8 +58,8 @@ class TimeColumnError(TimeFrameError):
     --------------
     .. code-block:: python
 
-        if not nw.is_numeric(df[time_col]) and not nw.is_timestamp(df[time_col]):
-            raise TimeColumnError("`time_col` must be numeric or timestamp-like.")
+               if not nw.is_numeric(df[time_col]) and not nw.is_timestamp(df[time_col]):
+                   raise TimeColumnError("`time_col` must be numeric or timestamp-like.")
     """
 
     pass
@@ -75,11 +75,11 @@ class TargetColumnWarning(UserWarning):
     --------------
     .. code-block:: python
 
-        if mode == "multi_target" and target_col_is_vectorized:
-            warnings.warn(
-                "`target_col` appears to contain sequential data. Ensure it is transformed appropriately for MODE_MULTI_TARGET.",
-                TargetColumnWarning,
-            )
+               if mode == "multi_target" and target_col_is_vectorized:
+                   warnings.warn(
+                       "`target_col` appears to contain sequential data. Ensure it is transformed appropriately for MODE_MULTI_TARGET.",
+                       TargetColumnWarning,
+                   )
     """
 
     pass
@@ -97,8 +97,8 @@ class ModeValidationError(TimeFrameError):
     --------------
     .. code-block:: python
 
-        if mode not in VALID_MODES:
-            raise ModeValidationError(mode, f"Invalid mode: {mode}. Must be one of {VALID_MODES}.")
+               if mode not in VALID_MODES:
+                   raise ModeValidationError(mode, f"Invalid mode: {mode}. Must be one of {VALID_MODES}.")
     """
 
     def __init__(self, mode, message="Invalid mode specified"):
@@ -126,8 +126,8 @@ class UnsupportedBackendError(TimeFrameError):
     --------------
     .. code-block:: python
 
-        if backend not in TEMPORALSCOPE_CORE_BACKENDS:
-            raise UnsupportedBackendError(backend)
+               if backend not in TEMPORALSCOPE_CORE_BACKENDS:
+                   raise UnsupportedBackendError(backend)
     """
 
     def __init__(self, backend, message="Unsupported backend"):

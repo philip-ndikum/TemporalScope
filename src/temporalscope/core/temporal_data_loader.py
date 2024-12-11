@@ -26,7 +26,7 @@ while leaving data preparation and preprocessing entirely to the end user.
 
 
 AI Modeling for Time Series Data:
---------------------------------
+---------------------------------
 
 TemporalScope is designed with several key assumptions to ensure performance,
 scalability, and flexibility across a wide range of time series forecasting and
@@ -37,8 +37,8 @@ XAI workflows:
 +------------------------+-----------------------------------------------+
 | Implicit & Static Time | The `time_col` is treated as a feature,       |
 | Series                 | enabling ML/DL workflows with mixed-frequency |
-|                        | datasets. By default, `enforce_temporal_uniqueness` |
-|                        | is False.                                     |
+|                        | datasets. By default,                         |
+|                        | i`enforce_temporal_uniqueness` is False.      |
 +------------------------+-----------------------------------------------+
 | Strict Time Series     | Enforces temporal ordering and uniqueness,    |
 |                        | suited for forecasting. Group or segment      |
@@ -166,7 +166,7 @@ class TimeFrame:
     production.
 
     Engineering Design Assumptions
-    ------------------
+    -------------------------------
     - Universal Models: This class is designed assuming the user has pre-processed their data for compatibility with
       deep learning models. Across the TemporalScope utilities (e.g., target shifter, padding, partitioning algorithms),
       it is assumed that preprocessing tasks, such as categorical feature encoding, will be managed by the user or
@@ -188,11 +188,11 @@ class TimeFrame:
     -------------
     .. code-block:: python
 
-       import polars as pl
+              import polars as pl
 
-       data = pl.DataFrame({"time": pl.date_range(start="2021-01-01", periods=100, interval="1d"), "value": range(100)})
-       tf = TimeFrame(data, time_col="time", target_col="value")
-       print(tf.get_data().head())
+              data = pl.DataFrame({"time": pl.date_range(start="2021-01-01", periods=100, interval="1d"), "value": range(100)})
+              tf = TimeFrame(data, time_col="time", target_col="value")
+              print(tf.get_data().head())
     """
 
     def __init__(
@@ -277,15 +277,15 @@ class TimeFrame:
         --------------
         .. code-block:: python
 
-            import pandas as pd
-            from temporalscope.core.temporal_data_loader import TimeFrame, MODE_SINGLE_TARGET
+                          import pandas as pd
+                          from temporalscope.core.temporal_data_loader import TimeFrame, MODE_SINGLE_TARGET
 
-            # Example DataFrame
-            df = pd.DataFrame({"time": pd.date_range(start="2023-01-01", periods=10, freq="D"), "value": range(10)})
+                          # Example DataFrame
+                          df = pd.DataFrame({"time": pd.date_range(start="2023-01-01", periods=10, freq="D"), "value": range(10)})
 
-            # Initialize TimeFrame with automatic time column conversion to numeric
-            tf = TimeFrame(df, time_col="time", target_col="value", time_col_convert_numeric=True, mode=MODE_SINGLE_TARGET)
-            print(tf.df.head())
+                          # Initialize TimeFrame with automatic time column conversion to numeric
+                          tf = TimeFrame(df, time_col="time", target_col="value", time_col_convert_numeric=True, mode=MODE_SINGLE_TARGET)
+                          print(tf.df.head())
 
         .. note::
             - The `mode` parameter must be one of:
@@ -391,13 +391,13 @@ class TimeFrame:
         --------------
         .. code-block:: python
 
-            import polars as pl
-            from temporalscope.core.temporal_data_loader import TimeFrame
+                          import polars as pl
+                          from temporalscope.core.temporal_data_loader import TimeFrame
 
-            data = pl.DataFrame({"time": [3, 1, 4, 2, 5], "target": range(5)})
-            tf = TimeFrame(data, time_col="time", target_col="target", sort=False)
-            sorted_df = tf.sort_dataframe_time(tf.df, ascending=True)
-            print(sorted_df)  # Shows data sorted by time column
+                          data = pl.DataFrame({"time": [3, 1, 4, 2, 5], "target": range(5)})
+                          tf = TimeFrame(data, time_col="time", target_col="target", sort=False)
+                          sorted_df = tf.sort_dataframe_time(tf.df, ascending=True)
+                          print(sorted_df)  # Shows data sorted by time column
 
         .. note::
             Uses the reusable utility function `sort_dataframe_time` for consistency across the codebase.
@@ -424,22 +424,22 @@ class TimeFrame:
         --------------
         .. code-block:: python
 
-            import pandas as pd
-            from temporalscope.core.temporal_data_loader import TimeFrame
+                          import pandas as pd
+                          from temporalscope.core.temporal_data_loader import TimeFrame
 
-            # Sample DataFrame
-            df = pd.DataFrame(
-                {
-                    "time": pd.date_range(start="2023-01-01", periods=5, freq="D"),
-                    "value": range(5),
-                }
-            )
+                          # Sample DataFrame
+                          df = pd.DataFrame(
+                              {
+                                  "time": pd.date_range(start="2023-01-01", periods=5, freq="D"),
+                                  "value": range(5),
+                              }
+                          )
 
-            # Initialize a TimeFrame object
-            tf = TimeFrame(df, time_col="time", target_col="value")
+                          # Initialize a TimeFrame object
+                          tf = TimeFrame(df, time_col="time", target_col="value")
 
-            # Validate the DataFrame
-            tf.validate_dataframe(df)
+                          # Validate the DataFrame
+                          tf.validate_dataframe(df)
 
         .. note::
             - This function ensures that `time_col` is valid and optionally convertible.
@@ -506,24 +506,24 @@ class TimeFrame:
         --------------
             .. code-block:: python
 
-                import pandas as pd
-                from temporalscope.core.temporal_data_loader import TimeFrame
+                              import pandas as pd
+                              from temporalscope.core.temporal_data_loader import TimeFrame
 
-                df = pd.DataFrame(
-                    {
-                        "patient_id": [1, 1, 2, 2],
-                        "time": ["2023-01-01", "2023-01-02", "2023-01-01", "2023-01-03"],
-                        "value": [10, 20, 30, 40],
-                    }
-                )
+                              df = pd.DataFrame(
+                                  {
+                                      "patient_id": [1, 1, 2, 2],
+                                      "time": ["2023-01-01", "2023-01-02", "2023-01-01", "2023-01-03"],
+                                      "value": [10, 20, 30, 40],
+                                  }
+                              )
 
-                tf = TimeFrame(
-                    df,
-                    time_col="time",
-                    target_col="value",
-                )
-                sorted_df = tf.setup(df, time_col_conversion="datetime", enforce_temporal_uniqueness=True, id_col="patient_id")
-                print(sorted_df)
+                              tf = TimeFrame(
+                                  df,
+                                  time_col="time",
+                                  target_col="value",
+                              )
+                              sorted_df = tf.setup(df, time_col_conversion="datetime", enforce_temporal_uniqueness=True, id_col="patient_id")
+                              print(sorted_df)
 
         This example is provided under the Apache License, Version 2.0, and is distributed "AS IS" without warranties or
         conditions of any kind. Users should refer to the license for details.
@@ -584,34 +584,34 @@ class TimeFrame:
         --------------
         .. code-block:: python
 
-            import polars as pl
-            from temporalscope.core.temporal_data_loader import TimeFrame
+                          import polars as pl
+                          from temporalscope.core.temporal_data_loader import TimeFrame
 
-            # Initial TimeFrame setup
-            data = pl.DataFrame(
-                {
-                    "time": pl.date_range(start="2021-01-01", periods=5, interval="1d"),
-                    "target": range(5),
-                    "feature": range(5),
-                }
-            )
-            tf = TimeFrame(
-                data,
-                time_col="time",
-                target_col="target",
-                ascending=True,  # Sort order set at initialization
-                sort=True,  # Sort behavior set at initialization
-            )
+                          # Initial TimeFrame setup
+                          data = pl.DataFrame(
+                              {
+                                  "time": pl.date_range(start="2021-01-01", periods=5, interval="1d"),
+                                  "target": range(5),
+                                  "feature": range(5),
+                              }
+                          )
+                          tf = TimeFrame(
+                              data,
+                              time_col="time",
+                              target_col="target",
+                              ascending=True,  # Sort order set at initialization
+                              sort=True,  # Sort behavior set at initialization
+                          )
 
-            # Update with new data - uses parameters from initialization
-            new_data = pl.DataFrame(
-                {
-                    "time": pl.date_range(start="2021-01-06", periods=5, interval="1d"),
-                    "target": range(5, 10),
-                    "feature": range(5, 10),
-                }
-            )
-            tf.update_dataframe(new_data)  # Will use time_col="time", ascending=True, sort=True
+                          # Update with new data - uses parameters from initialization
+                          new_data = pl.DataFrame(
+                              {
+                                  "time": pl.date_range(start="2021-01-06", periods=5, interval="1d"),
+                                  "target": range(5, 10),
+                                  "feature": range(5, 10),
+                              }
+                          )
+                          tf.update_dataframe(new_data)  # Will use time_col="time", ascending=True, sort=True
 
         .. note::
             This method uses the parameters set during TimeFrame initialization:
@@ -679,15 +679,15 @@ class TimeFrame:
         --------------
         .. code-block:: python
 
-            # Initialize a TimeFrame
-            tf = TimeFrame(df, time_col="time", target_col="value")
+                          # Initialize a TimeFrame
+                          tf = TimeFrame(df, time_col="time", target_col="value")
 
-            # Add custom metadata
-            tf.metadata["description"] = "This dataset is for monthly sales forecasting"
-            tf.metadata["model_details"] = {"type": "LSTM", "framework": "TensorFlow"}
+                          # Add custom metadata
+                          tf.metadata["description"] = "This dataset is for monthly sales forecasting"
+                          tf.metadata["model_details"] = {"type": "LSTM", "framework": "TensorFlow"}
 
-            # Access metadata
-            print(tf.metadata["description"])  # Output: "This dataset is for monthly sales forecasting"
+                          # Access metadata
+                          print(tf.metadata["description"])  # Output: "This dataset is for monthly sales forecasting"
 
         .. note::
             - This metadata container is designed following patterns seen in deep reinforcement

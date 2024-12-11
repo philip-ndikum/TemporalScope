@@ -76,7 +76,6 @@ models, neural networks, etc.):
 | single_step    | General machine learning tasks with scalar targets. Each row is   |
 |                | a single time step, and the target is scalar.                     |
 |                | Single DataFrame: each row is an observation.                     |
-    :raises ValueError: If validation fails and `raise_error` is True.
 +----------------+-------------------------------------------------------------------+
 | multi_step     | Sequential time series tasks (e.g., seq2seq) for deep learning.   |
 |                | The data is split into sequences (input X, target Y).             |
@@ -127,7 +126,7 @@ illustrates the supported DataFrame types and validation cases:
 +------------------------+-------------------------------------------------------+---------------------------+
 | DataFrame Type         | Description                                           | Example                   |
 +------------------------+-------------------------------------------------------+---------------------------+
-| Narwhalified          | DataFrames wrapped by Narwhals for backend-agnostic   | @nw.narwhalify decorated   |
+| Narwhalified          | DataFrames wrapped by Narwhals for backend-agnostic    | @nw.narwhalify decorated  |
 | (FrameT)              | operations. These are validated first to ensure        | functions create these    |
 |                       | consistent handling across backends.                   | during operations.        |
 +------------------------+-------------------------------------------------------+---------------------------+
@@ -149,7 +148,8 @@ illustrates the supported DataFrame types and validation cases:
 .. note::
 
 Naming Conventions:
-----------------
+-------------------
+
 The following naming conventions are used for utility functions in this module:
 +--------------------------+------------------------------------------------------------+
 | Pattern                  | Purpose                                                    |
@@ -175,7 +175,6 @@ The following naming conventions are used for utility functions in this module:
   conversion at the entry and exit points of the function.
 """
 
-# Standard Library Imports
 import os
 import warnings
 from importlib import util
@@ -183,21 +182,14 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Un
 
 import dask.dataframe as dd
 import modin.pandas as mpd
-
-# Narwhals Imports
 import narwhals as nw
-
-# Third-Party Imports
 import pandas as pd
 import polars as pl
 import pyarrow as pa
-
-# Loading Environment variables
 from dotenv import load_dotenv
 from narwhals.typing import FrameT, IntoDataFrame
 from narwhals.utils import Implementation
 
-# TemporalScope Imports
 from temporalscope.core.exceptions import TimeColumnError, UnsupportedBackendError
 
 # Load environment variables from the .env file
@@ -301,7 +293,6 @@ def print_divider(char: str = "=", length: int = 70) -> None:
 
         print_divider(char="-", length=50)
         # Output: --------------------------------------------------
-
     """
     print(char * length)
 
@@ -321,9 +312,9 @@ def get_narwhals_backends() -> List[str]:
     --------------
     .. code-block:: python
 
-        backends = get_narwhals_backends()
-        print(backends)
-        # Output: ['pandas', 'modin', 'pyarrow', 'polars', 'dask']
+               backends = get_narwhals_backends()
+               print(backends)
+               # Output: ['pandas', 'modin', 'pyarrow', 'polars', 'dask']
 
     """
     return [backend.name.lower() for backend in Implementation]
@@ -340,9 +331,9 @@ def get_default_backend_cfg() -> Dict[str, List[str]]:
     -------
     .. code-block:: python
 
-        config = get_default_backend_cfg()
-        print(config)
-        # Output: {'BACKENDS': ['pandas', 'modin', 'pyarrow', 'polars', 'dask']}
+               config = get_default_backend_cfg()
+               print(config)
+               # Output: {'BACKENDS': ['pandas', 'modin', 'pyarrow', 'polars', 'dask']}
 
     """
     available_backends = get_narwhals_backends()
@@ -359,9 +350,9 @@ def get_temporalscope_backends() -> List[str]:
     --------------
     .. code-block:: python
 
-        backends = get_temporalscope_backends()
-        print(backends)
-        # Output: ['pandas', 'modin', 'pyarrow', 'polars', 'dask']
+               backends = get_temporalscope_backends()
+               print(backends)
+               # Output: ['pandas', 'modin', 'pyarrow', 'polars', 'dask']
 
     """
     available_backends = get_narwhals_backends()
@@ -380,15 +371,15 @@ def is_valid_temporal_backend(backend_name: str) -> None:
     --------------
     .. code-block:: python
 
-        # Validate a valid backend
-        is_valid_temporal_backend("pandas")  # Passes silently
+               # Validate a valid backend
+               is_valid_temporal_backend("pandas")  # Passes silently
 
-        # Validate an unsupported backend
-        try:
-            is_valid_temporal_backend("unsupported_backend")
-        except UnsupportedBackendError as e:
-            print(e)
-        # Output: Backend 'unsupported_backend' is not supported by TemporalScope.
+               # Validate an unsupported backend
+               try:
+                   is_valid_temporal_backend("unsupported_backend")
+               except UnsupportedBackendError as e:
+                   print(e)
+               # Output: Backend 'unsupported_backend' is not supported by TemporalScope.
 
     """
     # Assume TEMPORALSCOPE_CORE_BACKENDS and TEMPORALSCOPE_OPTIONAL_BACKENDS are sets
@@ -429,15 +420,15 @@ def is_valid_temporal_dataframe(df: Union[SupportedTemporalDataFrame, Any]) -> T
     -------
     .. code-block:: python
 
-        df = pd.DataFrame({"time": [1, 2, 3], "value": [10, 20, 30]})
-        result = is_valid_temporal_dataframe(df)
-        print(result)
-        # Output: (True, "native")
+               df = pd.DataFrame({"time": [1, 2, 3], "value": [10, 20, 30]})
+               result = is_valid_temporal_dataframe(df)
+               print(result)
+               # Output: (True, "native")
 
-        invalid_df = "Not a DataFrame"
-        result = is_valid_temporal_dataframe(invalid_df)
-        print(result)
-        # Output: (False, None)
+               invalid_df = "Not a DataFrame"
+               result = is_valid_temporal_dataframe(invalid_df)
+               print(result)
+               # Output: (False, None)
 
     """
     try:
@@ -480,20 +471,20 @@ def get_dataframe_backend(df: Union[SupportedTemporalDataFrame, Any]) -> str:
     --------------
     .. code-block:: python
 
-        from temporalscope.core.core_utils import get_dataframe_backend
-        import pandas as pd
+               from temporalscope.core.core_utils import get_dataframe_backend
+               import pandas as pd
 
-        # Example with a Pandas DataFrame
-        df = pd.DataFrame({"col1": [1, 2, 3]})
-        backend = get_dataframe_backend(df)
-        print(backend)  # Output: 'pandas'
+               # Example with a Pandas DataFrame
+               df = pd.DataFrame({"col1": [1, 2, 3]})
+               backend = get_dataframe_backend(df)
+               print(backend)  # Output: 'pandas'
 
-        # Example with a Polars DataFrame
-        import polars as pl
+               # Example with a Polars DataFrame
+               import polars as pl
 
-        df = pl.DataFrame({"col1": [1, 2, 3]})
-        backend = get_dataframe_backend(df)
-        print(backend)  # Output: 'polars'
+               df = pl.DataFrame({"col1": [1, 2, 3]})
+               backend = get_dataframe_backend(df)
+               print(backend)  # Output: 'polars'
 
     """
     # First validate DataFrame type
@@ -530,15 +521,15 @@ def is_lazy_evaluation(df: SupportedTemporalDataFrame) -> bool:
     --------------
     .. code-block:: python
 
-        from temporalscope.core.core_utils import is_lazy_evaluation
+               from temporalscope.core.core_utils import is_lazy_evaluation
 
-        # Check evaluation mode
-        if is_lazy_evaluation(df):
-            # Lazy evaluation path
-            result = df.select([...])  # Maintain lazy evaluation
-        else:
-            # Eager evaluation path
-            result = df.select([...])  # Direct computation is safe
+               # Check evaluation mode
+               if is_lazy_evaluation(df):
+                   # Lazy evaluation path
+                   result = df.select([...])  # Maintain lazy evaluation
+               else:
+                   # Eager evaluation path
+                   result = df.select([...])  # Direct computation is safe
 
     .. note::
         This function determines whether a DataFrame uses lazy or eager evaluation:
@@ -584,13 +575,13 @@ def convert_to_backend(
     --------------
     .. code-block:: python
 
-        # Pandas -> Polars conversion
-        df_pd = pd.DataFrame({"time": range(10), "value": range(10)})
-        df_polars = convert_to_backend(df_pd, backend="polars")
+               # Pandas -> Polars conversion
+               df_pd = pd.DataFrame({"time": range(10), "value": range(10)})
+               df_polars = convert_to_backend(df_pd, backend="polars")
 
-        # Dask -> Pandas materialization
-        df_dask = dd.from_pandas(df_pd, npartitions=2)
-        df_pd_result = convert_to_backend(df_dask, backend="pandas")
+               # Dask -> Pandas materialization
+               df_dask = dd.from_pandas(df_pd, npartitions=2)
+               df_pd_result = convert_to_backend(df_dask, backend="pandas")
 
     .. note::
         Steps:
@@ -659,17 +650,17 @@ def check_dataframe_empty(df: SupportedTemporalDataFrame) -> bool:
     --------------
         .. code-block:: python
 
-            from temporalscope.core.core_utils import check_dataframe_empty
+                   from temporalscope.core.core_utils import check_dataframe_empty
 
-            # Example with Pandas DataFrame
-            import pandas as pd
+                   # Example with Pandas DataFrame
+                   import pandas as pd
 
-            df = pd.DataFrame(columns=["col1"])
-            assert check_dataframe_empty(df) == True
+                   df = pd.DataFrame(columns=["col1"])
+                   assert check_dataframe_empty(df) == True
 
-            # Example with lazy-evaluation backends
-            # Assumes `df` is a lazy DataFrame (e.g., Dask or Polars)
-            assert check_dataframe_empty(df) == True
+                   # Example with lazy-evaluation backends
+                   # Assumes `df` is a lazy DataFrame (e.g., Dask or Polars)
+                   assert check_dataframe_empty(df) == True
 
     .. note::
         This function checks for emptiness using attributes like `shape`, `__len__`,
@@ -724,26 +715,26 @@ def check_dataframe_nulls_nans(df: SupportedTemporalDataFrame, column_names: Lis
     --------------
     .. code-block:: python
 
-        from temporalscope.core.core_utils import check_dataframe_nulls_nans
+               from temporalscope.core.core_utils import check_dataframe_nulls_nans
 
-        # Example input DataFrame
-        import pandas as pd
+               # Example input DataFrame
+               import pandas as pd
 
-        df = pd.DataFrame(
-            {
-                "col1": [1, 2, None],
-                "col2": [4, None, 6],
-            }
-        )
+               df = pd.DataFrame(
+                   {
+                       "col1": [1, 2, None],
+                       "col2": [4, None, 6],
+                   }
+               )
 
-        # Define columns to check
-        column_names = ["col1", "col2"]
+               # Define columns to check
+               column_names = ["col1", "col2"]
 
-        # Call check_dataframe_nulls_nans
-        null_counts = check_dataframe_nulls_nans(df, column_names)
+               # Call check_dataframe_nulls_nans
+               null_counts = check_dataframe_nulls_nans(df, column_names)
 
-        # Output: {"col1": 1, "col2": 1}
-        print(null_counts)
+               # Output: {"col1": 1, "col2": 1}
+               print(null_counts)
 
     .. note::
         This function handles lazy evaluation defensively (e.g., using `compute` or `collect`)
@@ -816,9 +807,9 @@ def convert_to_numeric(
     --------------
     .. code-block:: python
 
-        df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3)})
-        df = convert_to_numeric(df, "time", nw.col("time"), df["time"].dtype)
-        print(df)
+               df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3)})
+               df = convert_to_numeric(df, "time", nw.col("time"), df["time"].dtype)
+               print(df)
 
     .. note::
         - Converts datetime columns to numeric using `dt.timestamp()`.
@@ -867,15 +858,15 @@ def convert_datetime_column_to_numeric(
     --------------
     .. code-block:: python
 
-        from temporalscope.core.core_utils import convert_datetime_column_to_numeric
-        import pandas as pd
+               from temporalscope.core.core_utils import convert_datetime_column_to_numeric
+               import pandas as pd
 
-        # Create example DataFrame with a datetime column
-        df = pd.DataFrame({"time": pd.date_range(start="2023-01-01", periods=3, freq="D"), "value": [10, 20, 30]})
+               # Create example DataFrame with a datetime column
+               df = pd.DataFrame({"time": pd.date_range(start="2023-01-01", periods=3, freq="D"), "value": [10, 20, 30]})
 
-        # Convert 'time' column to numeric (microseconds precision)
-        df = convert_datetime_column_to_numeric(df, time_col="time", time_unit="us")
-        print(df)
+               # Convert 'time' column to numeric (microseconds precision)
+               df = convert_datetime_column_to_numeric(df, time_col="time", time_unit="us")
+               print(df)
 
     .. note::
         - Supports microseconds ("us"), milliseconds ("ms"), and nanoseconds ("ns").
@@ -940,9 +931,9 @@ def convert_time_column_to_datetime(
     --------------
     .. code-block:: python
 
-        df = pd.DataFrame({"time": [1672531200000, 1672617600000]})  # Unix timestamps
-        df = convert_time_column_to_datetime(df, "time", nw.col("time"), df["time"].dtype)
-        print(df)
+               df = pd.DataFrame({"time": [1672531200000, 1672617600000]})  # Unix timestamps
+               df = convert_time_column_to_datetime(df, "time", nw.col("time"), df["time"].dtype)
+               print(df)
 
     .. note::
         - Handles string columns using `str.to_datetime()` for backend compatibility.
@@ -978,14 +969,14 @@ def validate_time_column_type(time_col: str, col_dtype: Any) -> None:
     --------------
     .. code-block:: python
 
-        validate_time_column_type("time", pd.Series([1, 2, 3]).dtype)  # Passes
-        validate_time_column_type("time", pd.Series(["2023-01-01"]).dtype)  # Passes
+               validate_time_column_type("time", pd.Series([1, 2, 3]).dtype)  # Passes
+               validate_time_column_type("time", pd.Series(["2023-01-01"]).dtype)  # Passes
 
-        try:
-            validate_time_column_type("time", pd.Series(["abc"]).dtype)  # Raises ValueError
-        except ValueError as e:
-            print(e)
-        # Output: Column 'time' is neither numeric nor datetime.
+               try:
+                   validate_time_column_type("time", pd.Series(["abc"]).dtype)  # Raises ValueError
+               except ValueError as e:
+                   print(e)
+               # Output: Column 'time' is neither numeric nor datetime.
 
     .. note::
         - Validates column dtypes to ensure they are either numeric (float/int) or datetime.
@@ -1029,7 +1020,7 @@ def validate_and_convert_time_column(
     --------------
     .. code-block:: python
 
-        df = validate_and_convert_time_column(df, "time", conversion_type="numeric")
+               df = validate_and_convert_time_column(df, "time", conversion_type="numeric")
 
     .. note::
        - Validates and converts the `time_col` to the specified type (`numeric` or `datetime`).
@@ -1088,13 +1079,13 @@ def validate_dataframe_column_types(df: SupportedTemporalDataFrame, time_col: st
     --------------
     .. code-block:: python
 
-        from temporalscope.core.temporal_data_loader import validate_dataframe_column_types
+               from temporalscope.core.temporal_data_loader import validate_dataframe_column_types
 
-        # Example DataFrame
-        df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=5), "value": [1.0, 2.0, 3.0, 4.0, 5.0]})
+               # Example DataFrame
+               df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=5), "value": [1.0, 2.0, 3.0, 4.0, 5.0]})
 
-        # Validate column types
-        validate_dataframe_column_types(df, time_col="time")
+               # Validate column types
+               validate_dataframe_column_types(df, time_col="time")
     """
     # Validate the DataFrame
     is_valid, _ = is_valid_temporal_dataframe(df)
@@ -1149,15 +1140,15 @@ def sort_dataframe_time(
     --------------
     .. code-block:: python
 
-        from temporalscope.core.core_utils import sort_dataframe_time
-        import pandas as pd
+               from temporalscope.core.core_utils import sort_dataframe_time
+               import pandas as pd
 
-        # Example DataFrame
-        df = pd.DataFrame({"time": [3, 1, 4, 2, 5], "value": range(5)})
+               # Example DataFrame
+               df = pd.DataFrame({"time": [3, 1, 4, 2, 5], "value": range(5)})
 
-        # Sort DataFrame by the 'time' column in ascending order
-        sorted_df = sort_dataframe_time(df, time_col="time", ascending=True)
-        print(sorted_df)
+               # Sort DataFrame by the 'time' column in ascending order
+               sorted_df = sort_dataframe_time(df, time_col="time", ascending=True)
+               print(sorted_df)
 
     .. note::
         - The `@nw.narwhalify` decorator automatically handles backend detection
@@ -1220,42 +1211,42 @@ def validate_temporal_uniqueness(
     --------------
     .. code-block:: python
 
-        import narwhals as nw
-        import pandas as pd
+               import narwhals as nw
+               import pandas as pd
 
-        # Create insurance claims data with patient visits
-        df = pd.DataFrame(
-            {
-                "patient_id": [1, 1, 1, 2, 2],
-                "time": [
-                    "2023-01-01",
-                    "2023-02-15",
-                    "2023-04-01",  # Patient 1's visits
-                    "2023-01-01",
-                    "2023-03-15",
-                ],  # Patient 2's visits
-                "claim_amount": [100.0, 250.0, 150.0, 300.0, 200.0],
-            }
-        )
+               # Create insurance claims data with patient visits
+               df = pd.DataFrame(
+                   {
+                       "patient_id": [1, 1, 1, 2, 2],
+                       "time": [
+                           "2023-01-01",
+                           "2023-02-15",
+                           "2023-04-01",  # Patient 1's visits
+                           "2023-01-01",
+                           "2023-03-15",
+                       ],  # Patient 2's visits
+                       "claim_amount": [100.0, 250.0, 150.0, 300.0, 200.0],
+                   }
+               )
 
-        # Validate timestamps within each patient's records
-        for patient in df["patient_id"].unique():
-            patient_records = df[df["patient_id"] == patient]
-            validate_temporal_uniqueness(
-                patient_records, time_col="time", id_col=f"patient {patient} "
-            )  # Will pass - each patient has unique visit dates
+               # Validate timestamps within each patient's records
+               for patient in df["patient_id"].unique():
+                   patient_records = df[df["patient_id"] == patient]
+                   validate_temporal_uniqueness(
+                       patient_records, time_col="time", id_col=f"patient {patient} "
+                   )  # Will pass - each patient has unique visit dates
 
-        # Example with duplicate timestamps
-        df_invalid = pd.DataFrame(
-            {
-                "patient_id": [1, 1, 1],
-                "time": ["2023-01-01", "2023-01-01", "2023-02-15"],  # Duplicate visit date
-                "claim_amount": [100.0, 150.0, 200.0],
-            }
-        )
+               # Example with duplicate timestamps
+               df_invalid = pd.DataFrame(
+                   {
+                       "patient_id": [1, 1, 1],
+                       "time": ["2023-01-01", "2023-01-01", "2023-02-15"],  # Duplicate visit date
+                       "claim_amount": [100.0, 150.0, 200.0],
+                   }
+               )
 
-        # This will raise ValueError: "Duplicate timestamps in patient 1 column 'time'."
-        validate_temporal_uniqueness(df_invalid, time_col="time", id_col="patient 1 ")
+               # This will raise ValueError: "Duplicate timestamps in patient 1 column 'time'."
+               validate_temporal_uniqueness(df_invalid, time_col="time", id_col="patient 1 ")
 
     .. note::
         - This function only validates uniqueness within the given `id_col` (e.g., per patient).

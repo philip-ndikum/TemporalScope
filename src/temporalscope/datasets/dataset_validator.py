@@ -31,7 +31,7 @@ criteria for their specific use cases, as all functionality is provided AS-IS wi
 warranty of any kind.
 
 Engineering Design
------------------
+------------------
 The validator follows a clear separation between validation configuration and execution,
 designed to work seamlessly with both TimeFrame and raw DataFrame inputs.
 
@@ -50,7 +50,7 @@ designed to work seamlessly with both TimeFrame and raw DataFrame inputs.
 +----------------+-------------------------------------------------------------------+
 
 Backend-Specific Patterns
-------------------------
+-------------------------
 The following table outlines key patterns for working with different DataFrame backends
 through Narwhals operations:
 
@@ -68,7 +68,7 @@ through Narwhals operations:
 +----------------+-------------------------------------------------------------------+
 
 Research-Backed Thresholds
--------------------------
+--------------------------
 The following table summarizes validation thresholds derived from key research:
 
 +------------------------+----------------------+---------------------------+--------------------------------+
@@ -96,7 +96,7 @@ The following table summarizes validation thresholds derived from key research:
 +------------------------+----------------------+---------------------------+--------------------------------+
 
 Example Usage
-------------
+-------------
 .. code-block:: python
 
     import pandas as pd
@@ -159,19 +159,19 @@ class ValidationResult:
     -------
     .. code-block:: python
 
-        # In an Airflow DAG
-        def validate_dataframeset(**context):
-            validator = DatasetValidator()
-            results = validator.fit_transform(df)
+               # In an Airflow DAG
+               def validate_dataframeset(**context):
+                   validator = DatasetValidator()
+                   results = validator.fit_transform(df)
 
-            # Get structured results for logging
-            for check_name, result in results.items():
-                log_entry = result.to_log_entry()
-                if not result.passed:
-                    context["task_instance"].xcom_push(key=f"validation_failure_{check_name}", value=result.to_dict())
+                   # Get structured results for logging
+                   for check_name, result in results.items():
+                       log_entry = result.to_log_entry()
+                       if not result.passed:
+                           context["task_instance"].xcom_push(key=f"validation_failure_{check_name}", value=result.to_dict())
 
-                    # Log to monitoring system
-                    logger.log(level=log_entry["log_level"], msg=f"Validation check '{check_name}' failed", extra=log_entry)
+                           # Log to monitoring system
+                           logger.log(level=log_entry["log_level"], msg=f"Validation check '{check_name}' failed", extra=log_entry)
 
     """
 
@@ -229,8 +229,8 @@ class DatasetValidator:
     and raw DataFrames. Designed for integration into data pipelines and
     temporal workflows, it enables automated quality checks and monitoring.
 
-    Engineering Design Assumptions
-    ----------------------------
+    Engineering Design Assumptions:
+    -------------------------------
     1. Input Validation:
     - Supports all Narwhals-compatible DataFrame types
     - Handles both eager and lazy evaluation patterns
@@ -246,8 +246,8 @@ class DatasetValidator:
     - Handles LazyFrame evaluation properly
     - Uses type-safe numeric operations
 
-    Pipeline Integration Features
-    ---------------------------
+    Pipeline Integration Features:
+    ------------------------------
     - Automated quality gates for pipeline decision making
     - Structured results for monitoring and alerting systems
     - Support for temporal workflow validation
@@ -275,39 +275,39 @@ class DatasetValidator:
     :raises ValueError: If invalid checks are specified
 
     Example with default thresholds:
-    ----------------------------
+    --------------------------------
     .. code-block:: python
 
-        import pandas as pd
-        from temporalscope.datasets import DatasetValidator
+               import pandas as pd
+               from temporalscope.datasets import DatasetValidator
 
-        # Create sample data
-        df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
+               # Create sample data
+               df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
 
-        # Initialize and run validator
-        validator = DatasetValidator()
-        results = validator.fit_transform(df)
-        print(f"All checks passed: {all(r.passed for r in results.values())}")
+               # Initialize and run validator
+               validator = DatasetValidator()
+               results = validator.fit_transform(df)
+               print(f"All checks passed: {all(r.passed for r in results.values())}")
 
     Example Pipeline Integration:
-    -------------------------
+    -----------------------------
     .. code-block:: python
 
-        # In an Airflow DAG
-        def validate_dataframeset_task(**context):
-            validator = DatasetValidator(min_samples=1000, checks_to_run=["sample_size", "feature_count"])
+               # In an Airflow DAG
+               def validate_dataframeset_task(**context):
+                   validator = DatasetValidator(min_samples=1000, checks_to_run=["sample_size", "feature_count"])
 
-            results = validator.fit_transform(df)
-            failed = ValidationResult.get_failed_checks(results)
+                   results = validator.fit_transform(df)
+                   failed = ValidationResult.get_failed_checks(results)
 
-            if failed:
-                # Log failures and push metrics
-                metrics = ValidationResult.get_validation_summary(results)
-                monitoring.push_metrics("data_validation", metrics)
+                   if failed:
+                       # Log failures and push metrics
+                       metrics = ValidationResult.get_validation_summary(results)
+                       monitoring.push_metrics("data_validation", metrics)
 
-                # Fail pipeline if critical checks failed
-                if any(r.severity == "ERROR" for r in failed.values()):
-                    raise AirflowException("Critical validation checks failed")
+                       # Fail pipeline if critical checks failed
+                       if any(r.severity == "ERROR" for r in failed.values()):
+                           raise AirflowException("Critical validation checks failed")
 
     .. note::
         Backend-Specific Patterns:
@@ -350,6 +350,7 @@ class DatasetValidator:
         thresholds while letting end users handle partitioning and parallelization.
 
         Engineering Design Assumptions:
+        -------------------------------
         1. Single DataFrame Focus:
         - Works on individual DataFrames
         - End users handle partitioning/parallelization
@@ -808,8 +809,8 @@ class DatasetValidator:
         Example:
         -------
         .. code-block:: python
-            validator = DatasetValidator(time_col="time", target_col="target")
-            validator.fit(df)
+                          validator = DatasetValidator(time_col="time", target_col="target")
+                          validator.fit(df)
 
         """
 
@@ -884,20 +885,20 @@ class DatasetValidator:
         -------
         .. code-block:: python
 
-            import pandas as pd
-            from temporalscope.datasets import DatasetValidator
+                          import pandas as pd
+                          from temporalscope.datasets import DatasetValidator
 
-            # Create sample data
-            df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
+                          # Create sample data
+                          df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
 
-            # Initialize and run validator
-            validator = DatasetValidator()
-            validator.fit(df)
-            results = validator.transform(df, target_col="target")
+                          # Initialize and run validator
+                          validator = DatasetValidator()
+                          validator.fit(df)
+                          results = validator.transform(df, target_col="target")
 
-            # Check results
-            for check, result in results.items():
-                print(f"{check}: {'Passed' if result.passed else 'Failed'}")
+                          # Check results
+                          for check, result in results.items():
+                              print(f"{check}: {'Passed' if result.passed else 'Failed'}")
 
         .. note::
             - Uses pure Narwhals operations
@@ -951,18 +952,18 @@ class DatasetValidator:
         -------
         .. code-block:: python
 
-            import pandas as pd
-            from temporalscope.datasets import DatasetValidator
+                          import pandas as pd
+                          from temporalscope.datasets import DatasetValidator
 
-            # Create sample data
-            df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
+                          # Create sample data
+                          df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
 
-            # Initialize and run validator
-            validator = DatasetValidator()
-            results = validator.fit_transform(df, target_col="target")
+                          # Initialize and run validator
+                          validator = DatasetValidator()
+                          results = validator.fit_transform(df, target_col="target")
 
-            # Print report
-            validator.print_report(results)
+                          # Print report
+                          validator.print_report(results)
 
         .. note::
             - Combines fit() and transform()
