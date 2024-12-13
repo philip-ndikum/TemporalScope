@@ -39,5 +39,5 @@
 }
 
 .doc-symbol-module::after {
-  content: "modeule" !important;
+  content: "module" !important;
 }

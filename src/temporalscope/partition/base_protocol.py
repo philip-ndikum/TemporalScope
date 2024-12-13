@@ -29,42 +29,24 @@ Partitioning for modern XAI Time-Series Pipelines:
 Partitioning is foundational to modern time-series workflows. It ensures computational efficiency,
 robust validation, and interpretable insights. Key use cases include:
 
-+----------------------------+-----------------------------------------------------------------------------------+
-| Aspect                     | Details                                                                           |
-+----------------------------+-----------------------------------------------------------------------------------+
-| Temporal Explainability    | Facilitates feature importance analyses by segmenting data for localized          |
-|                            | SHAP/WindowSHAP metrics.                                                          |
-+----------------------------+-----------------------------------------------------------------------------------+
-| Robust Evaluation          | Respects temporal ordering in train-test splits, critical for time-series         |
-|                            | generalization.                                                                   |
-+----------------------------+-----------------------------------------------------------------------------------+
-| Scalability and Efficiency | Supports sliding windows, expanding windows, and fixed partitions with            |
-|                            | lazy-loading and backend compatibility for large-scale datasets.                  |
-+----------------------------+-----------------------------------------------------------------------------------+
-| Workflow Flexibility       | Supports both single-target and multi-target modes, enabling DataFrame            |
-|                            | operations and deep learning pipelines through flexible partitioning methods.     |
-+----------------------------+-----------------------------------------------------------------------------------+
+| Aspect | Details |
+|--------|---------|
+| Temporal Explainability | Facilitates feature importance analyses by segmenting data for localized SHAP/WindowSHAP metrics. |
+| Robust Evaluation | Respects temporal ordering in train-test splits, critical for time-series generalization. |
+| Scalability and Efficiency | Supports sliding windows, expanding windows, and fixed partitions with lazy-loading and backend compatibility for large-scale datasets. |
+| Workflow Flexibility | Supports both single-target and multi-target modes, enabling DataFrame operations and deep learning pipelines through flexible partitioning methods. |
 
 Core Functionality:
 -------------------
 The protocol defines four mandatory methods, ensuring a strict and consistent lifecycle across all partitioning implementations.
 Each method has a clear purpose and aligns with the goals of efficient partitioning:
 
-+-----------------+-----------------------------------------------------------------------------------+
-| Method          | Description                                                                       |
-+-----------------+-----------------------------------------------------------------------------------+
-| setup           | Prepares and validates input data, ensuring compatibility with the chosen         |
-|                 | workflow (e.g., backend conversions, deduplication, parameter checks).            |
-+-----------------+-----------------------------------------------------------------------------------+
-| fit             | Generates partition indices (row ranges) for datasets, supporting sliding         |
-|                 | windows, fixed-length, or expanding partitions.                                   |
-+-----------------+-----------------------------------------------------------------------------------+
-| transform       | Applies the partition indices to retrieve specific data slices, ensuring          |
-|                 | memory-efficient operation using lazy evaluation techniques.                      |
-+-----------------+-----------------------------------------------------------------------------------+
-| fit_transform   | Combines `fit` and `transform` for eager workflows, directly producing            |
-|                 | partitioned data slices.                                                          |
-+-----------------+-----------------------------------------------------------------------------------+
+| Method | Description |
+|--------|-------------|
+| `setup` | Prepares and validates input data, ensuring compatibility with the chosen workflow (e.g., backend conversions, deduplication, parameter checks). |
+| `fit` | Generates partition indices (row ranges) for datasets, supporting sliding windows, fixed-length, or expanding partitions. |
+| `transform` | Applies the partition indices to retrieve specific data slices, ensuring memory-efficient operation using lazy evaluation techniques. |
+| `fit_transform` | Combines `fit` and `transform` for eager workflows, directly producing partitioned data slices. |
 
 Workflow Modes:
 ---------------
@@ -84,16 +66,17 @@ Future Plans:
 The protocol is designed for extensibility, ensuring advanced workflows like multi-modal models, cross-frequency partitioning,
 or custom padding strategies can be integrated seamlessly.
 
-.. seealso::
+See Also
+--------
+1. Nayebi, A., Tipirneni, S., Reddy, C. K., et al. (2024). WindowSHAP: An efficient framework for
+   explaining time-series classifiers based on Shapley values. Journal of Biomedical Informatics.
+   DOI:10.1016/j.jbi.2023.104438.
+2. Gu, X., See, K. W., Wang, Y., et al. (2021). The sliding window and SHAP theory—an improved system
+   with a long short-term memory network model for state of charge prediction in electric vehicles.
+   Energies, 14(12), 3692. DOI:10.3390/en14123692.
+3. Van Ness, M., Shen, H., Wang, H., et al. (2023). Cross-Frequency Time Series Meta-Forecasting.
+   arXiv preprint arXiv:2302.02077.
 
-    1. Nayebi, A., Tipirneni, S., Reddy, C. K., et al. (2024). WindowSHAP: An efficient framework for
-       explaining time-series classifiers based on Shapley values. Journal of Biomedical Informatics.
-       DOI:10.1016/j.jbi.2023.104438.
-    2. Gu, X., See, K. W., Wang, Y., et al. (2021). The sliding window and SHAP theory—an improved system
-       with a long short-term memory network model for state of charge prediction in electric vehicles.
-       Energies, 14(12), 3692. DOI:10.3390/en14123692.
-    3. Van Ness, M., Shen, H., Wang, H., et al. (2023). Cross-Frequency Time Series Meta-Forecasting.
-       arXiv preprint arXiv:2302.02077.
 """
 
 # Ignore given that this is a protocol and does not require implementation.
@@ -113,7 +96,10 @@ class TemporalPartitionerProtocol(Protocol):
         """Prepare and validate input data for partitioning.
 
         This method performs preprocessing and ensures the data is compatible
-        with the specific workflow. Example tasks include:
+        with the specific workflow.
+
+        Example tasks include:
+
         - Sorting and deduplication for DataFrame workflows.
         - Conversion to tensors or datasets for multi-target workflows.
         - Validation of partitioning parameters (e.g., `num_partitions`, `stride`).
@@ -121,10 +107,11 @@ class TemporalPartitionerProtocol(Protocol):
         This step ensures consistency across partitioning methods and minimizes
         runtime errors in subsequent stages.
 
-        .. note::
-            This method should be idempotent and isolated. While optional for
-            end-users, implementations must ensure it is executed internally
-            before partitioning begins.
+        Notes
+        -----
+        This method should be idempotent and isolated. While optional for
+        end-users, implementations must ensure it is executed internally
+        before partitioning begins.
 
         Returns
         -------
@@ -149,9 +136,10 @@ class TemporalPartitionerProtocol(Protocol):
         -------
         Iterator[Dict[str, Any]]
 
-        .. note::
-            This method does not perform slicing; it only computes and returns indices.
-            Generator yielding partition indices structured as dictionaries.
+        Notes
+        -----
+        This method does not perform slicing; it only computes and returns indices.
+        Generator yielding partition indices structured as dictionaries.
 
         """
         pass

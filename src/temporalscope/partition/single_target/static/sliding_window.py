@@ -35,73 +35,55 @@ transforming `time_col` to numerical features.
 
 Engineering Design:
 -------------------
+Here's the markdown table:
 
-+-------------------------+-------------------------------------------------------+
-| Aspect                  | Description                                           |
-+-------------------------+-------------------------------------------------------+
-| Partial Temporal        | Follows a universal model design; allows overlapping  |
-| Ordering                | labels within partitions while leaving strict         |
-|                         | temporal ordering to the user.                        |
-+-------------------------+-------------------------------------------------------+
-| Narwhals API            | Leverages Narwhals backend for efficient operations.  |
-|                         | Users can switch between supported backends (e.g.,    |
-|                         | Pandas, Polars, Modin) using core_utils.              |
-+-------------------------+-------------------------------------------------------+
-| Dataset Accessibility   | Inspired by Dask and TensorFlow design. Provides      |
-|                         | hierarchical access via `partitions[index]["train"]`, |
-|                         | `test`, `validation`, or `full` labels.               |
-+-------------------------+-------------------------------------------------------+
-| Lazy/Eager Execution    | Narwhals backend supports lazy/eager evaluation;      |
-|                         | generator pattern ensures memory-efficient `fit` and  |
-|                         | `transform` operations.                               |
-+-------------------------+-------------------------------------------------------+
-| Human-Centric Design    | Combines human-readable labels (`train`, `test`) with |
-|                         | indexing for scalable workflows, reducing cognitive   |
-|                         | overhead when handling large numbers of partitions.   |
-+-------------------------+-------------------------------------------------------+
-| Padding Control         | Leaves padding decisions (e.g., zero-padding) to      |
-|                         | users while allowing configurable truncation.         |
-+-------------------------+-------------------------------------------------------+
+| Aspect | Description |
+|--------|-------------|
+| Partial Temporal Ordering | Follows a universal model design; allows overlapping labels within partitions while leaving strict temporal ordering to the user. |
+| Narwhals API | Leverages Narwhals backend for efficient operations. Users can switch between supported backends (e.g., Pandas, Polars, Modin) using core_utils. |
+| Dataset Accessibility | Inspired by Dask and TensorFlow design. Provides hierarchical access via `partitions[index]["train"]`, `test`, `validation`, or `full` labels. |
+| Lazy/Eager Execution | Narwhals backend supports lazy/eager evaluation; generator pattern ensures memory-efficient `fit` and `transform` operations. |
+| Human-Centric Design | Combines human-readable labels (`train`, `test`) with indexing for scalable workflows, reducing cognitive overhead when handling large numbers of partitions. |
+| Padding Control | Leaves padding decisions (e.g., zero-padding) to users while allowing configurable truncation. |
 
 Visualization:
 --------------
 The table below illustrates how the sliding window mechanism works with overlapping
 partitions. Each "X" represents a row included in the respective partition, based on
 the configured window size and stride.
-+--------------+-------------+-------------+-------------+-------------+-------------+
-| Time         | Partition 1 | Partition 2 | Partition 3 | Partition 4 | Partition 5 |
-+--------------+-------------+-------------+-------------+-------------+-------------+
+
+
+|     Time     | Partition 1 | Partition 2 | Partition 3 | Partition 4 | Partition 5 |
+|--------------|-------------|-------------|-------------|-------------|-------------|
 | 2021-01-01   | X           |             |             |             |             |
-+--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-02   | X           | X           |             |             |             |
-+--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-03   |             | X           | X           |             |             |
-+--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-04   |             |             | X           | X           |             |
-+--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-05   |             |             |             | X           | X           |
-+--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-06   |             |             |             |             | X           |
-+--------------+-------------+-------------+-------------+-------------+-------------+
-.. seealso::
-    1. Gu et al., 2021. The sliding window and SHAP theory applied to long
-       short-term memory networks for state of charge prediction.
-    2. Pham et al., 2023. Speech emotion recognition using overlapping sliding
-       window and explainable neural networks.
-    3. Van Zyl et al., 2024. Explainable AI for feature selection in time series
-       energy forecasting with Grad-CAM and SHAP.
-    4. Bi et al., 2020. Prediction model for identifying methylation sites with
-       XGBoost and SHAP explainability.
-    5. Zimmermann et al., 2022. Improving drift detection by monitoring SHAP
-       loss values in pattern recognition workflows.
-    6. Li et al., 2022. Visualizing distributional shifts using SHAP in machine
-       learning models.
-    7. Seiffer et al., 2021. Concept drift detection in manufacturing data with
-       SHAP for error prediction improvement.
-    8. Haug et al., 2022. Change detection for local explainability in evolving
-       data streams.
-    9. Zhao et al., 2020. Feature drift detection in evolving data streams with
-       database applications.
+
+
+See Also
+--------
+1. Gu et al., 2021. The sliding window and SHAP theory applied to long
+   short-term memory networks for state of charge prediction.
+2. Pham et al., 2023. Speech emotion recognition using overlapping sliding
+   window and explainable neural networks.
+3. Van Zyl et al., 2024. Explainable AI for feature selection in time series
+   energy forecasting with Grad-CAM and SHAP.
+4. Bi et al., 2020. Prediction model for identifying methylation sites with
+   XGBoost and SHAP explainability.
+5. Zimmermann et al., 2022. Improving drift detection by monitoring SHAP
+   loss values in pattern recognition workflows.
+6. Li et al., 2022. Visualizing distributional shifts using SHAP in machine
+   learning models.
+7. Seiffer et al., 2021. Concept drift detection in manufacturing data with
+   SHAP for error prediction improvement.
+8. Haug et al., 2022. Change detection for local explainability in evolving
+   data streams.
+9. Zhao et al., 2020. Feature drift detection in evolving data streams with
+   database applications.
+
 """
 
 # from typing import Iterator, Optional

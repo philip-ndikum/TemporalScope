@@ -29,49 +29,15 @@
 ---
 
 
-<div align="center">
-  <table>
-    <thead>
-      <tr>
-        <th>Compatibility</th>
-        <th>License</th>
-        <th>Meta</th>
-        <th>Build Tools</th>
-        <th>CI/CD</th>
-        <th>Security</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>
-          <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version"><br>
-          <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
-        </td>
-        <td>
-          <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
-        </td>
-        <td>
-          <a href="https://docs.astral.sh/ruff/"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a><br>
-          <img src="https://www.mypy-lang.org/static/mypy_badge.svg" alt="Checked with mypy">
-        </td>
-        <td>
-          <a href="https://hatch.pypa.io/latest/"><img src="https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg" alt="Hatch project"></a>
-        </td>
-        <td>
-          <a href="https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main"><img src="https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg" alt="pre-commit.ci status"></a><br>
-          <a href="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml"> <img src="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml/badge.svg"></a>
-          <a href='https://coveralls.io/github/philip-ndikum/TemporalScope'><img src='https://coveralls.io/repos/github/philip-ndikum/TemporalScope/badge.svg' alt='Coverage Status' /></a>
-        </td>
-        <td>
-          <a href="https://www.bestpractices.dev/projects/9424"><img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices"></a><br>
-          <a href="https://github.com/PyCQA/bandit"><img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit"></a>
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+| Category          | Details                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Compatibility** | [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://img.shields.io/badge/python-3.10%2B-blue)<br>[![Linux Compatible](https://img.shields.io/badge/OS-Linux-blue)](https://img.shields.io/badge/OS-Linux-blue)                                                                                                                                                                                                                                                                                                                               |
+| **Meta**          | [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/)<br>[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://www.mypy-lang.org/static/mypy_badge.svg) <br> [![License](https://img.shields.io/badge/License-Apache%202.0-green)](https://img.shields.io/badge/License-Apache%202.0-green)  <br> ![All Contributors](https://img.shields.io/github/all-contributors/projectOwner/projectName?color=ee8449&style=flat-square)|
+| **Build Tools**   | [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://hatch.pypa.io/latest/)                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **CI/CD**         | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg)](https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main)<br>[![GitHub Actions](https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml/badge.svg)](https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml)<br>[![Coverage Status](https://coveralls.io/repos/github/philip-ndikum/TemporalScope/badge.svg)](https://coveralls.io/github/philip-ndikum/TemporalScope)                              |
+| **Security**      | [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9424/badge)](https://www.bestpractices.dev/projects/9424)<br>[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)                                                                                                                                                                                                                                                                                                                         |
 
----
+**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift.
 
 **TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift.
 
@@ -125,8 +91,8 @@ You can use TemporalScope with the following steps:
 2. **Select Backend (Optional)**: TemporalScope defaults to using Pandas as the backend. However, you can specify other backends like Dask, Modin, or CuDF.
 3. **Load Data**: Load your time series data into the `TimeSeriesData` class, specifying the `time_col` and optionally the `id_col`.
 4. **Apply a Feature Importance Method**: TemporalScope defaults to using a Random Forest model from scikit-learn if no model is specified. You can either:
-   - **A. Use a pre-trained model**: Pass a pre-trained model to the method.
-   - **B. Train a Random Forest model within the method**: TemporalScope handles model training and application automatically.
+    - **A. Use a pre-trained model**: Pass a pre-trained model to the method.
+    - **B. Train a Random Forest model within the method**: TemporalScope handles model training and application automatically.
 5. **Analyze and Visualize Results**: Interpret the results to understand how feature importance evolves over time or across different phases.
 
 Now, let's refine the code example using a random forest model and an academic dataset. We'll use the California housing dataset as a simple example since it's well-known and accessible.
@@ -134,13 +100,18 @@ Now, let's refine the code example using a random forest model and an academic d
 import polars as pl
 import pandas as pd
 from statsmodels.datasets import macrodata
+
 from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.partitioning.naive_partitioner import NaivePartitioner
 from temporalscope.core.temporal_model_trainer import TemporalModelTrainer
 
 # 1. Load the dataset using Pandas (or convert to Polars)
 macro_df = macrodata.load_pandas().data
-macro_df['time'] = pd.date_range(start='1959-01-01', periods=len(macro_df), freq='Q')
+macro_df['time'] = pd.date_range(
+    start='1959-01-01',
+    periods=len(macro_df),
+    freq='Q'
+)
 
 # Convert the Pandas DataFrame to a Polars DataFrame
 macro_df_polars = pl.DataFrame(macro_df)
@@ -203,28 +174,24 @@ TemporalScope was conceived independently by [Philip Ndikum](https://github.com/
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
 
 <!-- --8<-- [start:CONTRIBUTORS] -->
-### Contributors 💠
 
+## Contributors
 Thanks to these wonderful people who have contributed to TemporalScope:
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
 <!-- markdownlint-disable -->
-<table>
-  <tbody>
-    <tr>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/philip-ndikum"><img src="https://avatars.githubusercontent.com/u/125715876?v=4&s=100" width="100px;" alt="Philip Ndikum"/><br /><sub><b>Philip Ndikum</b></sub></a><br /><a href="https://github.com/philip-ndikum/TemporalScope/commits?author=philip-ndikum" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/serge-ndikum"><img src="https://avatars.githubusercontent.com/u/180889799?v=4&s=100" width="100px;" alt="Serge Ndikum"/><br /><sub><b>Serge Ndikum</b></sub></a><br /><a href="https://github.com/serge-ndikum" title="Code">💻</a></td>
-      <td align="center" valign="top" width="14.28%"><a href="https://github.com/kanenorman"><img src="https://avatars.githubusercontent.com/u/51185594?v=4&s=100" width="100px;" alt="Kane Norman"/><br /><sub><b>Kane Norman</b></sub></a><br /><a href="https://github.com/kanenorman" title="Code">💻</a></td>
-    </tr>
-  </tbody>
-</table>
+
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+
 <!-- ALL-CONTRIBUTORS-LIST:END -->
+
 <!-- --8<-- [end:CONTRIBUTORS] -->
 
 ## Cite this Project
 <!-- --8<-- [start:CITATION] -->
-If you use **TemporalScope** in your research, please consider citing it:
+If you use TemporalScope in your research, please consider citing it:
 
 ```bibtex
 @software{ndikum2024temporalscope,
@@ -244,8 +211,11 @@ If you use **TemporalScope** in your research, please consider citing it:
 **TemporalScope** is primarily an academic tool designed for research and informational purposes. Practitioners and users of this software are strongly encouraged to consult the accompanying [SCIENTIFIC_LITERATURE.md](SCIENTIFIC_LITERATURE.md) document to fully understand the theoretical limitations, assumptions, and context of the techniques implemented within this package. Furthermore, use of this software falls under "as-is" software as defined by the [Apache License 2.0](LICENSE) provided in this repository and outlined below.
 
 By using this package, you agree to comply with the terms and conditions set forth in the **Apache License 2.0**.
+<!-- --8<-- [end:LICENSE] -->
 
-**LEGAL NOTICE**: THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+<!-- --8<-- [start:LEGAL] -->
+### Legal Notice
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 THIS SOFTWARE IS INTENDED FOR ACADEMIC AND INFORMATIONAL PURPOSES ONLY. IT SHOULD NOT BE USED IN PRODUCTION ENVIRONMENTS OR FOR CRITICAL DECISION-MAKING WITHOUT PROPER VALIDATION. ANY USE OF THIS SOFTWARE IS AT THE USER'S OWN RISK.
-<!-- --8<-- [end:LICENSE_AND_LEGAL] -->
+<!-- --8<-- [start:LEGAL] -->

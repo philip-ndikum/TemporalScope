@@ -80,7 +80,7 @@ We use [GitHub Issues](https://github.com/philip-ndikum/TemporalScope/issues) to
    git clone git@github.com:YOUR-USERNAME/TemporalScope.git
    ```
 
-   or
+    or
 
    ```console
    git clone https://github.com/YOUR-USERNAME/TemporalScope.git
@@ -93,11 +93,11 @@ TemporalScope uses [Hatch](https://hatch.pypa.io/latest/), a Python project mana
 1. Install Hatch by following the [installation instructions](https://hatch.pypa.io/latest/install/) for your operating system.
 2. Verify the installation (your version number may differ):
 
-   ```console
-   $ cd TemporalScope
-   $ hatch version
-   0.1.0
-   ```
+    ```console
+    $ cd TemporalScope
+    $ hatch version
+    0.1.0
+    ```
 
 ### Install Pre-commit Hooks
 
@@ -214,7 +214,9 @@ cz commit
 > To ease the review process, please follow the instructions:
 >
 > - For the title, use the [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
-> - For the body, follow the existing [pull request template](<(https://github.com/philip-ndikum/TemporalScope/blob/main/.github/pull_request_template.md)>). Describe and document your changes.
+> - For the body, follow the existing pull request template. Describe and document your changes.
+> - Ensure test, formatting, and linting pass locally before submitting your pull request.
+> - Include any relevant information that will help reviewers understand your changes.
 
 ### After Submitting
 
@@ -244,7 +246,14 @@ hatch run docs:serve
 
 API documentation is automatically generated using the [mkdocstrings](https://mkdocstrings.github.io/) extension. It extracts and builds the documentation directly from the code’s docstrings, which are written in Numpy format.
 
-## Test Policy
+- **Content**: The documentation is written in Markdown and stored in the `docs` directory.
+- **API Documentation**: API references are automatically generated using the [mkdocstrings](https://mkdocstrings.github.io/) extension, which extracts information directly from the code's docstrings.
+- **Reference Pages**: The script `scripts/gen_ref_pages.py` dynamically generates API reference pages during each build, enabling fully automated and hands-off API documentation.
+
+---
+
+Let me know if you'd like further refinements!
+## Testing
 
 TemporalScope prioritizes code quality, security, and stability. To uphold these standards:
 
@@ -286,24 +295,22 @@ Coverage reports are generated with [pytest-cov](https://github.com/pytest-dev/p
 
 In order to maintain consistency and clarity across different distribution platforms like **PyPI**, **Conda**, and **GitHub**, we follow a structured workflow for releasing new versions:
 
-1. **Update the `CHANGELOG.md` File**:
+1. Update the `CHANGELOG.md` File:
    - Ensure that all the changes (new features, bug fixes, deprecations, and breaking changes) are accurately recorded in the `CHANGELOG.md`.
    - Each release should include a brief summary of changes, structured by categories like **Features**, **Fixes**, and **Breaking Changes**.
-2. **Generate Release Notes**:
-   - Use the information from the `CHANGELOG.md` to create consistent **release notes**.
+2. Generate Release Notes:
+   - Use the information from the `CHANGELOG.md` to create consistent release notes.
    - Ensure that the release notes are in a uniform format for each platform:
-     - **PyPI**: Include a summary of the changes in the release description.
-     - **Conda**: Similar release notes can be included when publishing to **Conda**.
-     - **GitHub**: Publish the release notes in the **GitHub Releases** section.
-3. **Distribute to Each Platform**:
-   - **PyPI**: Push the package using `hatch` after running the necessary build commands.
-   - **Conda**: Ensure the package is properly built for **Conda** and distributed to the Conda package manager.
-   - **GitHub**: Create a **GitHub Release**, attaching the release notes, and tagging the release in the repository.
-4. **Verify the Release**:
+     - PyPI: Include a summary of the changes in the release description.
+     - Conda: Similar release notes can be included when publishing to Conda.
+     - GitHub: Publish the release notes in the GitHub Releases section.
+3. Distribute to Each Platform:
+   - PyPI: Push the package using hatch after running the necessary build commands.
+   - Conda: Ensure the package is properly built for Conda and distributed to the Conda package manager.
+   - GitHub: Create a GitHub Release, attaching the release notes, and tagging the release in the repository.
+4. Verify the Release:
    - Ensure all distribution platforms (PyPI, Conda, GitHub) reflect the new release.
    - Test the installation via `pip install temporalscope` and `conda install temporalscope` to ensure everything works as expected.
-
-By following this workflow, we ensure a consistent and smooth release process across all distribution channels, providing users with clear updates and robust software. We use HTTPS and SSH to protect against **man-in-the-middle (MITM) attacks** during the delivery process. However, **digital signatures** are not currently implemented, as the current security measures are sufficient for the project's scope. We will revisit this as the project scales and requires additional security layers.
 
 ## Code Style
 

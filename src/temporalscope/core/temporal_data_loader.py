@@ -470,28 +470,29 @@ class TimeFrame:
 
         Examples
         --------
-        .. code-block:: python
+        ```python
+        import pandas as pd
+        from temporalscope.core.temporal_data_loader import TimeFrame
 
-            import pandas as pd
-            from temporalscope.core.temporal_data_loader import TimeFrame
+        # Sample DataFrame
+        df = pd.DataFrame(
+            {
+                "time": pd.date_range(start="2023-01-01", periods=5, freq="D"),
+                "value": range(5),
+            }
+        )
 
-            # Sample DataFrame
-            df = pd.DataFrame(
-                {
-                    "time": pd.date_range(start="2023-01-01", periods=5, freq="D"),
-                    "value": range(5),
-                }
-            )
+        # Initialize a TimeFrame object
+        tf = TimeFrame(df, time_col="time", target_col="value")
 
-            # Initialize a TimeFrame object
-            tf = TimeFrame(df, time_col="time", target_col="value")
+        # Validate the DataFrame
+        tf.validate_dataframe(df)
+        ```
 
-            # Validate the DataFrame
-            tf.validate_dataframe(df)
-
-        .. note::
-            - This function ensures that `time_col` is valid and optionally convertible.
-            - All other columns must be numeric and free from null values.
+        Notes
+        -----
+        - This function ensures that `time_col` is valid and optionally convertible.
+        - All other columns must be numeric and free from null values.
 
         """
         # Step 1: Ensure all columns are free of nulls and NaNs
@@ -524,10 +525,10 @@ class TimeFrame:
 
         Steps:
         ------
-            1. Validate the input DataFrame using the `validate_dataframe` method.
-            2. Optionally convert the `time_col` to the specified type (`numeric` or `datetime`).
-            3. Perform temporal uniqueness validation within groups if enabled.
-            4. Optionally sort the DataFrame by `time_col` in the specified order.
+        1. Validate the input DataFrame using the `validate_dataframe` method.
+        2. Optionally convert the `time_col` to the specified type (`numeric` or `datetime`).
+        3. Perform temporal uniqueness validation within groups if enabled.
+        4. Optionally sort the DataFrame by `time_col` in the specified order.
 
         Parameters
         ----------
@@ -569,45 +570,42 @@ class TimeFrame:
 
         Example usage:
         --------------
-        .. code-block:: python
+        ```python
+          import pandas as pd
+          from temporalscope.core.temporal_data_loader import TimeFrame
 
-                      import pandas as pd
-                      from temporalscope.core.temporal_data_loader import TimeFrame
+          df = pd.DataFrame(
+              {
+                  "patient_id": [1, 1, 2, 2],
+                  "time": ["2023-01-01", "2023-01-02", "2023-01-01", "2023-01-03"],
+                  "value": [10, 20, 30, 40],
+              }
+          )
 
-                      df = pd.DataFrame(
-                          {
-                              "patient_id": [1, 1, 2, 2],
-                              "time": ["2023-01-01", "2023-01-02", "2023-01-01", "2023-01-03"],
-                              "value": [10, 20, 30, 40],
-                          }
-                      )
+          tf = TimeFrame(
+              df,
+              time_col="time",
+              target_col="value",
+          )
+          sorted_df = tf.setup(df, time_col_conversion="datetime", enforce_temporal_uniqueness=True, id_col="patient_id")
+          print(sorted_df)
+        ```
 
-                      tf = TimeFrame(
-                          df,
-                          time_col="time",
-                          target_col="value",
-                      )
-                      sorted_df = tf.setup(df, time_col_conversion="datetime", enforce_temporal_uniqueness=True, id_col="patient_id")
-                      print(sorted_df)
-
-        This example is provided under the Apache License, Version 2.0, and is distributed "AS IS" without warranties or
-        conditions of any kind. Users should refer to the license for details.
-
-
-        .. note::
-            - This method is designed to be idempotent, ensuring safe revalidation or reinitialization.
-            - The `time_col_conversion` parameter allows you to convert the `time_col` to a numeric or datetime type.
-            - Sorting is performed only if explicitly enabled via the `sort` parameter.
-            - While this method validates, converts, and sorts the DataFrame, it does not modify the TimeFrame's
-            internal state unless explicitly used within another method (e.g., `update_dataframe`).
-            - The `enforce_temporal_uniqueness` parameter can be set dynamically in this method, allowing
-            validation of temporal uniqueness to be turned on/off as needed.
-            - The `id_col` parameter can also be set dynamically, defining the scope of the temporal uniqueness validation.
-            - The `id_col` parameter enables validation of temporal uniqueness within each group's records, ensuring no duplicate
-            timestamps exist per group while allowing different groups to have events on the same dates. This is particularly
-            useful for multi-entity time series datasets (e.g., patient data, stock prices). Note: Users must check the Apache License
-            for the complete terms of use. This software is distributed "AS-IS" and may require adjustments for specific use cases.
-            Validated, converted, and optionally sorted DataFrame.
+        Notes
+        -----
+        - This method is designed to be idempotent, ensuring safe revalidation or reinitialization.
+        - The `time_col_conversion` parameter allows you to convert the `time_col` to a numeric or datetime type.
+        - Sorting is performed only if explicitly enabled via the `sort` parameter.
+        - While this method validates, converts, and sorts the DataFrame, it does not modify the TimeFrame's
+        internal state unless explicitly used within another method (e.g., `update_dataframe`).
+        - The `enforce_temporal_uniqueness` parameter can be set dynamically in this method, allowing
+        validation of temporal uniqueness to be turned on/off as needed.
+        - The `id_col` parameter can also be set dynamically, defining the scope of the temporal uniqueness validation.
+        - The `id_col` parameter enables validation of temporal uniqueness within each group's records, ensuring no duplicate
+        timestamps exist per group while allowing different groups to have events on the same dates. This is particularly
+        useful for multi-entity time series datasets (e.g., patient data, stock prices). Note: Users must check the Apache License
+        for the complete terms of use. This software is distributed "AS-IS" and may require adjustments for specific use cases.
+        Validated, converted, and optionally sorted DataFrame.
 
         """
         # Step 1: Basic validation
@@ -648,52 +646,54 @@ class TimeFrame:
 
         Example Usage:
         --------------
-        .. code-block:: python
+        ```python
+          import polars as pl
+          from temporalscope.core.temporal_data_loader import TimeFrame
 
-                  import polars as pl
-                  from temporalscope.core.temporal_data_loader import TimeFrame
+          # Initial TimeFrame setup
+          data = pl.DataFrame(
+              {
+                  "time": pl.date_range(start="2021-01-01", periods=5, interval="1d"),
+                  "target": range(5),
+                  "feature": range(5),
+              }
+          )
+          tf = TimeFrame(
+              data,
+              time_col="time",
+              target_col="target",
+              ascending=True,  # Sort order set at initialization
+              sort=True,  # Sort behavior set at initialization
+          )
 
-                  # Initial TimeFrame setup
-                  data = pl.DataFrame(
-                      {
-                          "time": pl.date_range(start="2021-01-01", periods=5, interval="1d"),
-                          "target": range(5),
-                          "feature": range(5),
-                      }
-                  )
-                  tf = TimeFrame(
-                      data,
-                      time_col="time",
-                      target_col="target",
-                      ascending=True,  # Sort order set at initialization
-                      sort=True,  # Sort behavior set at initialization
-                  )
+          # Update with new data - uses parameters from initialization
+          new_data = pl.DataFrame(
+              {
+                  "time": pl.date_range(start="2021-01-06", periods=5, interval="1d"),
+                  "target": range(5, 10),
+                  "feature": range(5, 10),
+              }
+          )
+          tf.update_dataframe(new_data)  # Will use time_col="time", ascending=True, sort=True
+        ```
 
-                  # Update with new data - uses parameters from initialization
-                  new_data = pl.DataFrame(
-                      {
-                          "time": pl.date_range(start="2021-01-06", periods=5, interval="1d"),
-                          "target": range(5, 10),
-                          "feature": range(5, 10),
-                      }
-                  )
-                  tf.update_dataframe(new_data)  # Will use time_col="time", ascending=True, sort=True
-
-        .. note::
-            This method uses the parameters set during TimeFrame initialization:
-            - Uses the same time_col and target_col
-            - Maintains the same sort order (ascending/descending)
-            - Keeps the same sorting behavior (enabled/disabled)
+        Notes
+        -----
+        This method uses the parameters set during TimeFrame initialization:
+        - Uses the same time_col and target_col
+        - Maintains the same sort order (ascending/descending)
+        - Keeps the same sorting behavior (enabled/disabled)
 
         If you need to change these parameters, create a new TimeFrame instance
         with the desired configuration.
 
-        .. seealso::
-            - :class:`temporalscope.target_shifters.single_step.SingleStepTargetShifter`
-            - :class:`temporalscope.partition.padding.functional`
-            For handling target transformations and padding operations.
-                New DataFrame to use
-            df: SupportedTemporalDataFrame :
+        See Also
+        --------
+        - :class:`temporalscope.target_shifters.single_step.SingleStepTargetShifter`
+        - :class:`temporalscope.partition.padding.functional`
+        For handling target transformations and padding operations.
+            New DataFrame to use
+        df: SupportedTemporalDataFrame :
 
         Returns
         -------

@@ -26,18 +26,18 @@
 Utility for loading datasets with multi-backend support. This class simplifies dataset loading, enabling
 compatibility with multiple DataFrame backends (such as Pandas, Modin, Polars) for TemporalScope tutorials and examples.
 
-Example Usage:
---------------
-.. code-block:: python
+Examples
+--------
+```python
+from temporalscope.datasets.datasets import DatasetLoader
 
-    from temporalscope.datasets.datasets import DatasetLoader
+# Initialize with 'macrodata' dataset
+dataset_loader = DatasetLoader("macrodata")
 
-    # Initialize with 'macrodata' dataset
-    dataset_loader = DatasetLoader("macrodata")
-
-    # Load dataset with specified backend
-    data = dataset_loader.load_data(backend="polars")
-    print(data.head())  # Example access
+# Load dataset with specified backend
+data = dataset_loader.load_data(backend="polars")
+print(data.head())  # Example access
+```
 """
 
 from typing import Any, Tuple
@@ -89,10 +89,6 @@ class DatasetLoader:
     dataset_name : str
         Name of the dataset to load, as defined in AVAILABLE_DATASETS.
 
-    Methods
-    -------
-    load_data(backend: str = "pandas") -> Any
-        Load the dataset and convert it to the specified backend format.
 
     """
 
