@@ -112,14 +112,29 @@ def _apply_nulls_nans_single_row(df: pd.DataFrame, feature_cols: list[str], with
     This is an internal utility function that operates on pandas DataFrames directly for efficiency
     and simplicity in null/nan application. The main function handles conversion to other backends.
 
-    :param df: Pandas DataFrame to modify (modified in-place)
-    :type df: pd.DataFrame
-    :param feature_cols: List of feature column names to apply nulls/nans to
-    :type feature_cols: list[str]
-    :param with_nulls: Whether to apply null values
-    :type with_nulls: bool
-    :param with_nans: Whether to apply NaN values (only if with_nulls is False)
-    :type with_nans: bool
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Pandas DataFrame to modify (modified in-place)
+    feature_cols : list[str]
+        List of feature column names to apply nulls/nans to
+    with_nulls : bool
+        Whether to apply null values
+    with_nans : bool
+        Whether to apply NaN values (only if with_nulls is False)
+    df: pd.DataFrame :
+
+    feature_cols: list[str] :
+
+    with_nulls: bool :
+
+    with_nans: bool :
+
+
+    Returns
+    -------
+    None
+
     """
     if with_nulls:
         df.iloc[0, df.columns.get_indexer(feature_cols)] = None
@@ -147,20 +162,41 @@ def _apply_nulls_nans_multi_row(
     - Prevents overlap between null and nan rows
     - Uses random selection for realistic data generation
 
-    :param df: Pandas DataFrame to modify (modified in-place)
-    :type df: pd.DataFrame
-    :param feature_cols: List of feature column names to apply nulls/nans to
-    :type feature_cols: list[str]
-    :param with_nulls: Whether to apply null values
-    :type with_nulls: bool
-    :param with_nans: Whether to apply NaN values
-    :type with_nans: bool
-    :param null_percentage: Percentage of rows to contain null values (0.0 to 1.0)
-    :type null_percentage: float
-    :param nan_percentage: Percentage of rows to contain NaN values (0.0 to 1.0)
-    :type nan_percentage: float
-    :param num_samples: Total number of rows in the DataFrame
-    :type num_samples: int
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Pandas DataFrame to modify (modified in-place)
+    feature_cols : list[str]
+        List of feature column names to apply nulls/nans to
+    with_nulls : bool
+        Whether to apply null values
+    with_nans : bool
+        Whether to apply NaN values
+    null_percentage : float
+        Percentage of rows to contain null values (0.0 to 1.0)
+    nan_percentage : float
+        Percentage of rows to contain NaN values (0.0 to 1.0)
+    num_samples : int
+        Total number of rows in the DataFrame
+    df: pd.DataFrame :
+
+    feature_cols: list[str] :
+
+    with_nulls: bool :
+
+    with_nans: bool :
+
+    null_percentage: float :
+
+    nan_percentage: float :
+
+    num_samples: int :
+
+
+    Returns
+    -------
+    None
+
     """
     null_indices = []
     if with_nulls:
@@ -198,37 +234,67 @@ def generate_synthetic_time_series(
 ) -> SupportedTemporalDataFrame:
     """Generate synthetic time series data with specified backend support and configurations.
 
-    :param backend: The backend to use for the generated data.
-    :type backend: str
-    :param num_samples: Number of samples (rows) to generate in the time series data.
-    :type num_samples: int, optional
-    :param num_features: Number of feature columns to generate in addition to 'time' and 'target' columns.
-    :type num_features: int, optional
-    :param with_nulls: Introduces None values in feature columns if True.
-    :type with_nulls: bool, optional
-    :param with_nans: Introduces NaN values in feature columns if True.
-    :type with_nans: bool, optional
-    :param null_percentage: Percentage of rows to contain null values (0.0 to 1.0). Only used if with_nulls is True.
-                          For datasets with few rows, ensures at least one row is affected if nulls are enabled.
-                          For single-row datasets, nulls take precedence over NaNs if both are enabled.
-    :type null_percentage: float, optional
-    :param nan_percentage: Percentage of rows to contain NaN values (0.0 to 1.0). Only used if with_nans is True.
-                         For datasets with few rows, ensures at least one row is affected if NaNs are enabled.
-                         For single-row datasets, nulls take precedence over NaNs if both are enabled.
-    :type nan_percentage: float, optional
-    :param mode: Mode for data generation; currently only supports 'single_target'.
-    :type mode: str, optional
-    :param time_col_numeric: If True, 'time' column is numeric instead of datetime.
-    :type time_col_numeric: bool, optional
-    :param drop_time: If True, omits the time column from output DataFrame.
-    :type drop_time: bool, optional
-    :param random_seed: Seed for random number generation to ensure reproducible results.
-    :type random_seed: int, optional
+    Parameters
+    ----------
+    backend : str
+        The backend to use for the generated data.
+    num_samples : int, optional
+        Number of samples (rows) to generate in the time series data.
+    num_features : int, optional
+        Number of feature columns to generate in addition to 'time' and 'target' columns.
+    with_nulls : bool, optional
+        Introduces None values in feature columns if True.
+    with_nans : bool, optional
+        Introduces NaN values in feature columns if True.
+    null_percentage : float, optional
+        Percentage of rows to contain null values (0.0 to 1.0). Only used if with_nulls is True.
+        For datasets with few rows, ensures at least one row is affected if nulls are enabled.
+        For single-row datasets, nulls take precedence over NaNs if both are enabled.
+    nan_percentage : float, optional
+        Percentage of rows to contain NaN values (0.0 to 1.0). Only used if with_nans is True.
+        For datasets with few rows, ensures at least one row is affected if NaNs are enabled.
+        For single-row datasets, nulls take precedence over NaNs if both are enabled.
+    mode : str, optional
+        Mode for data generation; currently only supports 'single_target'.
+    time_col_numeric : bool, optional
+        If True, 'time' column is numeric instead of datetime.
+    drop_time : bool, optional
+        If True, omits the time column from output DataFrame.
+    random_seed : int, optional
+        Seed for random number generation to ensure reproducible results.
+    backend: str :
 
-    :return: DataFrame or Table in the specified backend containing synthetic data.
-    :rtype: SupportedTemporalDataFrame
+    num_samples: int :
+         (Default value = 100)
+    num_features: int :
+         (Default value = 3)
+    with_nulls: bool :
+         (Default value = False)
+    with_nans: bool :
+         (Default value = False)
+    null_percentage: float :
+         (Default value = 0.05)
+    # Default 5% nullsnan_percentage: float :
+         (Default value = 0.05)
+    # Default 5% nansmode: str :
+         (Default value = "single_target")
+    time_col_numeric: bool :
+         (Default value = False)
+    drop_time: bool :
+         (Default value = False)
+    random_seed: int :
+         (Default value = RANDOM_SEED)
 
-    :raises ValueError: If unsupported backend, mode, or invalid parameters.
+    Returns
+    -------
+    SupportedTemporalDataFrame
+        DataFrame or Table in the specified backend containing synthetic data.
+
+    Raises
+    ------
+    ValueError
+        If unsupported backend, mode, or invalid parameters.
+
     """
     is_valid_temporal_backend(backend)
 

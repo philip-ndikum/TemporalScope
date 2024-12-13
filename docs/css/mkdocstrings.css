@@ -1,0 +1,24 @@
+.doc-symbol-parameter::after {
+  content: "parameter" !important;
+}
+
+.doc-symbol-attribute::after {
+  content: "attribute"
+    !important
+}
+
+.doc-symbol-function::after {
+  content: "function" !important;
+}
+
+.doc-symbol-method::after {
+  content: "method" !important;
+}
+
+.doc-symbol-class::after {
+  content: "class" !important;
+}
+
+.doc-symbol-module::after {
+  content: "modeule" !important;
+}

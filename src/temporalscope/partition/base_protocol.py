@@ -126,7 +126,15 @@ class TemporalPartitionerProtocol(Protocol):
             end-users, implementations must ensure it is executed internally
             before partitioning begins.
 
-        :raises ValueError: If any required input or parameter is invalid.
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        ValueError
+            If any required input or parameter is invalid.
+
         """
         pass
 
@@ -137,11 +145,14 @@ class TemporalPartitionerProtocol(Protocol):
         such as `num_partitions`, `window_size`, and `stride`. It utilizes a lazy
         generator pattern to ensure memory efficiency, especially for large datasets.
 
-        :return: Generator yielding partition indices structured as dictionaries.
-        :rtype: Iterator[Dict[str, Any]]
+        Returns
+        -------
+        Iterator[Dict[str, Any]]
 
         .. note::
             This method does not perform slicing; it only computes and returns indices.
+            Generator yielding partition indices structured as dictionaries.
+
         """
         pass
 
@@ -152,10 +163,16 @@ class TemporalPartitionerProtocol(Protocol):
         memory efficiency through lazy evaluation and supports various output formats
         depending on the workflow mode (e.g., DataFrame slices, tensors, or datasets).
 
-        :return: Generator yielding dictionaries containing partitioned data slices.
-        :rtype: Iterator[Dict[str, Any]]
+        Returns
+        -------
+        Iterator[Dict[str, Any]]
+            Generator yielding dictionaries containing partitioned data slices.
 
-        :raises ValueError: If `fit` has not been called prior to `transform`.
+        Raises
+        ------
+        ValueError
+            If `fit` has not been called prior to `transform`.
+
         """
         pass
 
@@ -166,7 +183,10 @@ class TemporalPartitionerProtocol(Protocol):
         single step. It is ideal for workflows requiring immediate access to
         partitioned data without intermediate steps.
 
-        :return: Generator yielding dictionaries containing partitioned data slices.
-        :rtype: Iterator[Dict[str, Any]]
+        Returns
+        -------
+        Iterator[Dict[str, Any]]
+            Generator yielding dictionaries containing partitioned data slices.
+
         """
         pass

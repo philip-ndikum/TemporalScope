@@ -63,25 +63,27 @@ Engineering Design:
 |                         | users while allowing configurable truncation.         |
 +-------------------------+-------------------------------------------------------+
 
-.. note::
-
 Visualization:
 --------------
 The table below illustrates how the sliding window mechanism works with overlapping
 partitions. Each "X" represents a row included in the respective partition, based on
 the configured window size and stride.
-
++--------------+-------------+-------------+-------------+-------------+-------------+
 | Time         | Partition 1 | Partition 2 | Partition 3 | Partition 4 | Partition 5 |
-|--------------|-------------|-------------|-------------|-------------|-------------|
++--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-01   | X           |             |             |             |             |
++--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-02   | X           | X           |             |             |             |
++--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-03   |             | X           | X           |             |             |
++--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-04   |             |             | X           | X           |             |
++--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-05   |             |             |             | X           | X           |
++--------------+-------------+-------------+-------------+-------------+-------------+
 | 2021-01-06   |             |             |             |             | X           |
-
++--------------+-------------+-------------+-------------+-------------+-------------+
 .. seealso::
-
     1. Gu et al., 2021. The sliding window and SHAP theory applied to long
        short-term memory networks for state of charge prediction.
     2. Pham et al., 2023. Speech emotion recognition using overlapping sliding

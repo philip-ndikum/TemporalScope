@@ -1,4 +1,4 @@
-## Engineering Design
+## Research Literature
 
 This document lists key literature that has informed the development of this package. Please note that this is not a conclusive list but highlights the most relevant works. Our design is explicitly built for flexibility, unlike other time series machine learning and deep learning packages that often enforce rigid preprocessing constraints. We intentionally adopt familiar software engineering patterns, inspired by scikit-learn, to provide a modular and adaptable framework. The only assumption we impose is that features must be organized in a context window prior to the target variable. This allows users to focus on their core applications while ensuring compatibility with SHAP and other explainability methods.
 
@@ -16,7 +16,7 @@ This document lists key literature that has informed the development of this pac
 | **Scientific Literature** | [Universal Time-Series Representation Learning: A Survey](https://arxiv.org/abs/2401.03717)                    | Trirat, P., Shin, Y., Kang, J., et al.              | arXiv preprint, 2024                 | Provides a comprehensive survey of universal models for time series, outlining how generalization across datasets is achieved with minimal assumptions.              |
 
 
-### Partitioning Guidelines
+## Partitioning Guidelines
 
 The following heuristics are derived from key papers in the field and are designed to ensure that data partitions used in temporal analysis are robust and appropriate for machine learning tasks.
 
@@ -32,6 +32,6 @@ The following heuristics are derived from key papers in the field and are design
 | **Binary numerical features** | Convert to categorical if 2 unique values | Properly categorizes binary features to ensure that the models interpret them correctly.                                                            | [Grinsztajn et al. (2022)](https://arxiv.org/pdf/2207.08815) |
 | **Class balance (for classification)** | Equal samples per class     | Ensures that the learning problem is balanced, which is crucial for model accuracy and fairness.                                                    | [Grinsztajn et al. (2022)](https://arxiv.org/pdf/2207.08815) |
 
-### **Contributor Guidelines**
+## Contributor Guidelines
 
 Contributors are encouraged to reference relevant literature when making contributions. Please ensure that the appropriate citations are included in this document and the codebase where applicable.

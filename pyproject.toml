@@ -74,13 +74,13 @@ keywords = [
 
 [project.optional-dependencies]
 docs = [
-  "pydata-sphinx-theme",
-  "myst-parser",
-  "sphinx >=4.0",
-  "sphinx-copybutton",
-  "sphinx-autodoc-typehints",
-  "sphinx-autodoc-annotation",
-  "sphinx-autoapi",
+  "mkdocs",
+  "mkdocstrings-python",
+  "mkdocs-material",
+  "mkdocs-gen-files",
+  "mkdocs-literate-nav",
+  "mkdocs-section-index",
+  "black",
 ]
 
 [project.urls]
@@ -144,11 +144,16 @@ line-length = 120
 
 [tool.ruff.lint]
 select = [
+  "A001", # builtin-variable-shadowing
+  "A002", # builtin-argument-shadowing
+  "A003", # builtin-attribute-shadowing
   "C4",   # flake8-comprehensions
   "C90",  # McCabe cyclomatic complexity
+  "D",    # flake8-docstrings
   "E501", # Long lines
   "EXE",  # flake8-executable
   "F",    # Pyflakes
+  "I",    # isort
   "INT",  # flake8-gettext
   "PERF", # Perflint
   "PL",   # Pylint
@@ -158,39 +163,38 @@ select = [
   "T10",  # flake8-debugger
   "W",    # pycodestyle
   "YTT",  # flake8-2020
-  "I",    # isort
-  # built-in shadowing
-  "A001", # builtin-variable-shadowing
-  "A002", # builtin-argument-shadowing
-  "A003", # builtin-attribute-shadowing
-  # docstring rules
-  "D", # flake8-docstrings
 ]
 
 ignore = [
+  "C901",    # temporary
+  "D100",    # Missing docstring in public module
+  "D104",    # Missing docstring in public package
+  "D203",    # 1 blank line required before class docstring
+  "D211",    # No blank lines allowed before class docstring
+  "D213",    # Multi-line docstring summary should start at the second line
   "D400",    # Ignore "First line should end with a period" for docstrings.
   "D401",    # Ignore "First line should be in imperative mood" for docstrings.
   "D415",    # Ignore "First line should end with a period, question mark, or exclamation point."
   "E501",    # Ignore "Line too long" in docstrings/comments for exceeding 120 characters.
   "PERF203", # `try`-`except` within a loop incurs performance overhead
   "PERF401", # Use a list comprehension to create a transformed list
+  "PLR0913", # too many arguments
   "PLR1714", # repeated-equality-comparison
   "PLR5501", # collapsible-else-if
   "PLW2901", # redefined-loop-name
-  "SIM108",  # if-else-block-instead-of-if-exp
-  "PLR0913", # too many arguments
   "SIM102",  # temporary
-  "C901",    # temporary
-  "D100",    # Missing docstring in public module
-  "D104",    # Missing docstring in public package
-  "D211",    # No blank lines allowed before class docstring
-  "D213",    # Multi-line docstring summary should start at the second line
-  "D203",    # 1 blank line required before class docstring
+  "SIM108",  # if-else-block-instead-of-if-exp
 ]
 
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
 [tool.ruff.lint.per-file-ignores]
-"docs/conf.py" = ["A001", "D103"]
-"test/*" = ["PLR2004"]            # Ignore magic number warnings in test files
+"docs/conf.py" = [
+  "A001", # builtin-variable-shadowing
+  "D103", # missing docstring in public function
+]
+"test/*" = ["PLR2004"] # Ignore magic number warnings in test files
 
 [tool.mypy]
 files = "src/temporalscope"

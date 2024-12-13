@@ -60,8 +60,11 @@ AVAILABLE_DATASETS = {
 def _load_macrodata() -> Tuple[pd.DataFrame, str]:
     """Load and preprocess the macrodata dataset.
 
-    :return: Preprocessed DataFrame and default target column 'realgdp'.
-    :rtype: Tuple[pd.DataFrame, str]
+    Returns
+    -------
+    Tuple[pd.DataFrame, str]
+        Preprocessed DataFrame and default target column 'realgdp'.
+
     """
     loaded_data = macrodata.load_pandas().data
     if loaded_data is None:
@@ -96,8 +99,16 @@ class DatasetLoader:
     def __init__(self, dataset_name: str = "macrodata") -> None:
         """Initialize DatasetLoader with a specified dataset.
 
-        :param dataset_name: Name of the dataset to load. Must be available in AVAILABLE_DATASETS.
-        :raises ValueError: If the specified dataset is not available.
+        Parameters
+        ----------
+        dataset_name : str
+            Name of the dataset to load. Default is 'macrodata'.
+
+        Raises
+        ------
+        ValueError
+            if the specified dataset is not available.
+
         """
         if dataset_name not in AVAILABLE_DATASETS:
             raise ValueError(
@@ -108,8 +119,11 @@ class DatasetLoader:
     def _load_dataset_and_target(self) -> Tuple[pd.DataFrame, str]:
         """Load the dataset and its target column.
 
-        :return: DataFrame and associated target column name.
-        :rtype: Tuple[pd.DataFrame, str]
+        Returns
+        -------
+        Tuple[pd.DataFrame, str]
+            DataFrame and associated target column name.
+
         """
         print_divider()
         print(f"Loading dataset: '{self.dataset_name}'")
@@ -123,11 +137,23 @@ class DatasetLoader:
     def load_data(self, backend: str = "pandas") -> Any:
         """Load the dataset and convert it to the specified backend format.
 
-        :param backend: Backend to convert the dataset to. Default is 'pandas'.
-        :type backend: str
-        :return: Dataset in the specified backend format.
-        :rtype: Backend-specific DataFrame type (e.g., pandas.DataFrame, modin.DataFrame, polars.DataFrame)
-        :raises ValueError: If the backend is unsupported.
+        Parameters
+        ----------
+        backend : str
+            Backend to convert the dataset to. Default is 'pandas'.
+        backend: str :
+             (Default value = "pandas")
+
+        Returns
+        -------
+        Backend-specific DataFrame type (e.g., pandas.DataFrame, modin.DataFrame, polars.DataFrame)
+            Dataset in the specified backend format.
+
+        Raises
+        ------
+        ValueError
+            If the backend is unsupported.
+
         """
         # Validate and load the dataset in pandas format
         is_valid_temporal_backend(backend)

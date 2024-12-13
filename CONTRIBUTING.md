@@ -19,7 +19,7 @@
   - [Workflow for Releasing New Versions](#workflow-for-releasing-new-versions)
   - [Code Style](#code-style)
   - [Reporting Issues \& Requesting Features](#reporting-issues--requesting-features)
-
+<!-- --8<-- [start:CONTRIBUTING] -->
 # Contributing to TemporalScope
 
 Thank you for your interest in contributing to TemporalScope! Contributions of all kinds are welcome and appreciated.
@@ -44,11 +44,11 @@ Thank you for your interest in contributing to TemporalScope! Contributions of a
 
 We are excited to have your contributions but ask that you follow these guidelines to ensure the project remains legally sound and academically rigorous.
 
-# How to Contribute to TemporalScope
+## How to Contribute to TemporalScope
 
 We welcome contributions to TemporalScope! This guide will help you get started with the contribution process.
 
-# Issue Tracking
+## Issue Tracking
 
 We use [GitHub Issues](https://github.com/philip-ndikum/TemporalScope/issues) to track bugs, enhancements, features, and refactoring suggestions. To propose something new:
 
@@ -77,9 +77,9 @@ Guidelines for effective issue reports:
 - Describe your environment (OS, python version, etc.) if applicable
 - Use clear, concise language
 
-# Contributing Code
+## Contributing Code
 
-## Fork the Repository
+### Fork the Repository
 
 1. Create your own [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) of the TemporalScope repository.
 2. Clone a local copy of your fork:
@@ -94,7 +94,7 @@ Guidelines for effective issue reports:
    $ git clone https://github.com/YOUR-USERNAME/TemporalScope.git
    ```
 
-## Setup Development Environment
+### Setup Development Environment
 
 TemporalScope uses [Hatch](https://hatch.pypa.io/latest/), a Python project manager, for managing virtual environments, building the project, and publishing packages.
 
@@ -107,7 +107,7 @@ TemporalScope uses [Hatch](https://hatch.pypa.io/latest/), a Python project mana
    0.1.0
    ```
 
-## Install Pre-commit Hooks
+### Install Pre-commit Hooks
 
 We use [pre-commit](https://pre-commit.com/) hooks to ensure code quality and consistency. Set up the git hook scripts:
 
@@ -115,7 +115,7 @@ We use [pre-commit](https://pre-commit.com/) hooks to ensure code quality and co
 $ pre-commit install --hook-type commit-msg --hook-type pre-push
 ```
 
-## Create a New Branch
+### Create a New Branch
 
 Create a new branch with a descriptive name for your changes:
 
@@ -123,13 +123,13 @@ Create a new branch with a descriptive name for your changes:
 $ git switch -c <descriptive-branch-name>
 ```
 
-## Make Your Changes
+### Make Your Changes
 
 1. Make the necessary code changes in your local repository.
 2. Write or update tests as needed.
 3. Update documentation if you're introducing new features or changing existing functionality.
 
-## Ensure Code Quality
+### Ensure Code Quality
 
 TemporalScope employs various tools to maintain consistent code style, quality, and static type checking. While the CI pipeline tests code quality, running these checks locally expedites the review cycle.
 
@@ -176,9 +176,7 @@ $ hatch run quality-assurance
 > [!NOTE]
 > Running these checks locally will help identify and resolve issues before submitting your changes, streamlining the review process.
 
-Here's the revised version of that section:
-
-## Commit Your Changes
+### Commit Your Changes
 
 1. Stage your changes:
 
@@ -211,7 +209,7 @@ Here's the revised version of that section:
 > [!NOTE]
 > If you've set up pre-commit hooks as recommended, they will automatically run various checks before finalizing your commit. This helps ensure code quality and consistency.
 
-## Submit a Pull Request
+### Submit a Pull Request
 
 1. Push your changes to your fork:
 
@@ -231,7 +229,7 @@ Here's the revised version of that section:
 > - For the title, use the [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
 > - For the body, follow the existing [pull request template](<(https://github.com/philip-ndikum/TemporalScope/blob/main/.github/pull_request_template.md)>). Describe and document your changes.
 
-## After Submitting
+### After Submitting
 
 - Respond to any feedback or questions from reviewers.
 - Make additional changes if requested.
@@ -331,3 +329,4 @@ We strictly enforce code quality and style to ensure the stability and maintaina
 ## Reporting Issues & Requesting Features
 
 If you encounter any bugs or issues, please read our `SECURITY.md` for instructions on managing security issues. Alternatively, utilize the Github Discussions to raise issues or potential long term features.
+<!-- --8<-- [end:CONTRIBUTING] -->

@@ -95,8 +95,8 @@ The following table summarizes validation thresholds derived from key research:
 |                        |                      |                           | variability                    |
 +------------------------+----------------------+---------------------------+--------------------------------+
 
-Example Usage
--------------
+Examples
+--------
 .. code-block:: python
 
     import pandas as pd
@@ -146,32 +146,34 @@ class ValidationResult:
     data pipelines, logging systems, and monitoring dashboards. It includes methods for
     serialization and log formatting to support automated decision making in pipelines.
 
-    :param passed: Whether the check passed
-    :type passed: bool
-    :param message: Optional message explaining the result
-    :type message: Optional[str]
-    :param details: Optional dictionary with detailed results
-    :type details: Optional[Dict[str, Any]]
-    :param severity: Log level for the validation result (e.g., 'WARNING', 'ERROR')
-    :type severity: Optional[str]
+    Parameters
+    ----------
+    passed : bool
+        Whether the check passed
+    message : Optional[str]
+        Optional message explaining the result
+    details : Optional[Dict[str, Any]]
+        Optional dictionary with detailed results
+    severity : Optional[str]
 
-    Example:
-    -------
+    Examples
+    --------
     .. code-block:: python
 
-               # In an Airflow DAG
-               def validate_dataframeset(**context):
-                   validator = DatasetValidator()
-                   results = validator.fit_transform(df)
+           # In an Airflow DAG
+           def validate_dataframeset(**context):
+               validator = DatasetValidator()
+               results = validator.fit_transform(df)
 
-                   # Get structured results for logging
-                   for check_name, result in results.items():
-                       log_entry = result.to_log_entry()
-                       if not result.passed:
-                           context["task_instance"].xcom_push(key=f"validation_failure_{check_name}", value=result.to_dict())
+               # Get structured results for logging
+               for check_name, result in results.items():
+                   log_entry = result.to_log_entry()
+                   if not result.passed:
+                       context["task_instance"].xcom_push(key=f"validation_failure_{check_name}", value=result.to_dict())
 
-                           # Log to monitoring system
-                           logger.log(level=log_entry["log_level"], msg=f"Validation check '{check_name}' failed", extra=log_entry)
+                       # Log to monitoring system
+                       logger.log(level=log_entry["log_level"], msg=f"Validation check '{check_name}' failed", extra=log_entry)
+        Log level for the validation result (e.g., 'WARNING', 'ERROR')
 
     """
 
@@ -197,10 +199,20 @@ class ValidationResult:
     def get_failed_checks(cls, results: Dict[str, "ValidationResult"]) -> Dict[str, "ValidationResult"]:
         """Get all failed validation checks for pipeline decision making.
 
-        :param results: Dictionary of validation results
-        :type results: Dict[str, ValidationResult]
-        :return: Dictionary of failed checks
-        :rtype: Dict[str, ValidationResult]
+        Parameters
+        ----------
+        results : Dict[str, ValidationResult]
+            Dictionary of validation results
+        results: Dict[str :
+
+        "ValidationResult"] :
+
+
+        Returns
+        -------
+        Dict[str, ValidationResult]
+            Dictionary of failed checks
+
         """
         return {name: result for name, result in results.items() if not result.passed}
 
@@ -208,10 +220,20 @@ class ValidationResult:
     def get_validation_summary(cls, results: Dict[str, "ValidationResult"]) -> Dict[str, Any]:
         """Get summary statistics for monitoring dashboards.
 
-        :param results: Dictionary of validation results
-        :type results: Dict[str, ValidationResult]
-        :return: Summary statistics
-        :rtype: Dict[str, Any]
+        Parameters
+        ----------
+        results : Dict[str, ValidationResult]
+            Dictionary of validation results
+        results: Dict[str :
+
+        "ValidationResult"] :
+
+
+        Returns
+        -------
+        Dict[str, Any]
+            Summary statistics
+
         """
         return {
             "total_checks": len(results),
@@ -252,62 +274,67 @@ class DatasetValidator:
     - Structured results for monitoring and alerting systems
     - Support for temporal workflow validation
 
-    :param min_samples: Minimum number of samples required, based on Grinsztajn et al. (2022)
-    :type min_samples: int
-    :param max_samples: Maximum number of samples allowed, based on Shwartz-Ziv et al. (2021)
-    :type max_samples: int
-    :param min_features: Minimum number of features required, based on Shwartz-Ziv et al. (2021)
-    :type min_features: int
-    :param max_features: Maximum number of features allowed, based on Gorishniy et al. (2021)
-    :type max_features: int
-    :param max_feature_ratio: Maximum feature-to-sample ratio, based on Grinsztajn et al. (2022)
-    :type max_feature_ratio: float
-    :param min_unique_values: Minimum unique values for numerical features
-    :type min_unique_values: int
-    :param max_categorical_values: Maximum unique values for categorical features
-    :type max_categorical_values: int
-    :param class_imbalance_threshold: Maximum ratio between largest and smallest classes
-    :type class_imbalance_threshold: float
-    :param checks_to_run: List of validation checks to run. If None, runs all checks.
-    :type checks_to_run: Optional[List[str]]
-    :param enable_warnings: Whether to show warning messages for failed checks
-    :type enable_warnings: bool
-    :raises ValueError: If invalid checks are specified
+    Attributes
+    ----------
+    min_samples : int
+        Minimum number of samples required, based on Grinsztajn et al. (2022)
+    max_samples : int
+        Maximum number of samples allowed, based on Shwartz-Ziv et al. (2021)
+    min_features : int
+        Minimum number of features required, based on Shwartz-Ziv et al. (2021)
+    max_features : int
+        Maximum number of features allowed, based on Gorishniy et al. (2021)
+    max_feature_ratio : float
+        Maximum feature-to-sample ratio, based on Grinsztajn et al. (2022)
+    min_unique_values : int
+        Minimum unique values for numerical features
+    max_categorical_values : int
+        Maximum unique values for categorical features
+    class_imbalance_threshold : float
+        Maximum ratio between largest and smallest classes
+    checks_to_run : Optional[List[str]]
+        List of validation checks to run. If None, runs all checks.
+    enable_warnings : bool
+        Whether to show warning messages for failed checks
 
-    Example with default thresholds:
-    --------------------------------
+
+    Raises
+    ------
+    ValueError
+        If invalid checks are specified
+
+    Examples
+    --------
     .. code-block:: python
 
-               import pandas as pd
-               from temporalscope.datasets import DatasetValidator
+    import pandas as pd
+    from temporalscope.datasets import DatasetValidator
 
-               # Create sample data
-               df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
+    # Create sample data
+    df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
 
-               # Initialize and run validator
-               validator = DatasetValidator()
-               results = validator.fit_transform(df)
-               print(f"All checks passed: {all(r.passed for r in results.values())}")
+    # Initialize and run validator
+    validator = DatasetValidator()
+    results = validator.fit_transform(df)
+    print(f"All checks passed: {all(r.passed for r in results.values())}")
 
-    Example Pipeline Integration:
-    -----------------------------
     .. code-block:: python
 
-               # In an Airflow DAG
-               def validate_dataframeset_task(**context):
-                   validator = DatasetValidator(min_samples=1000, checks_to_run=["sample_size", "feature_count"])
+    # In an Airflow DAG
+    def validate_dataframeset_task(**context):
+        validator = DatasetValidator(min_samples=1000, checks_to_run=["sample_size", "feature_count"])
 
-                   results = validator.fit_transform(df)
-                   failed = ValidationResult.get_failed_checks(results)
+        results = validator.fit_transform(df)
+        failed = ValidationResult.get_failed_checks(results)
 
-                   if failed:
-                       # Log failures and push metrics
-                       metrics = ValidationResult.get_validation_summary(results)
-                       monitoring.push_metrics("data_validation", metrics)
+        if failed:
+            # Log failures and push metrics
+            metrics = ValidationResult.get_validation_summary(results)
+            monitoring.push_metrics("data_validation", metrics)
 
-                       # Fail pipeline if critical checks failed
-                       if any(r.severity == "ERROR" for r in failed.values()):
-                           raise AirflowException("Critical validation checks failed")
+        # Fail pipeline if critical checks failed
+        if any(r.severity == "ERROR" for r in failed.values()):
+            raise AirflowException("Critical validation checks failed")
 
     .. note::
         Backend-Specific Patterns:
@@ -315,6 +342,7 @@ class DatasetValidator:
         - Use nw.Int64 for numeric operations (PyArrow)
         - Let @nw.narwhalify handle conversions
         - Supports integration with workflow systems (Airflow, Prefect)
+
     """
 
     # Available validation checks
@@ -416,11 +444,23 @@ class DatasetValidator:
     def _ensure_narwhals_df(self, df: Union[SupportedTemporalDataFrame, FrameT]) -> FrameT:
         """Ensure DataFrame is Narwhals-compatible.
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: Narwhals-compatible DataFrame
-        :rtype: FrameT
-        :raises TypeError: If input is not a valid temporal DataFrame
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        df: Union[SupportedTemporalDataFrame, FrameT] :
+
+
+        Returns
+        -------
+        FrameT
+            Narwhals-compatible DataFrame
+
+        Raises
+        ------
+        TypeError
+            If input is not a valid temporal DataFrame
+
         """
         is_valid, _ = is_valid_temporal_dataframe(df)
         if not is_valid:
@@ -438,15 +478,25 @@ class DatasetValidator:
         - Checks for null values to ensure data quality
         3. Validates against minimum uniqueness threshold
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: ValidationResult with:
-                - passed: Whether all features meet variability requirements
-                - message: Description of any issues found
-                - details: Dictionary containing:
-                    * numeric_feature: Whether features are numeric
-                    * {column_name}: Number of unique values for each feature
-        :rtype: ValidationResult
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        df: Union[SupportedTemporalDataFrame :
+
+        FrameT] :
+
+
+        Returns
+        -------
+        ValidationResult
+            ValidationResult with:
+            - passed: Whether all features meet variability requirements
+            - message: Description of any issues found
+            - details: Dictionary containing:
+            - numeric_feature: Whether features are numeric
+            - column_name: Number of unique values for each feature
+
         """
         details: Dict[str, Any] = {"numeric_feature": True}
 
@@ -504,21 +554,33 @@ class DatasetValidator:
         1. Counting total samples
         2. Adding class count information to details
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :param target_col: Target column name
-        :type target_col: str
-        :return: ValidationResult with:
-                - passed: Always True (basic check)
-                - details: Dictionary containing:
-                    * class_counts: Basic count information
-        :rtype: ValidationResult
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        target_col : str
+            Target column name
+        df: Union[SupportedTemporalDataFrame :
+
+        FrameT] :
+
+        target_col: str :
+
+
+        Returns
+        -------
+        ValidationResult
 
         .. note::
             Implementation Details:
             - Uses count() for backend-agnostic counting
             - Handles LazyFrame evaluation through collect()
             - Converts PyArrow scalars using as_py()
+                ValidationResult with:
+                - passed: Always True (basic check)
+                - details: Dictionary containing:
+                - class_counts: Basic count information
+
         """
         if not target_col:
             return ValidationResult(True, "No target column specified")
@@ -545,20 +607,30 @@ class DatasetValidator:
     ) -> Optional[ValidationResult]:
         """Execute a single validation check.
 
-        :param check_name: Name of the check to execute
-        :type check_name: str
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :param target_col: Column name for target-specific checks
-        :type target_col: Optional[str]
-        :return: Result of the validation check if enabled, None otherwise
-        :rtype: Optional[ValidationResult]
-        :raises ValueError: If check_name is not a valid check name
+        Parameters
+        ----------
+        check_name : str
+            Name of the check to execute
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        target_col : Optional[str]
+            Column name for target-specific checks
 
-        .. note::
-            - Executes a single validation check based on check_name
-            - Returns None if check is not enabled
-            - Handles target-specific checks appropriately
+        Returns
+        -------
+        Optional[ValidationResult]
+            Result of the validation check if enabled, None otherwise
+
+        Raises
+        ------
+        ValueError
+            If check_name is not a valid check name
+
+            .. note::
+                - Executes a single validation check based on check_name
+                - Returns None if check is not enabled
+                - Handles target-specific checks appropriately
+
         """
         if check_name not in self.checks_to_run:
             return None
@@ -587,14 +659,18 @@ class DatasetValidator:
         1. Counts total samples using backend-agnostic operations
         2. Validates against configured minimum and maximum thresholds
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: ValidationResult with:
-                - passed: Whether sample size is within acceptable range
-                - message: Description of any issues found
-                - details: Dictionary containing:
-                    * num_samples: Total number of samples in dataset
-        :rtype: ValidationResult
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        df: Union[SupportedTemporalDataFrame :
+
+        FrameT] :
+
+
+        Returns
+        -------
+        ValidationResult
 
         .. note::
             Implementation Details:
@@ -602,6 +678,12 @@ class DatasetValidator:
             - Handles LazyFrame evaluation through collect()
             - Converts PyArrow scalars using as_py()
             - Handles empty DataFrames gracefully
+                ValidationResult with:
+                - passed: Whether sample size is within acceptable range
+                - message: Description of any issues found
+                - details: Dictionary containing:
+                - num_samples: Total number of samples in dataset
+
         """
         # Handle empty DataFrame
         if not df.columns:
@@ -653,14 +735,24 @@ class DatasetValidator:
         1. Counts total features excluding time and target columns
         2. Validates against configured minimum and maximum thresholds
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: ValidationResult with:
-                - passed: Whether feature count is within acceptable range
-                - message: Description of any issues found
-                - details: Dictionary containing:
-                    * num_features: Total number of features in dataset
-        :rtype: ValidationResult
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        df: Union[SupportedTemporalDataFrame :
+
+        FrameT] :
+
+
+        Returns
+        -------
+        ValidationResult
+            ValidationResult with:
+            - passed: Whether feature count is within acceptable range
+            - message: Description of any issues found
+            - details: Dictionary containing:
+            * num_features: Total number of features in dataset
+
         """
         df = self._ensure_narwhals_df(df)
 
@@ -705,14 +797,18 @@ class DatasetValidator:
         2. Counts feature columns (excluding time and target)
         3. Calculates ratio and validates against threshold
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: ValidationResult with:
-                - passed: Whether ratio is within acceptable range
-                - message: Description of any issues found
-                - details: Dictionary containing:
-                    * ratio: Feature-to-sample ratio (num_features/num_samples)
-        :rtype: ValidationResult
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        df: Union[SupportedTemporalDataFrame :
+
+        FrameT] :
+
+
+        Returns
+        -------
+        ValidationResult
 
         .. note::
             Implementation Details:
@@ -720,6 +816,12 @@ class DatasetValidator:
             - Handles LazyFrame evaluation through collect()
             - Converts PyArrow scalars using as_py()
             - Only counts feature columns in ratio calculation
+                ValidationResult with:
+                - passed: Whether ratio is within acceptable range
+                - message: Description of any issues found
+                - details: Dictionary containing:
+                - ratio: Feature-to-sample ratio (num_features/num_samples)
+
         """
         # Handle empty DataFrame
         if not df.columns:
@@ -779,10 +881,20 @@ class DatasetValidator:
 
         Features are defined as all columns except time_col and target_col.
 
-        :param df: DataFrame to get columns from
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: List of feature column names
-        :rtype: List[str]
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to get columns from
+        df: Union[SupportedTemporalDataFrame :
+
+        FrameT] :
+
+
+        Returns
+        -------
+        List[str]
+            List of feature column names
+
         """
         cols = df.columns
         if hasattr(cols, "collect"):
@@ -799,24 +911,51 @@ class DatasetValidator:
         1. Validates DataFrame type and required columns
         2. Ensures numeric columns and checks for null values
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :return: DatasetValidator instance for method chaining
-        :rtype: DatasetValidator
-        :raises TypeError: If input is not a valid temporal DataFrame
-        :raises ValueError: If columns are missing or invalid
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        df: Union[SupportedTemporalDataFrame :
 
-        Example:
+        FrameT] :
+
+
+        Returns
         -------
+        DatasetValidator
+            DatasetValidator instance for method chaining
+
+        Raises
+        ------
+        TypeError
+            If input is not a valid temporal DataFrame
+        ValueError
+            If columns are missing or invalid
+
+        Examples
+        --------
         .. code-block:: python
-                          validator = DatasetValidator(time_col="time", target_col="target")
-                          validator.fit(df)
+        validator = DatasetValidator(time_col="time", target_col="target")
+        validator.fit(df)
 
         """
 
         @nw.narwhalify
         def validate_numeric(df: Union[SupportedTemporalDataFrame, FrameT]) -> FrameT:
-            """Validate that all columns except time are numeric."""
+            """Validate that all columns except time are numeric.
+
+            Parameters
+            ----------
+            df: Union[SupportedTemporalDataFrame :
+
+            FrameT] :
+
+
+            Returns
+            -------
+            FrameT
+
+            """
             for col in df.columns:
                 if col != self.time_col:
                     try:
@@ -827,7 +966,22 @@ class DatasetValidator:
 
         @nw.narwhalify
         def check_nulls(df: Union[SupportedTemporalDataFrame, FrameT], columns: List[str]) -> Dict[str, int]:
-            """Check for null values in specified columns."""
+            """Check for null values in specified columns.
+
+            Parameters
+            ----------
+            df: Union[SupportedTemporalDataFrame :
+
+            FrameT] :
+
+            columns: List[str] :
+
+
+            Returns
+            -------
+            Dict[str, int]
+
+            """
             null_counts = {}
             for col in columns:
                 null_count = df.select([nw.col(col).is_null().sum().cast(nw.Int64).alias("nulls")])
@@ -874,36 +1028,47 @@ class DatasetValidator:
     ) -> Dict[str, ValidationResult]:
         """Run configured validation checks on the DataFrame.
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :param target_col: Column name for target-specific checks
-        :type target_col: Optional[str]
-        :return: Dictionary of validation results for each check
-        :rtype: Dict[str, ValidationResult]
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        target_col : Optional[str]
+            Column name for target-specific checks
+        df: Union[SupportedTemporalDataFrame :
 
-        Example:
+        FrameT] :
+
+        target_col: Optional[str] :
+             (Default value = None)
+
+        Returns
         -------
+        Dict[str, ValidationResult]
+
+        Examples
+        --------
         .. code-block:: python
 
-                          import pandas as pd
-                          from temporalscope.datasets import DatasetValidator
+                  import pandas as pd
+                  from temporalscope.datasets import DatasetValidator
 
-                          # Create sample data
-                          df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
+                  # Create sample data
+                  df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
 
-                          # Initialize and run validator
-                          validator = DatasetValidator()
-                          validator.fit(df)
-                          results = validator.transform(df, target_col="target")
+                  # Initialize and run validator
+                  validator = DatasetValidator()
+                  validator.fit(df)
+                  results = validator.transform(df, target_col="target")
 
-                          # Check results
-                          for check, result in results.items():
-                              print(f"{check}: {'Passed' if result.passed else 'Failed'}")
+                  # Check results
+                  for check, result in results.items():
+                      print(f"{check}: {'Passed' if result.passed else 'Failed'}")
 
         .. note::
             - Uses pure Narwhals operations
             - Handles LazyFrame evaluation
             - Returns detailed results
+                Dictionary of validation results for each check
 
         """
         # Execute validation checks
@@ -940,30 +1105,45 @@ class DatasetValidator:
     ) -> Dict[str, ValidationResult]:
         """Fit the validator and run validation checks in one step.
 
-        :param df: DataFrame to validate
-        :type df: Union[SupportedTemporalDataFrame, FrameT]
-        :param target_col: Column name for target-specific checks
-        :type target_col: Optional[str]
-        :return: Dictionary of validation results for each check
-        :rtype: Dict[str, ValidationResult]
-        :raises TypeError: If input is not convertible to a Narwhals DataFrame
+        Parameters
+        ----------
+        df : Union[SupportedTemporalDataFrame, FrameT]
+            DataFrame to validate
+        target_col : Optional[str]
+            Column name for target-specific checks
+        df: Union[SupportedTemporalDataFrame :
 
-        Example:
+        FrameT] :
+
+        target_col: Optional[str] :
+             (Default value = None)
+
+        Returns
         -------
+        Dict[str, ValidationResult]
+            Dictionary of validation results for each check
+
+        Raises
+        ------
+        TypeError
+            If input is not convertible to a Narwhals DataFrame
+
+        Examples
+        --------
         .. code-block:: python
 
-                          import pandas as pd
-                          from temporalscope.datasets import DatasetValidator
+        import pandas as pd
+        from temporalscope.datasets import DatasetValidator
 
-                          # Create sample data
-                          df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
+        # Create sample data
+        df = pd.DataFrame({"feature1": range(5000), "target": range(5000)})
 
-                          # Initialize and run validator
-                          validator = DatasetValidator()
-                          results = validator.fit_transform(df, target_col="target")
+        # Initialize and run validator
+        validator = DatasetValidator()
+        results = validator.fit_transform(df, target_col="target")
 
-                          # Print report
-                          validator.print_report(results)
+        # Print report
+        validator.print_report(results)
 
         .. note::
             - Combines fit() and transform()
@@ -980,8 +1160,19 @@ class DatasetValidator:
         For production use cases, use the structured results directly from the
         validation methods.
 
-        :param results: Dictionary of validation results to report
-        :type results: Dict[str, ValidationResult]
+        Parameters
+        ----------
+        results : Dict[str, ValidationResult]
+            Dictionary of validation results to report
+        results: Dict[str :
+
+        ValidationResult] :
+
+
+        Returns
+        -------
+        None
+
         """
         rows = []
         for check_name, result in results.items():

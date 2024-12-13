@@ -1,7 +1,7 @@
 <p align="center">
   <img src="assets/temporalscope_github_banner.svg" alt="TemporalScope Logo" >
 </p>
-
+<!-- --8<-- [start:HOME] -->
 <h3 align="center">Scientifically driven Model-Agnostic Temporal Feature Importance Analysis</h3>
 
 <p align="center">
@@ -28,7 +28,6 @@
 
 ---
 
-<!-- SPHINX-START -->
 
 <div align="center">
   <table>
@@ -76,10 +75,8 @@
 
 **TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift.  This package is flexible and extensible, supporting frameworks like **Pandas, Polars, Modin, Dask, and PyArrow** via **native Narwhals compatibility**. Additionally, the optional _Clara LLM_ modules (etymology from the word _Clarity_) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase, so some installation methods may not work as expected on all platforms. Please check the `CONTRIBUTIONS.md` for the full roadmap.
 
-
-<!-- SPHINX-END -->
-
-### **Table of Contents**
+<!-- --8<-- [end:HOME] -->
+### Table of Contents
 
 - [**Installation**](#installation)
 - [**Usage**](#usage)
@@ -90,8 +87,9 @@
 - [Cite this Project](#cite-this-project)
 - [**License, Limitations, and Legal Notice**](#license-limitations-and-legal-notice)
 
-## **Installation**
 
+## Installation
+<!-- --8<-- [start:INSTALLATION] -->
 **Note**: TemporalScope is currently in **beta**, so some installation methods may not work as expected on all platforms.
 
 1. **Basic Installation using pip**: You can install the core package using pip:
@@ -115,8 +113,10 @@
    ```
 
    This process clones the repository, navigates to the project directory, and uses Hatch to create and activate a virtual environment with the project installed in development mode.
+<!-- --8<-- [end:INSTALLATION] -->
 
-## **Usage**
+<!-- --8<-- [start:USAGE] -->
+## Usage
 
 You can use TemporalScope with the following steps:
 
@@ -129,7 +129,6 @@ You can use TemporalScope with the following steps:
 5. **Analyze and Visualize Results**: Interpret the results to understand how feature importance evolves over time or across different phases.
 
 Now, let's refine the code example using a random forest model and an academic dataset. We'll use the California housing dataset as a simple example since it's well-known and accessible.
-
 ```python
 import polars as pl
 import pandas as pd
@@ -177,8 +176,9 @@ for partition_name, predictions in results.items():
     print(f"Predictions for {partition_name}:")
     print(predictions[:5])  # Display first 5 predictions
 ```
+<!-- --8<-- [end:USAGE] -->
 
-### **Industrial Academic Applications**
+### Industrial Academic Applications
 
 **DISCLAIMER**: The following use cases are provided for academic and informational purposes only. TemporalScope is intended to support research and development in understanding temporal dynamics in feature importance. These examples are not intended as guidance for industrial applications without further validation and expert consultation. The use of TemporalScope in any industrial or production environment is at the user's own risk, and the developers disclaim any liability for such use. Please refer to the [License and Legal Notice](#license-and-legal-notice) for further details.
 
@@ -195,15 +195,16 @@ For more detailed examples from sectors like engineering and other scientific ap
 
 For detailed test, security, and deployment workflows as defined by OpenSSF Best Practices, please refer to [CONTRIBUTING.md](CONTRIBUTING.md). **TemporalScope** follows **Semantic Versioning (SemVer)**, a versioning system that conveys the scope of changes introduced in each new release. Each version is represented in the form **MAJOR.MINOR.PATCH**, where major releases introduce significant or breaking changes, minor releases add backward-compatible functionality, and patch releases are used for bug fixes or minor improvements. Below is the planned roadmap outlining feature development and milestones over the next 12–18 months. This roadmap is subject to change based on user feedback, emerging research, and community contributions.
 
-## **Contributing**
+## Contributing
 
 TemporalScope was conceived independently by [Philip Ndikum](https://github.com/philip-ndikum), [Serge Ndikum](https://github.com/serge-ndikum), and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users. We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
 
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
 
-### **Contributors 💠**
+<!-- --8<-- [start:CONTRIBUTORS] -->
+### Contributors 💠
 
-Thanks to these wonderful people:
+Thanks to these wonderful people who have contributed to TemporalScope:
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
 <!-- prettier-ignore-start -->
@@ -218,9 +219,10 @@ Thanks to these wonderful people:
   </tbody>
 </table>
 <!-- ALL-CONTRIBUTORS-LIST:END -->
+<!-- --8<-- [end:CONTRIBUTORS] -->
 
 ## Cite this Project
-
+<!-- --8<-- [start:CITATION] -->
 If you use **TemporalScope** in your research, please consider citing it:
 
 ```bibtex
@@ -233,8 +235,10 @@ If you use **TemporalScope** in your research, please consider citing it:
   url = {https://github.com/philip-ndikum/TemporalScope}
 }
 ```
+<!-- --8<-- [end:CITATION] -->
 
-## **License, Limitations, and Legal Notice**
+<!-- --8<-- [start:LICENSE_AND_LEGAL] -->
+## License, Limitations, and Legal Notice
 
 **TemporalScope** is primarily an academic tool designed for research and informational purposes. Practitioners and users of this software are strongly encouraged to consult the accompanying [SCIENTIFIC_LITERATURE.md](SCIENTIFIC_LITERATURE.md) document to fully understand the theoretical limitations, assumptions, and context of the techniques implemented within this package. Furthermore, use of this software falls under "as-is" software as defined by the [Apache License 2.0](LICENSE) provided in this repository and outlined below.
 
@@ -243,3 +247,4 @@ By using this package, you agree to comply with the terms and conditions set for
 **LEGAL NOTICE**: THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 THIS SOFTWARE IS INTENDED FOR ACADEMIC AND INFORMATIONAL PURPOSES ONLY. IT SHOULD NOT BE USED IN PRODUCTION ENVIRONMENTS OR FOR CRITICAL DECISION-MAKING WITHOUT PROPER VALIDATION. ANY USE OF THIS SOFTWARE IS AT THE USER'S OWN RISK.
+<!-- --8<-- [end:LICENSE_AND_LEGAL] -->
