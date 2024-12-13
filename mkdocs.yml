@@ -10,9 +10,9 @@ nav:
 - Usage: usage.md
 - Installation: installation.md
 - API reference: reference/
-- Contributing: contributing.md
-- References: references.md
+- Development: contributing.md
 - License & Legal: license_and_legal.md
+- References: references.md
 - Cite: citation.md
 
 theme:
@@ -94,9 +94,18 @@ extra:
       name: TemporalScope on GitHub
 
 markdown_extensions:
-- pymdownx.superfences
-- pymdownx.snippets
-- pymdownx.arithmatex
+  - def_list
+  - admonition
+  - callouts:
+      strip_period: false
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.snippets
+  - pymdownx.arithmatex
+  - pymdownx.emoji
+  - attr_list
+  - md_in_html
+  - pymdownx.blocks.caption
 
 extra_css:
 - css/mkdocstrings.css

@@ -1,4 +1,5 @@
 ## Table of Contents
+
 - [Contributing to TemporalScope](#contributing-to-temporalscope)
   - [Contribution Guidelines](#contribution-guidelines)
 - [How to Contribute to TemporalScope](#how-to-contribute-to-temporalscope)
@@ -19,58 +20,49 @@
   - [Workflow for Releasing New Versions](#workflow-for-releasing-new-versions)
   - [Code Style](#code-style)
   - [Reporting Issues \& Requesting Features](#reporting-issues--requesting-features)
-<!-- --8<-- [start:CONTRIBUTING] -->
-# Contributing to TemporalScope
+  <!-- --8<-- [start:CONTRIBUTING] -->
 
-Thank you for your interest in contributing to TemporalScope! Contributions of all kinds are welcome and appreciated.
+# Contributing to TemporalScope ⌨️
+
+Thank you for your interest in contributing to TemporalScope! We welcome and appreciate contributions of all types. This guide is designed to help you get started with the contribution process.
 
 ## Contribution Guidelines
 
-> [!IMPORTANT]
+> WARNING: **Important**
 > By contributing to this project, you are agreeing to the following conditions:
 
-1. **Adherence to the Apache License 2.0**:
-   - All contributions must comply with the [Apache License 2.0](LICENSE).
-   - You must ensure that all work contributed is your own original creation, fully independent, or obtained through publicly available academic literature or properly licensed third-party sources.
-2. **Conflict of Interest and Independence**:
-   - By contributing, you affirm that your contributions do not conflict with any other proprietary agreements, employment contracts, or other legal obligations you may have.
-   - You agree that all work contributed does not infringe on any third-party rights or violate any agreements you are bound to (such as non-compete or non-disclosure agreements).
-3. **Academic Integrity and Citation**:
-   - If your contributions are based on academic literature or third-party software, you must properly cite and reference these sources in compliance with the principles of academic integrity and the terms of the Apache License.
-4. **Workflow Compliance**:
-   - All contributors must comply with the project's defined workflow protocols, including adhering to test, security, and deployment workflows, as outlined in the [OpenSSF Best Practices](https://openssf.org/).
-5. **Liability and Responsibility**:
-   - Contributors assume full responsibility for the originality and legality of their contributions and will hold harmless the project maintainers from any claims arising from legal conflicts, breaches, or intellectual property issues related to their contributions.
+- **Adherence to the Apache License 2.0:**
+  - All contributions must comply with the [Apache License 2.0](LICENSE).
+  - You must ensure that all work contributed is your own original creation, fully independent, or obtained through publicly available academic literature or properly licensed third-party sources.
+- **Conflict of Interest and Independence**:
+  - By contributing, you affirm that your contributions do not conflict with any other proprietary agreements, employment contracts, or other legal obligations you may have.
+  - You agree that all work contributed does not infringe on any third-party rights or violate any agreements you are bound to (such as non-compete or non-disclosure agreements).
+- **Academic Integrity and Citation:**
+  - If your contributions are based on academic literature or third-party software, you must properly cite and reference these sources in compliance with the principles of academic integrity and the terms of the Apache License.
+- **Workflow Compliance:**
+  - All contributors must comply with the project's defined workflow protocols, including adhering to test, security, and deployment workflows, as outlined in the [OpenSSF Best Practices](https://openssf.org/).
+- **Liability and Responsibility:**
+  - Contributors assume full responsibility for the originality and legality of their contributions and will hold harmless the project maintainers from any claims arising from legal conflicts, breaches, or intellectual property issues related to their contributions.
 
-We are excited to have your contributions but ask that you follow these guidelines to ensure the project remains legally sound and academically rigorous.
-
-## How to Contribute to TemporalScope
-
-We welcome contributions to TemporalScope! This guide will help you get started with the contribution process.
+We are excited to have your contributions and ask that you follow these guidelines to ensure the project remains legally sound and academically rigorous.
 
 ## Issue Tracking
 
 We use [GitHub Issues](https://github.com/philip-ndikum/TemporalScope/issues) to track bugs, enhancements, features, and refactoring suggestions. To propose something new:
 
-1. Open an Issue
-2. Describe the issue:
+**Open an Issue:**
 
-   - Expected behavior
-   - Actual behavior
-   - Context and reproduction steps
+- Describe the issue (expected behavior, actual behavior, context and reproduction steps)
+- Provide a rough implementation or pseudo code if necessary
+- Include any relevant information you've collected
 
-3. Provide a rough implementation or pseudo code if necessary
-4. Include any relevant information you've collected
+**After submission:**
 
-After submission:
+- The project team will label the issue
+- A team member will attempt to reproduce the issue (If reproduction steps are unclear, you may be asked for more details)
+- Reproducible issues will be scheduled for a fix, or left open for community implementation
 
-1. The project team will label the issue
-2. A team member will attempt to reproduce the issue
-   - If reproduction steps are unclear, you may be asked for more details
-3. Reproducible issues will be:
-   - Scheduled for a fix, or left open for community implementation
-
-Guidelines for effective issue reports:
+**Guidelines for effective issue reports:**
 
 - Be as specific as possible
 - Include code samples when relevant
@@ -85,13 +77,13 @@ Guidelines for effective issue reports:
 2. Clone a local copy of your fork:
 
    ```console
-   $ git clone git@github.com:YOUR-USERNAME/TemporalScope.git
+   git clone git@github.com:YOUR-USERNAME/TemporalScope.git
    ```
 
    or
 
    ```console
-   $ git clone https://github.com/YOUR-USERNAME/TemporalScope.git
+   git clone https://github.com/YOUR-USERNAME/TemporalScope.git
    ```
 
 ### Setup Development Environment
@@ -112,7 +104,7 @@ TemporalScope uses [Hatch](https://hatch.pypa.io/latest/), a Python project mana
 We use [pre-commit](https://pre-commit.com/) hooks to ensure code quality and consistency. Set up the git hook scripts:
 
 ```console
-$ pre-commit install --hook-type commit-msg --hook-type pre-push
+pre-commit install --hook-type commit-msg --hook-type pre-push
 ```
 
 ### Create a New Branch
@@ -120,7 +112,7 @@ $ pre-commit install --hook-type commit-msg --hook-type pre-push
 Create a new branch with a descriptive name for your changes:
 
 ```console
-$ git switch -c <descriptive-branch-name>
+git switch -c <descriptive-branch-name>
 ```
 
 ### Make Your Changes
@@ -137,59 +129,55 @@ Before submitting your changes, perform the following steps:
 
 1. Run the test suite:
 
-```console
-$ hatch run test:unit
-```
-```console
-$ hatch run test:integration
-```
+    ```console
+    hatch run test:unit
+    ```
+
+    ```console
+    hatch run test:integration
+    ```
 
 2. Check your code format:
 
-```console
-$ hatch run format-check
-```
+    ```console
+    hatch run format-check
+    ```
 
 3. Format your code (if needed):
 
-```console
-$ hatch run format
-```
+    ```console
+    hatch run format
+    ```
 
 4. Check your code style according to linting rules:
 
-```console
-$ hatch run check
-```
+    ```console
+    hatch run check
+    ```
 
 5. Automatically fix some errors (when possible):
 
-```console
-$ hatch run fix
-```
+    ```console
+    hatch run fix
+    ```
 
-6. All checks (managed by pre-commit)
-```console
-$ hatch run quality-assurance
-```
 
-> [!NOTE]
+> NOTE:
 > Running these checks locally will help identify and resolve issues before submitting your changes, streamlining the review process.
 
 ### Commit Your Changes
 
 1. Stage your changes:
 
-   ```console
-   $ git add [args]
-   ```
-
+    ```console
+    git add [args]
+    ```
 
 2. Commit your changes with a descriptive commit message. Follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification:
 
-   ```console
-   $ git commit -m "<type>[optional scope]: <description>"
-   ```
+    ```console
+    git commit -m "<type>[optional scope]: <description>"
+    ```
 
    Example commit messages:
 
@@ -197,25 +185,24 @@ $ hatch run quality-assurance
    - `fix(api): resolve data parsing error`
    - `docs: update README with new configuration options`
 
-
    Alternatively, [Commitizen](https://commitizen-tools.github.io/commitizen/) is a handy tool for crafting commit messages that follow the Conventional Commit format. Simply run the command:
 
-   ```bash
-   $ cz commit
-   ```
+```console
+cz commit
+```
 
    and follow the interactive prompts. Commitizen will generate a commit message that complies with the required standards.
 
-> [!NOTE]
+> NOTE:
 > If you've set up pre-commit hooks as recommended, they will automatically run various checks before finalizing your commit. This helps ensure code quality and consistency.
 
 ### Submit a Pull Request
 
 1. Push your changes to your fork:
 
-   ```console
-   $ git push origin <your-branch-name>
-   ```
+    ```console
+    git push origin <your-branch-name>
+    ```
 
 2. Go to the [TemporalScope repository](https://github.com/philip-ndikum/TemporalScope) on GitHub.
 3. Click on "Pull requests" and then "New pull request".
@@ -223,7 +210,7 @@ $ hatch run quality-assurance
 5. Fill out the pull request template with details about your changes.
 6. Submit the pull request.
 
-> [!TIP]
+> SUCCESS: **Tip**
 > To ease the review process, please follow the instructions:
 >
 > - For the title, use the [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
@@ -238,47 +225,50 @@ $ hatch run quality-assurance
 Thank you for contributing to TemporalScope!
 
 ## Documentation
-TemporalScope utilizes [Sphinx](https://www.sphinx-doc.org/en/master/) for its documentation.
+
+TemporalScope utilizes [Mkdocs](https://www.mkdocs.org/) for its documentation.
 
 To build the docs locally run the following command
+
 ```console
-$ cd docs
-$ hatch run docs:build
-```
-To view the docs locally run the following command
-```console
-$ cd docs
-$ hatch run docs:serve
+cd docs
+hatch run docs:build
 ```
 
-API documentation is automatically generated using the [sphinx-autoapi](https://sphinx-autoapi.readthedocs.io/en/latest/) extension. It extracts and builds the documentation directly from the code’s docstrings, which are written in reStructuredText (reST) format.
+To view the docs locally run the following command
+
+```console
+cd docs
+hatch run docs:serve
+```
+
+API documentation is automatically generated using the [mkdocstrings](https://mkdocstrings.github.io/) extension. It extracts and builds the documentation directly from the code’s docstrings, which are written in Numpy format.
 
 ## Test Policy
 
 TemporalScope prioritizes code quality, security, and stability. To uphold these standards:
 
-1. New functionality should include corresponding tests.
-2. [PyTest](https://docs.pytest.org/en/stable/) is our primary testing framework.
-3. Required test types:
-
-   - Unit tests for all new features
-   - Integration tests where applicable
-
-4. Test coverage should include:
-
-   - Main functionality
-   - Edge cases
-   - Boundary conditions
-
-5. Before pushing code:
-
-   - Ensure all test pass locally
-
-6. Test guidelines:
-   - Keep tests simple and easy to understand
-   - Follow PyTest [best practices](https://emimartin.me/pytest_best_practices)
+- New functionality should include corresponding tests.
+- [PyTest](https://docs.pytest.org/en/stable/) is our primary testing framework.
+- Required test types:
+    - Unit tests for all new features
+    - Integration tests where applicable
+- Test coverage should include:
+    - Main functionality
+    - Edge cases
+    - Boundary conditions
+- Before pushing code:
+    - Ensure all test pass locally
+    - Run formatting and linting checks
+- Test guidelines:
+    - Keep tests simple and easy to understand
+    - Follow PyTest [best practices](https://emimartin.me/pytest_best_practices)
 
 This policy helps ensure code integrates well with the existing codebase and prevents future bugs or regressions.
+
+## Coverage
+
+Coverage reports are generated with [pytest-cov](https://github.com/pytest-dev/pytest-cov) and are available for viewing on [Coveralls](https://coveralls.io/github/philip-ndikum/TemporalScope).
 
 ## Development Roadmap & Changelog
 
@@ -319,14 +309,15 @@ By following this workflow, we ensure a consistent and smooth release process ac
 
 We strictly enforce code quality and style to ensure the stability and maintainability of the project.
 
-- **[Ruff](https://docs.astral.sh/ruff)** formatting and linting
-- **[Mypy](https://mypy.readthedocs.io/en/stable/)** type checking
+- **[Ruff](https://docs.astral.sh/ruff)** formatting and linting.
+- **[Mypy](https://mypy.readthedocs.io/en/stable/)** type checking.
 - **[PEP 8](https://peps.python.org/pep-0008/)** guidelines are followed for Python code style.
-- **[Sphinx-style docstrings](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html)** with type hints are required to conform to **MyPy** standards, enabling early error detection.
+- **[Numpy-style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html)** with type hints are required to conform to the project's documentation standards.
 - Write clear and concise commit messages. Adhere to [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
 - Include comments and docstrings where necessary to improve code readability.
 
 ## Reporting Issues & Requesting Features
 
-If you encounter any bugs or issues, please read our `SECURITY.md` for instructions on managing security issues. Alternatively, utilize the Github Discussions to raise issues or potential long term features.
+If you encounter any bugs or issues, please read our `SECURITY.md` for instructions on managing security issues. Alternatively, utilize Github issues to report a bug or potential long term feature request.
+
 <!-- --8<-- [end:CONTRIBUTING] -->

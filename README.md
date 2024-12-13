@@ -73,7 +73,10 @@
 
 ---
 
-**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift.  This package is flexible and extensible, supporting frameworks like **Pandas, Polars, Modin, Dask, and PyArrow** via **native Narwhals compatibility**. Additionally, the optional _Clara LLM_ modules (etymology from the word _Clarity_) are intended to serve as a model-validation tool to support explainability efforts (XAI). **Note**: TemporalScope is currently in **beta and pre-release** phase, so some installation methods may not work as expected on all platforms. Please check the `CONTRIBUTIONS.md` for the full roadmap.
+**TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift.
+
+This package is flexible and extensible, supporting frameworks like **Pandas, Polars, Modin, Dask, and PyArrow** via **native Narwhals compatibility**. Additionally, the optional _Clara LLM_ modules (etymology from the word _Clarity_) are intended to serve as a model-validation tool to support explainability efforts (XAI).  
+> NOTE: TemporalScope is currently in **beta and pre-release** phase, so some installation methods may not work as expected on all platforms.
 
 <!-- --8<-- [end:HOME] -->
 ### Table of Contents
@@ -90,34 +93,32 @@
 
 ## Installation
 <!-- --8<-- [start:INSTALLATION] -->
-**Note**: TemporalScope is currently in **beta**, so some installation methods may not work as expected on all platforms.
 
-1. **Basic Installation using pip**: You can install the core package using pip:
+> WARNING: TemporalScope is currently in **beta**, so some installation methods may not work as expected on all platforms.
+
+TemporalScope can be installed using the following methods:
+
+1. **via pip (recommended)**: You can install the core package using pip:
    ```console
    $ pip install temporalscope
    ```
-2. **Installation with conda**: For conda users, install via conda-forge:
+2. **with conda**: For conda users, install via conda-forge:
    ```console
    $ conda install -c conda-forge temporalscope
    ```
-3. **System-level Dependencies**: To view generated documentation locally, you may need `xdg-open`:
-   ```console
-   $ sudo apt install xdg-utils
-   ```
-4. **Git Clone and Setup**: For security reasons, we minimize system-level dependencies. If you prefer the latest development version, follow these steps to clone the repository and set up the project using Hatch:
+3. **git clone and setup (advanced)**: If you prefer the latest development version, follow these steps to clone the repository and set up the project using Hatch:
 
-   ```console
-   $ git clone https://github.com/philip-ndikum/TemporalScope.git
-   $ cd TemporalScope
-   $ hatch shell
-   ```
-
-   This process clones the repository, navigates to the project directory, and uses Hatch to create and activate a virtual environment with the project installed in development mode.
+    ```console
+    $ git clone https://github.com/philip-ndikum/TemporalScope.git
+    $ cd TemporalScope
+    $ hatch shell
+    ```
+    This process clones the repository, navigates to the project directory, and uses Hatch to create and activate a virtual environment with the project installed in development mode.
 <!-- --8<-- [end:INSTALLATION] -->
 
-<!-- --8<-- [start:USAGE] -->
-## Usage
 
+## Usage
+<!-- --8<-- [start:USAGE] -->
 You can use TemporalScope with the following steps:
 
 1. **Import TemporalScope**: Start by importing the package.
@@ -237,9 +238,9 @@ If you use **TemporalScope** in your research, please consider citing it:
 ```
 <!-- --8<-- [end:CITATION] -->
 
-<!-- --8<-- [start:LICENSE_AND_LEGAL] -->
-## License, Limitations, and Legal Notice
 
+## License, Limitations, and Legal Notice
+<!-- --8<-- [start:LICENSE_AND_LEGAL] -->
 **TemporalScope** is primarily an academic tool designed for research and informational purposes. Practitioners and users of this software are strongly encouraged to consult the accompanying [SCIENTIFIC_LITERATURE.md](SCIENTIFIC_LITERATURE.md) document to fully understand the theoretical limitations, assumptions, and context of the techniques implemented within this package. Furthermore, use of this software falls under "as-is" software as defined by the [Apache License 2.0](LICENSE) provided in this repository and outlined below.
 
 By using this package, you agree to comply with the terms and conditions set forth in the **Apache License 2.0**.

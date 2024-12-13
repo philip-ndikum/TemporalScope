@@ -1,4 +1,4 @@
-## Research Literature
+## Literature
 
 This document lists key literature that has informed the development of this package. Please note that this is not a conclusive list but highlights the most relevant works. Our design is explicitly built for flexibility, unlike other time series machine learning and deep learning packages that often enforce rigid preprocessing constraints. We intentionally adopt familiar software engineering patterns, inspired by scikit-learn, to provide a modular and adaptable framework. The only assumption we impose is that features must be organized in a context window prior to the target variable. This allows users to focus on their core applications while ensuring compatibility with SHAP and other explainability methods.
 
