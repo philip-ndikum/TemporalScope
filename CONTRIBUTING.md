@@ -82,9 +82,9 @@ We use [GitHub Issues](https://github.com/philip-ndikum/TemporalScope/issues) to
     ```console
     git clone git@github.com:YOUR-USERNAME/TemporalScope.git
     ```
-    
+
     or
-    
+
     ```console
     git clone https://github.com/YOUR-USERNAME/TemporalScope.git
     ```
@@ -333,7 +333,7 @@ We strictly enforce code quality and style to ensure the stability and maintaina
 - Write clear and concise commit messages. Adhere to [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
 - Include comments and docstrings where necessary to improve code readability.
 
-Once Hatch and pre-commit are installed, checks run automatically before each commit, ensuring your code meets project standards. The CI pipeline also verifies these checks before merging. 
+Once Hatch and pre-commit are installed, checks run automatically before each commit, ensuring your code meets project standards. The CI pipeline also verifies these checks before merging.
 
 > TIP:
 Most IDEs and text editors have plugins to help adhere these standards.
