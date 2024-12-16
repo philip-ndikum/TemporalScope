@@ -5,7 +5,7 @@ icon: material/wrench
 
 > WARNING: TemporalScope is currently in **beta**, so some installation methods may not work as expected on all platforms.
 
-    === "pip (recommended_"
+    === "pip (recommended)"
 
         ``` console
         $ pip install temporalscope
