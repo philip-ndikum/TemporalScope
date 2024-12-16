@@ -100,12 +100,13 @@ markdown_extensions:
       strip_period: false
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
   - pymdownx.snippets
   - pymdownx.arithmatex
   - pymdownx.emoji
   - attr_list
   - md_in_html
-  - pymdownx.blocks.caption
 
 extra_css:
 - css/mkdocstrings.css

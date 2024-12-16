@@ -26,6 +26,7 @@
 
 Thank you for your interest in contributing to TemporalScope! We welcome and appreciate contributions of all types. This guide is designed to help you get started with the contribution process.
 
+---
 ## Contribution Guidelines
 
 > WARNING: **Important**
@@ -46,6 +47,7 @@ Thank you for your interest in contributing to TemporalScope! We welcome and app
 
 We are excited to have your contributions and ask that you follow these guidelines to ensure the project remains legally sound and academically rigorous.
 
+---
 ## Issue Tracking
 
 We use [GitHub Issues](https://github.com/philip-ndikum/TemporalScope/issues) to track bugs, enhancements, features, and refactoring suggestions. To propose something new:
@@ -69,6 +71,7 @@ We use [GitHub Issues](https://github.com/philip-ndikum/TemporalScope/issues) to
 - Describe your environment (OS, python version, etc.) if applicable
 - Use clear, concise language
 
+---
 ## Contributing Code
 
 ### Fork the Repository
@@ -252,7 +255,6 @@ API documentation is automatically generated using the [mkdocstrings](https://mk
 
 ---
 
-Let me know if you'd like further refinements!
 ## Testing
 
 TemporalScope prioritizes code quality, security, and stability. To uphold these standards:
@@ -275,10 +277,12 @@ TemporalScope prioritizes code quality, security, and stability. To uphold these
 
 This policy helps ensure code integrates well with the existing codebase and prevents future bugs or regressions.
 
+---
 ## Coverage
 
 Coverage reports are generated with [pytest-cov](https://github.com/pytest-dev/pytest-cov) and are available for viewing on [Coveralls](https://coveralls.io/github/philip-ndikum/TemporalScope).
 
+---
 ## Development Roadmap & Changelog
 
 **TemporalScope** follows **[Semantic Versioning (SemVer)](https://semver.org/)**, a versioning system that conveys the scope of changes introduced in each new release. Each version is represented in the form **MAJOR.MINOR.PATCH**, where major releases introduce significant or breaking changes, minor releases add backward-compatible functionality, and patch releases are used for bug fixes or minor improvements. Below is the planned roadmap outlining feature development and milestones over the next 12–18 months. This roadmap is subject to change based on user feedback, emerging research, and community contributions.
@@ -291,6 +295,7 @@ Coverage reports are generated with [pytest-cov](https://github.com/pytest-dev/p
 | **0.5.0**   | Planned     | Focused on achieving a stable release. This version will include extensive user testing, bug fixes, and performance optimizations after several months of use in diverse environments.               |
 | **1.0.0**   | Stable      | The first fully stable release, with robust documentation, thorough testing, and any feedback-driven refinements. This version will be ready for broader production use and long-term support.       |
 
+---
 ## Workflow for Releasing New Versions
 
 In order to maintain consistency and clarity across different distribution platforms like **PyPI**, **Conda**, and **GitHub**, we follow a structured workflow for releasing new versions:
@@ -312,6 +317,7 @@ In order to maintain consistency and clarity across different distribution platf
    - Ensure all distribution platforms (PyPI, Conda, GitHub) reflect the new release.
    - Test the installation via `pip install temporalscope` and `conda install temporalscope` to ensure everything works as expected.
 
+---
 ## Code Style
 
 We strictly enforce code quality and style to ensure the stability and maintainability of the project.
@@ -323,6 +329,7 @@ We strictly enforce code quality and style to ensure the stability and maintaina
 - Write clear and concise commit messages. Adhere to [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
 - Include comments and docstrings where necessary to improve code readability.
 
+---
 ## Reporting Issues & Requesting Features
 
 If you encounter any bugs or issues, please read our `SECURITY.md` for instructions on managing security issues. Alternatively, utilize Github issues to report a bug or potential long term feature request.
