@@ -172,14 +172,13 @@ def test_time_column_generation(backend: str, time_col_numeric: bool) -> None:
             assert pa.types.is_floating(time_type), "Expected PyArrow float column"
         else:
             assert isinstance(time_val, (np.float64, float)), "Expected numeric column"
+    elif isinstance(df, pl.DataFrame):
+        assert isinstance(time_val, datetime), "Expected Polars datetime column"
+    elif isinstance(df, pa.Table):
+        time_type = df.schema.field("time").type  # type: ignore
+        assert isinstance(time_type, pa.TimestampType), "Expected PyArrow timestamp column"
     else:
-        if isinstance(df, pl.DataFrame):
-            assert isinstance(time_val, datetime), "Expected Polars datetime column"
-        elif isinstance(df, pa.Table):
-            time_type = df.schema.field("time").type  # type: ignore
-            assert isinstance(time_type, pa.TimestampType), "Expected PyArrow timestamp column"
-        else:
-            assert isinstance(time_val, (pd.Timestamp, datetime)), "Expected timestamp column"
+        assert isinstance(time_val, (pd.Timestamp, datetime)), "Expected timestamp column"
 
 
 # ========================= Error Handling Tests =========================

@@ -22,6 +22,8 @@ header:
     - '**/*.sh'
     - '.gitkeep'
     - '.env.example'
+    - '.all-contributorsrc'
+    - 'scripts/gen_ref_docs.py'
 
   comment: on-failure
 

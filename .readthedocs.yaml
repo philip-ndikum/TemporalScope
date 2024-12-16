@@ -1,4 +1,4 @@
-# Read the Docs configuration file for Sphinx projects
+# Read the Docs configuration file for Mkdocs projects
 # See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 
 version: 2
@@ -15,6 +15,5 @@ python:
       extra_requirements:
         - docs
 
-sphinx:
-  configuration: docs/conf.py
-  fail_on_warning: true
+mkdocs:
+  configuration: mkdocs.yml

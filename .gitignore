@@ -30,10 +30,8 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Sphinx documentation
-docs/_build/*
-docs/.doctrees/
-docs/.buildinfo
+# Mkdocs documentation
+/site/
 
 # Jupyter / IPython
 .ipynb_checkpoints/

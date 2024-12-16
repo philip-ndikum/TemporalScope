@@ -1,0 +1,118 @@
+site_name: "TemporalScope"
+site_description: "Scientifically driven Model-Agnostic Temporal Feature Importance Analysis with SHAP & partitioning algorithms (supporting Pandas, Polars, Modin, PyArrow, Dask)."
+copyright:  "Copyright &copy; Philip Ndikum, Serge Ndikum, Kane Norman 2024-present"
+
+repo_name: philip-ndikum/TemporalScope
+repo_url: https://github.com/philip-ndikum/TemporalScope
+
+nav:
+- Home:
+  - About: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Usage: usage.md
+  - Development:
+    - Contributing: contributing.md
+  - Disclaimers:
+    - License & Legal: license_and_legal.md
+  - Literature:
+    - References: references.md
+    - Cite: citation.md
+- API reference: reference/
+
+theme:
+  name: "material"
+  language: en
+  favicon: "images/favicon.ico"
+  icon:
+    repo: fontawesome/brands/github-alt
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.footer
+    - toc.follow
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - search.share
+  palette:
+
+    - media: "(prefers-color-scheme)"
+      primary: custom
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to system preference
+
+
+plugins:
+- search
+- gen-files:
+    scripts:
+      - scripts/gen_ref_pages.py
+- literate-nav:
+    nav_file: SUMMARY.md
+- section-index
+- mkdocstrings:
+    handlers:
+      python:
+        paths: [src]
+        options:
+          docstring_options:
+            ignore_init_summary: true
+          docstring_style: numpy
+          summary: true
+          show_bases: false
+          annotations_path: brief
+          docstring_section_style: spacy
+          merge_init_into_class: true
+          show_if_no_docstring: true
+          show_symbol_type_heading: true
+          show_symbol_type_toc: true
+          show_labels : false
+          separate_signature: true
+          show_signature_annotations: true
+          signature_crossrefs: true
+          line_length: 60
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/philip-ndikum/TemporalScope
+      name: TemporalScope on GitHub
+
+markdown_extensions:
+  - def_list
+  - admonition
+  - callouts:
+      strip_period: false
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets
+  - pymdownx.arithmatex
+  - pymdownx.emoji
+  - attr_list
+  - md_in_html
+
+extra_css:
+- css/mkdocstrings.css
+- css/colors.css

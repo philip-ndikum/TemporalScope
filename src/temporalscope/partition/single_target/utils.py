@@ -34,17 +34,35 @@ def validate_percentages(
     This function ensures percentages are within the range [0, 1], computes missing values,
     and validates that their sum equals 1.0.
 
-    :param train_pct: Percentage of data allocated for training.
-    :type train_pct: float
-    :param test_pct: Percentage of data allocated for testing.
-    :type test_pct: Optional[float]
-    :param val_pct: Percentage of data allocated for validation.
-    :type val_pct: Optional[float]
-    :param precision: Tolerance for floating-point imprecision. Default is 1e-6.
-    :type precision: float
-    :return: Tuple of validated percentages (train_pct, test_pct, val_pct).
-    :rtype: Tuple[float, float, float]
-    :raises ValueError: If percentages are invalid or do not sum to 1.0.
+    Parameters
+    ----------
+    train_pct : float
+        Percentage of data allocated for training.
+    test_pct : Optional[float]
+        Percentage of data allocated for testing.
+    val_pct : Optional[float]
+        Percentage of data allocated for validation.
+    precision : float
+        Tolerance for floating-point imprecision. Default is 1e-6.
+    train_pct: float :
+
+    test_pct: Optional[float] :
+
+    val_pct: Optional[float] :
+
+    precision: float :
+         (Default value = 1e-6)
+
+    Returns
+    -------
+    Tuple[float, float, float]
+        Tuple of validated percentages (train_pct, test_pct, val_pct).
+
+    Raises
+    ------
+    ValueError
+        If percentages are invalid or do not sum to 1.0.
+
     """
     if not (0 <= train_pct <= 1):
         raise ValueError("`train_pct` must be between 0 and 1.")
@@ -86,18 +104,36 @@ def determine_partition_scheme(
 
     This function calculates `num_partitions` or `window_size` based on the dataset size.
 
-    :param num_partitions: Number of partitions, optional.
-    :type num_partitions: Optional[int]
-    :param window_size: Size of each partition, optional.
-    :type window_size: Optional[int]
-    :param total_rows: Total number of rows in the dataset.
-    :type total_rows: int
-    :param stride: Number of rows to skip between partitions. Defaults to `window_size`.
-    :type stride: Optional[int]
-    :return: Tuple containing the partition scheme ("num_partitions" or "window_size"),
-             the determined number of partitions, and window size.
-    :rtype: Tuple[str, int, int]
-    :raises ValueError: If both `num_partitions` and `window_size` are invalid.
+    Parameters
+    ----------
+    num_partitions : Optional[int]
+        Number of partitions, optional.
+    window_size : Optional[int]
+        Size of each partition, optional.
+    total_rows : int
+        Total number of rows in the dataset.
+    stride : Optional[int]
+        Number of rows to skip between partitions. Defaults to `window_size`.
+    num_partitions: Optional[int] :
+
+    window_size: Optional[int] :
+
+    total_rows: int :
+
+    stride: Optional[int] :
+
+
+    Returns
+    -------
+    Tuple[str, int, int]
+        Tuple containing the partition scheme ("num_partitions" or "window_size"),
+        the determined number of partitions, and window size.
+
+    Raises
+    ------
+    ValueError
+        If both `num_partitions` and `window_size` are invalid.
+
     """
     if num_partitions is None and window_size is None:
         raise ValueError("Either `num_partitions` or `window_size` must be specified.")
@@ -122,13 +158,30 @@ def determine_partition_scheme(
 def validate_cardinality(num_partitions: int, window_size: int, total_rows: int) -> None:
     """Validate dataset cardinality for the partitioning configuration.
 
-    :param num_partitions: Number of partitions.
-    :type num_partitions: int
-    :param window_size: Size of each partition.
-    :type window_size: int
-    :param total_rows: Total number of rows in the dataset.
-    :type total_rows: int
-    :raises ValueError: If dataset cardinality is insufficient for the configuration.
+    Parameters
+    ----------
+    num_partitions : int
+        Number of partitions.
+    window_size : int
+        Size of each partition.
+    total_rows : int
+        Total number of rows in the dataset.
+    num_partitions: int :
+
+    window_size: int :
+
+    total_rows: int :
+
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        If dataset cardinality is insufficient for the configuration.
+
     """
     if num_partitions > total_rows:
         raise ValueError(f"Insufficient rows ({total_rows}) for `num_partitions={num_partitions}`.")
@@ -143,9 +196,22 @@ def print_config(config: dict) -> None:
     (`int`, `float`, `bool`, `str`). It raises an error for any invalid types and then
     prints the configuration as a table.
 
-    :param config: Configuration dictionary with parameter names as keys and their values.
-    :type config: dict
-    :raises TypeError: If any value in the config dictionary is not an allowed type.
+    Parameters
+    ----------
+    config : dict
+        Configuration dictionary with parameter names as keys and their values.
+    config: dict :
+
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    TypeError
+        If any value in the config dictionary is not an allowed type.
+
     """
     # Allowed data types for config values
     allowed_types = (int, float, bool, str)
