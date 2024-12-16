@@ -207,8 +207,8 @@ If you use TemporalScope in your research, please consider citing it:
 
 
 ## License, Limitations, and Legal Notice
-<!-- --8<-- [start:LICENSE_AND_LEGAL] -->
-**TemporalScope** is primarily an academic tool designed for research and informational purposes. Practitioners and users of this software are strongly encouraged to consult the accompanying [SCIENTIFIC_LITERATURE.md](SCIENTIFIC_LITERATURE.md) document to fully understand the theoretical limitations, assumptions, and context of the techniques implemented within this package. Furthermore, use of this software falls under "as-is" software as defined by the [Apache License 2.0](LICENSE) provided in this repository and outlined below.
+<!-- --8<-- [start:LICENSE] -->
+**TemporalScope** is primarily an academic tool designed for research and informational purposes. Practitioners and users of this software are strongly encouraged to consult the accompanying scientific literature to fully understand the theoretical limitations, assumptions, and context of the techniques implemented within this package. Furthermore, use of this software falls under "as-is" software as defined by the Apache License 2.0 provided in this repository.
 
 By using this package, you agree to comply with the terms and conditions set forth in the **Apache License 2.0**.
 <!-- --8<-- [end:LICENSE] -->

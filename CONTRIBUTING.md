@@ -32,7 +32,7 @@ Thank you for your interest in contributing to TemporalScope! We welcome and app
 > By contributing to this project, you are agreeing to the following conditions:
 
 - **Adherence to the Apache License 2.0:**
-  - All contributions must comply with the [Apache License 2.0](LICENSE).
+  - All contributions must comply with the Apache License 2.0.
   - You must ensure that all work contributed is your own original creation, fully independent, or obtained through publicly available academic literature or properly licensed third-party sources.
 - **Conflict of Interest and Independence**:
   - By contributing, you affirm that your contributions do not conflict with any other proprietary agreements, employment contracts, or other legal obligations you may have.

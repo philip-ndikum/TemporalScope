@@ -1,7 +1,7 @@
 ---
 icon: material/format-quote-open
 ---
-# Cite 💬
+# Cite this Project 💬
 
 --8<--
 README.md:CITATION
