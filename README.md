@@ -37,7 +37,6 @@
                 <a href="https://img.shields.io/badge/python-3.10%2B-blue">
                     <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version">
                 </a>
-                <br>
                 <a href="https://img.shields.io/badge/OS-Linux-blue">
                     <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
                 </a>
@@ -57,15 +56,12 @@
                 <a href="https://docs.astral.sh/ruff/">
                     <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff">
                 </a>
-                <br>
                 <a href="https://www.mypy-lang.org/static/mypy_badge.svg">
                     <img src="https://www.mypy-lang.org/static/mypy_badge.svg" alt="Checked with mypy">
                 </a>
-                <br>
                 <a href="https://img.shields.io/badge/License-Apache%202.0-green">
                     <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
                 </a>
-                <br>
                 <img src="https://img.shields.io/github/all-contributors/projectOwner/projectName?color=ee8449&style=flat-square" alt="All Contributors">
             </td>
         </tr>
@@ -83,11 +79,9 @@
                 <a href="https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main">
                     <img src="https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg" alt="pre-commit.ci status">
                 </a>
-                <br>
                 <a href="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml">
                     <img src="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml/badge.svg" alt="GitHub Actions">
                 </a>
-                <br>
                 <a href="https://coveralls.io/github/philip-ndikum/TemporalScope">
                     <img src="https://coveralls.io/repos/github/philip-ndikum/TemporalScope/badge.svg" alt="Coverage Status">
                 </a>
@@ -99,7 +93,6 @@
                 <a href="https://www.bestpractices.dev/projects/9424">
                     <img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices">
                 </a>
-                <br>
                 <a href="https://github.com/PyCQA/bandit">
                     <img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit">
                 </a>
