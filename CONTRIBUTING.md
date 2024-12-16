@@ -30,22 +30,22 @@ Thank you for your interest in contributing to TemporalScope! We welcome and app
 ## Contribution Guidelines
 
 > WARNING: **Important**
-> By contributing to this project, you are agreeing to the following conditions:
+> By contributing to this project, you are agreeing to the following conditions
 
 - **Adherence to the Apache License 2.0:**
-  - All contributions must comply with the Apache License 2.0.
-  - You must ensure that all work contributed is your own original creation, fully independent, or obtained through publicly available academic literature or properly licensed third-party sources.
+    - All contributions must comply with the Apache License 2.0.
+    - You must ensure that all work contributed is your own original creation, fully independent, or obtained through publicly available academic literature or properly licensed third-party sources.
 - **Conflict of Interest and Independence**:
-  - By contributing, you affirm that your contributions do not conflict with any other proprietary agreements, employment contracts, or other legal obligations you may have.
-  - You agree that all work contributed does not infringe on any third-party rights or violate any agreements you are bound to (such as non-compete or non-disclosure agreements).
+    - By contributing, you affirm that your contributions do not conflict with any other proprietary agreements, employment contracts, or other legal obligations you may have.
+    - You agree that all work contributed does not infringe on any third-party rights or violate any agreements you are bound to (such as non-compete or non-disclosure agreements).
 - **Academic Integrity and Citation:**
-  - If your contributions are based on academic literature or third-party software, you must properly cite and reference these sources in compliance with the principles of academic integrity and the terms of the Apache License.
+    - If your contributions are based on academic literature or third-party software, you must properly cite and reference these sources in compliance with the principles of academic integrity and the terms of the Apache License.
 - **Workflow Compliance:**
-  - All contributors must comply with the project's defined workflow protocols, including adhering to test, security, and deployment workflows, as outlined in the [OpenSSF Best Practices](https://openssf.org/).
+    - All contributors must comply with the project's defined workflow protocols, including adhering to test, security, and deployment workflows, as outlined in the [OpenSSF Best Practices](https://openssf.org/).
 - **Liability and Responsibility:**
-  - Contributors assume full responsibility for the originality and legality of their contributions and will hold harmless the project maintainers from any claims arising from legal conflicts, breaches, or intellectual property issues related to their contributions.
+    - Contributors assume full responsibility for the originality and legality of their contributions and will hold harmless the project maintainers from any claims arising from legal conflicts, breaches, or intellectual property issues related to their contributions.
 
-We are excited to have your contributions and ask that you follow these guidelines to ensure the project remains legally sound and academically rigorous.
+Thank you for your understanding and cooperation. We look forward to your contributions!
 
 ---
 ## Issue Tracking
@@ -79,15 +79,15 @@ We use [GitHub Issues](https://github.com/philip-ndikum/TemporalScope/issues) to
 1. Create your own [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo) of the TemporalScope repository.
 2. Clone a local copy of your fork:
 
-   ```console
-   git clone git@github.com:YOUR-USERNAME/TemporalScope.git
-   ```
-
+    ```console
+    git clone git@github.com:YOUR-USERNAME/TemporalScope.git
+    ```
+    
     or
-
-   ```console
-   git clone https://github.com/YOUR-USERNAME/TemporalScope.git
-   ```
+    
+    ```console
+    git clone https://github.com/YOUR-USERNAME/TemporalScope.git
+    ```
 
 ### Setup Development Environment
 
@@ -229,6 +229,7 @@ cz commit
 
 Thank you for contributing to TemporalScope!
 
+---
 ## Documentation
 
 TemporalScope utilizes [Mkdocs](https://www.mkdocs.org/) for its documentation.
@@ -236,14 +237,12 @@ TemporalScope utilizes [Mkdocs](https://www.mkdocs.org/) for its documentation.
 To build the docs locally run the following command
 
 ```console
-cd docs
 hatch run docs:build
 ```
 
 To view the docs locally run the following command
 
 ```console
-cd docs
 hatch run docs:serve
 ```
 
@@ -252,6 +251,9 @@ API documentation is automatically generated using the [mkdocstrings](https://mk
 - **Content**: The documentation is written in Markdown and stored in the `docs` directory.
 - **API Documentation**: API references are automatically generated using the [mkdocstrings](https://mkdocstrings.github.io/) extension, which extracts information directly from the code's docstrings.
 - **Reference Pages**: The script `scripts/gen_ref_pages.py` dynamically generates API reference pages during each build, enabling fully automated and hands-off API documentation.
+
+Documentation is hosted on [Read the Docs](https://readthedocs.org/projects/temporalscope/) and is automatically updated with each commit to the main branch.
+PRs also provide a preview of the documentation changes.
 
 ---
 
@@ -275,12 +277,14 @@ TemporalScope prioritizes code quality, security, and stability. To uphold these
     - Keep tests simple and easy to understand
     - Follow PyTest [best practices](https://emimartin.me/pytest_best_practices)
 
-This policy helps ensure code integrates well with the existing codebase and prevents future bugs or regressions.
-
+> TIP:
+> If you are unfamiliar with PyTest, the [official documentation](https://docs.pytest.org/en/stable/) provides a comprehensive guide to writing and running tests.
+> Additionally, the [PyTest Quick Start Guide](https://docs.pytest.org/en/stable/getting-started.html) offers a quick introduction to the framework.
 ---
 ## Coverage
 
 Coverage reports are generated with [pytest-cov](https://github.com/pytest-dev/pytest-cov) and are available for viewing on [Coveralls](https://coveralls.io/github/philip-ndikum/TemporalScope).
+Coveralls provides comments on pull requests, indicating changes in coverage and highlighting areas that need additional testing.
 
 ---
 ## Development Roadmap & Changelog
@@ -301,21 +305,21 @@ Coverage reports are generated with [pytest-cov](https://github.com/pytest-dev/p
 In order to maintain consistency and clarity across different distribution platforms like **PyPI**, **Conda**, and **GitHub**, we follow a structured workflow for releasing new versions:
 
 1. Update the `CHANGELOG.md` File:
-   - Ensure that all the changes (new features, bug fixes, deprecations, and breaking changes) are accurately recorded in the `CHANGELOG.md`.
-   - Each release should include a brief summary of changes, structured by categories like **Features**, **Fixes**, and **Breaking Changes**.
+    - Ensure that all the changes (new features, bug fixes, deprecations, and breaking changes) are accurately recorded in the `CHANGELOG.md`.
+    - Each release should include a brief summary of changes, structured by categories like **Features**, **Fixes**, and **Breaking Changes**.
 2. Generate Release Notes:
-   - Use the information from the `CHANGELOG.md` to create consistent release notes.
-   - Ensure that the release notes are in a uniform format for each platform:
-     - PyPI: Include a summary of the changes in the release description.
-     - Conda: Similar release notes can be included when publishing to Conda.
-     - GitHub: Publish the release notes in the GitHub Releases section.
+    - Use the information from the `CHANGELOG.md` to create consistent release notes.
+    - Ensure that the release notes are in a uniform format for each platform:
+    - PyPI: Include a summary of the changes in the release description.
+    - Conda: Similar release notes can be included when publishing to Conda.
+    - GitHub: Publish the release notes in the GitHub Releases section.
 3. Distribute to Each Platform:
-   - PyPI: Push the package using hatch after running the necessary build commands.
-   - Conda: Ensure the package is properly built for Conda and distributed to the Conda package manager.
-   - GitHub: Create a GitHub Release, attaching the release notes, and tagging the release in the repository.
+    - PyPI: Push the package using hatch after running the necessary build commands.
+    - Conda: Ensure the package is properly built for Conda and distributed to the Conda package manager.
+    - GitHub: Create a GitHub Release, attaching the release notes, and tagging the release in the repository.
 4. Verify the Release:
-   - Ensure all distribution platforms (PyPI, Conda, GitHub) reflect the new release.
-   - Test the installation via `pip install temporalscope` and `conda install temporalscope` to ensure everything works as expected.
+    - Ensure all distribution platforms (PyPI, Conda, GitHub) reflect the new release.
+    - Test the installation via `pip install temporalscope` and `conda install temporalscope` to ensure everything works as expected.
 
 ---
 ## Code Style
@@ -328,6 +332,11 @@ We strictly enforce code quality and style to ensure the stability and maintaina
 - **[Numpy-style docstrings](https://numpydoc.readthedocs.io/en/latest/format.html)** with type hints are required to conform to the project's documentation standards.
 - Write clear and concise commit messages. Adhere to [conventional commit convention](https://www.conventionalcommits.org/en/v1.0.0/).
 - Include comments and docstrings where necessary to improve code readability.
+
+Once Hatch and pre-commit are installed, checks run automatically before each commit, ensuring your code meets project standards. The CI pipeline also verifies these checks before merging. 
+
+> TIP:
+Most IDEs and text editors have plugins to help adhere these standards.
 
 ---
 ## Reporting Issues & Requesting Features
