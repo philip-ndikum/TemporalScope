@@ -28,8 +28,7 @@
 </p>
 
 ---
-<div align="center">
-<table>
+<table style="margin-left: auto; margin-right: auto;">
     <tbody>
         <tr>
             <td><strong>Compatibility</strong></td>
@@ -100,7 +99,6 @@
         </tr>
     </tbody>
 </table>
-</div>
 
 
 
