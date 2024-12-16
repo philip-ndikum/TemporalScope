@@ -6,14 +6,19 @@ repo_name: philip-ndikum/TemporalScope
 repo_url: https://github.com/philip-ndikum/TemporalScope
 
 nav:
-- Home: index.md
-- Usage: usage.md
-- Installation: installation.md
+- Home:
+  - About: index.md
+  - Getting Started:
+    - Installation: installation.md
+    - Usage: usage.md
+  - Development:
+    - Contributing: contributing.md
+  - Disclaimers:
+    - License & Legal: license_and_legal.md
+  - Literature:
+    - References: references.md
+    - Cite: citation.md
 - API reference: reference/
-- Development: contributing.md
-- License & Legal: license_and_legal.md
-- References: references.md
-- Cite: citation.md
 
 theme:
   name: "material"
