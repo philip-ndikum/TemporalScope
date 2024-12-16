@@ -1,6 +1,7 @@
 <p align="center">
-  <img src="assets/temporalscope_github_banner.svg" alt="TemporalScope Logo" >
+  <img src="assets/temporalscope_github_banner.png" alt="TemporalScope Logo" >
 </p>
+
 <!-- --8<-- [start:HOME] -->
 <h3 align="center">Scientifically driven Model-Agnostic Temporal Feature Importance Analysis</h3>
 
@@ -27,15 +28,88 @@
 </p>
 
 ---
+<div align="center">
+<table>
+    <tbody>
+        <tr>
+            <td><strong>Compatibility</strong></td>
+            <td>
+                <a href="https://img.shields.io/badge/python-3.10%2B-blue">
+                    <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Version">
+                </a>
+                <br>
+                <a href="https://img.shields.io/badge/OS-Linux-blue">
+                    <img src="https://img.shields.io/badge/OS-Linux-blue" alt="Linux Compatible">
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Docs</strong></td>
+            <td>
+                <a href="https://temporalscope.readthedocs.io/en/latest/?badge=latest">
+                    <img src="https://readthedocs.org/projects/temporalscope/badge/?version=latest" alt="Documentation Status">
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Meta</strong></td>
+            <td>
+                <a href="https://docs.astral.sh/ruff/">
+                    <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff">
+                </a>
+                <br>
+                <a href="https://www.mypy-lang.org/static/mypy_badge.svg">
+                    <img src="https://www.mypy-lang.org/static/mypy_badge.svg" alt="Checked with mypy">
+                </a>
+                <br>
+                <a href="https://img.shields.io/badge/License-Apache%202.0-green">
+                    <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
+                </a>
+                <br>
+                <img src="https://img.shields.io/github/all-contributors/projectOwner/projectName?color=ee8449&style=flat-square" alt="All Contributors">
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Build Tools</strong></td>
+            <td>
+                <a href="https://hatch.pypa.io/latest/">
+                    <img src="https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg" alt="Hatch project">
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td><strong>CI/CD</strong></td>
+            <td>
+                <a href="https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main">
+                    <img src="https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg" alt="pre-commit.ci status">
+                </a>
+                <br>
+                <a href="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml">
+                    <img src="https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml/badge.svg" alt="GitHub Actions">
+                </a>
+                <br>
+                <a href="https://coveralls.io/github/philip-ndikum/TemporalScope">
+                    <img src="https://coveralls.io/repos/github/philip-ndikum/TemporalScope/badge.svg" alt="Coverage Status">
+                </a>
+            </td>
+        </tr>
+        <tr>
+            <td><strong>Security</strong></td>
+            <td>
+                <a href="https://www.bestpractices.dev/projects/9424">
+                    <img src="https://www.bestpractices.dev/projects/9424/badge" alt="OpenSSF Best Practices">
+                </a>
+                <br>
+                <a href="https://github.com/PyCQA/bandit">
+                    <img src="https://img.shields.io/badge/security-bandit-yellow.svg" alt="Security: Bandit">
+                </a>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>
 
 
-| Category          | Details                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Compatibility** | [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://img.shields.io/badge/python-3.10%2B-blue)<br>[![Linux Compatible](https://img.shields.io/badge/OS-Linux-blue)](https://img.shields.io/badge/OS-Linux-blue)                                                                                                                                                                                                                                                                                                                               |
-| **Meta**          | [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://docs.astral.sh/ruff/)<br>[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://www.mypy-lang.org/static/mypy_badge.svg) <br> [![License](https://img.shields.io/badge/License-Apache%202.0-green)](https://img.shields.io/badge/License-Apache%202.0-green)  <br> ![All Contributors](https://img.shields.io/github/all-contributors/projectOwner/projectName?color=ee8449&style=flat-square)|
-| **Build Tools**   | [![Hatch project](https://img.shields.io/badge/%F0%9F%A5%9A-Hatch-4051b5.svg)](https://hatch.pypa.io/latest/)                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| **CI/CD**         | [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/philip-ndikum/TemporalScope/main.svg)](https://results.pre-commit.ci/latest/github/philip-ndikum/TemporalScope/main)<br>[![GitHub Actions](https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml/badge.svg)](https://github.com/philip-ndikum/TemporalScope/actions/workflows/test.yml)<br>[![Coverage Status](https://coveralls.io/repos/github/philip-ndikum/TemporalScope/badge.svg)](https://coveralls.io/github/philip-ndikum/TemporalScope)                              |
-| **Security**      | [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9424/badge)](https://www.bestpractices.dev/projects/9424)<br>[![Security: Bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)                                                                                                                                                                                                                                                                                                                         |
 
 **TemporalScope** is an open-source Python package designed to bridge the gap between scientific research and practical industry applications for analyzing the temporal dynamics of feature importance in AI & ML time series models. Developed in alignment with Linux Foundation standards and licensed under Apache 2.0, it builds on tools such as Boruta-SHAP and SHAP, using modern window partitioning algorithms to tackle challenges like non-stationarity and concept drift.
 
@@ -208,9 +282,9 @@ If you use TemporalScope in your research, please consider citing it:
 
 ## License, Limitations, and Legal Notice
 <!-- --8<-- [start:LICENSE] -->
-**TemporalScope** is primarily an academic tool designed for research and informational purposes. Practitioners and users of this software are strongly encouraged to consult the accompanying scientific literature to fully understand the theoretical limitations, assumptions, and context of the techniques implemented within this package. Furthermore, use of this software falls under "as-is" software as defined by the Apache License 2.0 provided in this repository.
+TemporalScope is primarily an academic tool designed for research and informational purposes. Practitioners and users of this software are strongly encouraged to consult the accompanying scientific literature to fully understand the theoretical limitations, assumptions, and context of the techniques implemented within this package. Furthermore, use of this software falls under "as-is" software as defined by the Apache License 2.0 provided in this repository.
 
-By using this package, you agree to comply with the terms and conditions set forth in the **Apache License 2.0**.
+By using this package, you agree to comply with the terms and conditions set forth in the Apache License 2.0.
 <!-- --8<-- [end:LICENSE] -->
 
 <!-- --8<-- [start:LEGAL] -->

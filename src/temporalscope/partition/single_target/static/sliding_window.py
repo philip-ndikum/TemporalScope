@@ -35,7 +35,6 @@ transforming `time_col` to numerical features.
 
 Engineering Design:
 -------------------
-Here's the markdown table:
 
 | Aspect | Description |
 |--------|-------------|
