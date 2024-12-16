@@ -22,7 +22,7 @@ repos:
         args: [--markdown-linebreak-ext=md]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.1
+    rev: v0.8.3
     hooks:
       - id: ruff
         # Exclude tests and tutorials
@@ -72,7 +72,7 @@ repos:
       - id: gitleaks
 
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.0.0
+    rev: v4.1.0
     hooks:
       - id: commitizen
       - id: commitizen-branch
