@@ -61,7 +61,6 @@
                 <a href="https://img.shields.io/badge/License-Apache%202.0-green">
                     <img src="https://img.shields.io/badge/License-Apache%202.0-green" alt="License">
                 </a>
-                <img src="https://img.shields.io/github/all-contributors/projectOwner/projectName?color=ee8449&style=flat-square" alt="All Contributors">
             </td>
         </tr>
         <tr>
