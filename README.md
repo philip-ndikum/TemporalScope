@@ -109,6 +109,7 @@
 This package is flexible and extensible, supporting frameworks like **Pandas, Polars, Modin, Dask, and PyArrow** via **native Narwhals compatibility**. Additionally, the optional _Clara LLM_ modules (etymology from the word _Clarity_) are intended to serve as a model-validation tool to support explainability efforts (XAI).  
 > NOTE: TemporalScope is currently in **beta and pre-release** phase, so some installation methods may not work as expected on all platforms.
 
+---
 <!-- --8<-- [end:HOME] -->
 ### Table of Contents
 
@@ -121,7 +122,7 @@ This package is flexible and extensible, supporting frameworks like **Pandas, Po
 - [Cite this Project](#cite-this-project)
 - [**License, Limitations, and Legal Notice**](#license-limitations-and-legal-notice)
 
-
+---
 ## Installation
 <!-- --8<-- [start:INSTALLATION] -->
 
@@ -147,7 +148,7 @@ TemporalScope can be installed using the following methods:
     This process clones the repository, navigates to the project directory, and uses Hatch to create and activate a virtual environment with the project installed in development mode.
 <!-- --8<-- [end:INSTALLATION] -->
 
-
+---
 ## Usage
 <!-- --8<-- [start:USAGE] -->
 You can use TemporalScope with the following steps:
@@ -215,6 +216,7 @@ for partition_name, predictions in results.items():
 ```
 <!-- --8<-- [end:USAGE] -->
 
+---
 ### Industrial Academic Applications
 
 **DISCLAIMER**: The following use cases are provided for academic and informational purposes only. TemporalScope is intended to support research and development in understanding temporal dynamics in feature importance. These examples are not intended as guidance for industrial applications without further validation and expert consultation. The use of TemporalScope in any industrial or production environment is at the user's own risk, and the developers disclaim any liability for such use. Please refer to the [License and Legal Notice](#license-and-legal-notice) for further details.
@@ -228,10 +230,12 @@ for partition_name, predictions in results.items():
 
 For more detailed examples from sectors like engineering and other scientific applications, please refer to the [SCIENTIFIC_LITERATURE.md](SCIENTIFIC_LITERATURE.md).
 
+---
 ## Development Roadmap & Changelog
 
 For detailed test, security, and deployment workflows as defined by OpenSSF Best Practices, please refer to [CONTRIBUTING.md](CONTRIBUTING.md). **TemporalScope** follows **Semantic Versioning (SemVer)**, a versioning system that conveys the scope of changes introduced in each new release. Each version is represented in the form **MAJOR.MINOR.PATCH**, where major releases introduce significant or breaking changes, minor releases add backward-compatible functionality, and patch releases are used for bug fixes or minor improvements. Below is the planned roadmap outlining feature development and milestones over the next 12–18 months. This roadmap is subject to change based on user feedback, emerging research, and community contributions.
 
+---
 ## Contributing
 
 TemporalScope was conceived independently by [Philip Ndikum](https://github.com/philip-ndikum), [Serge Ndikum](https://github.com/serge-ndikum), and [Kane Norman](https://github.com/kanenorman) and has since been open-sourced to the broader academic and developer community. As the software continues to grow and evolve, it relies heavily on the active participation and contributions of its users. We encourage contributions from developers, researchers, and data scientists who are passionate about advancing open-source tools. Whether you are interested in extending the package’s functionality, fixing bugs, or improving documentation, your contributions are vital to the project’s ongoing success.
@@ -239,21 +243,20 @@ TemporalScope was conceived independently by [Philip Ndikum](https://github.com/
 For detailed guidelines on how to contribute, please refer to our [CONTRIBUTING.md](CONTRIBUTING.md). By working together, we can ensure that TemporalScope remains an innovative and reliable tool, continuously refined through community collaboration.
 
 <!-- --8<-- [start:CONTRIBUTORS] -->
+Thank you to all of these people who have contributed to TemporalScope!
+## Collaborators
+
+<!-- readme: collaborators -start -->
+<!-- readme: collaborators -end -->
 
 ## Contributors
-Thanks to these wonderful people who have contributed to TemporalScope:
 
-<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-<!-- prettier-ignore-start -->
-<!-- markdownlint-disable -->
-
-<!-- markdownlint-restore -->
-<!-- prettier-ignore-end -->
-
-<!-- ALL-CONTRIBUTORS-LIST:END -->
+<!-- readme: contributors -start -->
+<!-- readme: contributors -end -->
 
 <!-- --8<-- [end:CONTRIBUTORS] -->
 
+---
 ## Cite this Project
 <!-- --8<-- [start:CITATION] -->
 If you use TemporalScope in your research, please consider citing it:
