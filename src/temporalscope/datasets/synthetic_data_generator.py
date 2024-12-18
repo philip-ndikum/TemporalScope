@@ -35,65 +35,69 @@ Supported Use Cases:
 - Multi-step mode: Produces input-output sequence data for sequence forecasting, where input sequences (`X`) and output
   sequences (`Y`) are handled as part of a unified dataset but with vectorized targets.
 
-.. note::
-   - **Batch size**: This package assumes no default batch size; batch size is typically managed by the data loader (e.g.,
-     TensorFlow `DataLoader`, PyTorch `DataLoader`). The synthetic data generator provides the raw data structure, which is
-     then partitioned and batched as needed in downstream pipelines (e.g., after target shifting or partitioning).
+Notes
+-----
+- **Batch size**: This package assumes no default batch size; batch size is typically managed by the data loader (e.g.,
+ TensorFlow `DataLoader`, PyTorch `DataLoader`). The synthetic data generator provides the raw data structure, which is
+ then partitioned and batched as needed in downstream pipelines (e.g., after target shifting or partitioning).
 
-   - **TimeFrame and Target Shape**: The TemporalScope framework checks if the target is scalar or vector (sequence). The
-     generated data in multi-step mode follows a unified structure, with the target represented as a sequence in the same
-     DataFrame. This ensures compatibility with popular machine learning libraries that are compatible with SHAP, LIME, and
-     other explainability methods.
+- **TimeFrame and Target Shape**: The TemporalScope framework checks if the target is scalar or vector (sequence). The
+ generated data in multi-step mode follows a unified structure, with the target represented as a sequence in the same
+ DataFrame. This ensures compatibility with popular machine learning libraries that are compatible with SHAP, LIME, and
+ other explainability methods.
 
-.. seealso::
-   For further details on the single-step and multi-step modes, refer to the core TemporalScope documentation on data handling.
+
+See Also
+--------
+For further details on the single-step and multi-step modes, refer to the core TemporalScope documentation on data handling.
 
 Example Visualization:
 ----------------------
 Here is a visual demonstration of the datasets generated for single-step and multi-step modes, including the shape
 of input (`X`) and target (`Y`) data compatible with most popular ML frameworks like TensorFlow, PyTorch, and SHAP.
 
-Single-step mode:
-    +------------+------------+------------+------------+-----------+
-    |   time     | feature_1  | feature_2  | feature_3  |  target   |
-    +============+============+============+============+===========+
-    | 2023-01-01 |   0.15     |   0.67     |   0.89     |   0.33    |
-    +------------+------------+------------+------------+-----------+
-    | 2023-01-02 |   0.24     |   0.41     |   0.92     |   0.28    |
-    +------------+------------+------------+------------+-----------+
+**Single-step mode**:
 
-    Shape:
-    - `X`: (num_samples, num_features)
-    - `Y`: (num_samples, 1)  # Scalar target for each time step
+| Time       | Feature 1 | Feature 2 | Feature 3 | Target  |
+|------------|-----------|-----------|-----------|---------|
+| 2023-01-01 | 0.15      | 0.67      | 0.89      | 0.33    |
+| 2023-01-02 | 0.24      | 0.41      | 0.92      | 0.28    |
 
-Multi-step mode (with vectorized targets):
 
-    +------------+------------+------------+------------+-------------+
-    |   time     | feature_1  | feature_2  | feature_3  |    target   |
-    +============+============+============+============+=============+
-    | 2023-01-01 |   0.15     |   0.67     |   0.89     |  [0.3, 0.4] |
-    +------------+------------+------------+------------+-------------+
-    | 2023-01-02 |   0.24     |   0.41     |   0.92     |  [0.5, 0.6] |
-    +------------+------------+------------+------------+-------------+
+Shape:
 
-    Shape:
-    - `X`: (num_samples, num_features)
-    - `Y`: (num_samples, sequence_length)  # Vectorized target for each input sequence
+- `X`: (num_samples, num_features)
+- `Y`: (num_samples, 1)
 
-Example Usage:
---------------
-.. code-block:: python
 
-    from temporalscope.core.core_utils import MODE_SINGLE_TARGET, MODE_MULTI_TARGET
-    from temporalscope.datasets.synthetic_data_generator import create_sample_data
+**Multi-step mode (with vectorized targets)**:
 
-    # Generating data for single-step mode
-    df = create_sample_data(num_samples=100, num_features=3, mode=MODE_SINGLE_TARGET)
-    print(df.head())  # Shows the generated data with features and a scalar target.
+| Time       | Feature 1 | Feature 2 | Feature 3 | Target      |
+|------------|-----------|-----------|-----------|-------------|
+| 2023-01-01 | 0.15      | 0.67      | 0.89      | [0.3, 0.4]  |
+| 2023-01-02 | 0.24      | 0.41      | 0.92      | [0.5, 0.6]  |
 
-    # Generating data for multi-step mode
-    df = create_sample_data(num_samples=100, num_features=3, mode=MODE_MULTI_TARGET)
-    print(df.head())  # Shows the generated input sequence (`X`) and target sequence (`Y`).
+
+Shape:
+
+- `X`: (num_samples, num_features)
+- `Y`: (num_samples, sequence_length)
+
+Examples
+--------
+```python
+from temporalscope.core.core_utils import MODE_SINGLE_TARGET, MODE_MULTI_TARGET
+from temporalscope.datasets.synthetic_data_generator import create_sample_data
+
+# Generating data for single-step mode
+df = create_sample_data(num_samples=100, num_features=3, mode=MODE_SINGLE_TARGET)
+print(df.head())  # Shows the generated data with features and a scalar target.
+
+# Generating data for multi-step mode
+df = create_sample_data(num_samples=100, num_features=3, mode=MODE_MULTI_TARGET)
+print(df.head())  # Shows the generated input sequence (`X`) and target sequence (`Y`).
+```
+
 """
 
 import dask.dataframe as dd
@@ -112,14 +116,29 @@ def _apply_nulls_nans_single_row(df: pd.DataFrame, feature_cols: list[str], with
     This is an internal utility function that operates on pandas DataFrames directly for efficiency
     and simplicity in null/nan application. The main function handles conversion to other backends.
 
-    :param df: Pandas DataFrame to modify (modified in-place)
-    :type df: pd.DataFrame
-    :param feature_cols: List of feature column names to apply nulls/nans to
-    :type feature_cols: list[str]
-    :param with_nulls: Whether to apply null values
-    :type with_nulls: bool
-    :param with_nans: Whether to apply NaN values (only if with_nulls is False)
-    :type with_nans: bool
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Pandas DataFrame to modify (modified in-place)
+    feature_cols : list[str]
+        List of feature column names to apply nulls/nans to
+    with_nulls : bool
+        Whether to apply null values
+    with_nans : bool
+        Whether to apply NaN values (only if with_nulls is False)
+    df: pd.DataFrame :
+
+    feature_cols: list[str] :
+
+    with_nulls: bool :
+
+    with_nans: bool :
+
+
+    Returns
+    -------
+    None
+
     """
     if with_nulls:
         df.iloc[0, df.columns.get_indexer(feature_cols)] = None
@@ -147,20 +166,41 @@ def _apply_nulls_nans_multi_row(
     - Prevents overlap between null and nan rows
     - Uses random selection for realistic data generation
 
-    :param df: Pandas DataFrame to modify (modified in-place)
-    :type df: pd.DataFrame
-    :param feature_cols: List of feature column names to apply nulls/nans to
-    :type feature_cols: list[str]
-    :param with_nulls: Whether to apply null values
-    :type with_nulls: bool
-    :param with_nans: Whether to apply NaN values
-    :type with_nans: bool
-    :param null_percentage: Percentage of rows to contain null values (0.0 to 1.0)
-    :type null_percentage: float
-    :param nan_percentage: Percentage of rows to contain NaN values (0.0 to 1.0)
-    :type nan_percentage: float
-    :param num_samples: Total number of rows in the DataFrame
-    :type num_samples: int
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Pandas DataFrame to modify (modified in-place)
+    feature_cols : list[str]
+        List of feature column names to apply nulls/nans to
+    with_nulls : bool
+        Whether to apply null values
+    with_nans : bool
+        Whether to apply NaN values
+    null_percentage : float
+        Percentage of rows to contain null values (0.0 to 1.0)
+    nan_percentage : float
+        Percentage of rows to contain NaN values (0.0 to 1.0)
+    num_samples : int
+        Total number of rows in the DataFrame
+    df: pd.DataFrame :
+
+    feature_cols: list[str] :
+
+    with_nulls: bool :
+
+    with_nans: bool :
+
+    null_percentage: float :
+
+    nan_percentage: float :
+
+    num_samples: int :
+
+
+    Returns
+    -------
+    None
+
     """
     null_indices = []
     if with_nulls:
@@ -196,39 +236,50 @@ def generate_synthetic_time_series(
     drop_time: bool = False,
     random_seed: int = RANDOM_SEED,
 ) -> SupportedTemporalDataFrame:
-    """Generate synthetic time series data with specified backend support and configurations.
+    """
+    Generate synthetic time series data with specified backend support and configurations.
 
-    :param backend: The backend to use for the generated data.
-    :type backend: str
-    :param num_samples: Number of samples (rows) to generate in the time series data.
-    :type num_samples: int, optional
-    :param num_features: Number of feature columns to generate in addition to 'time' and 'target' columns.
-    :type num_features: int, optional
-    :param with_nulls: Introduces None values in feature columns if True.
-    :type with_nulls: bool, optional
-    :param with_nans: Introduces NaN values in feature columns if True.
-    :type with_nans: bool, optional
-    :param null_percentage: Percentage of rows to contain null values (0.0 to 1.0). Only used if with_nulls is True.
-                          For datasets with few rows, ensures at least one row is affected if nulls are enabled.
-                          For single-row datasets, nulls take precedence over NaNs if both are enabled.
-    :type null_percentage: float, optional
-    :param nan_percentage: Percentage of rows to contain NaN values (0.0 to 1.0). Only used if with_nans is True.
-                         For datasets with few rows, ensures at least one row is affected if NaNs are enabled.
-                         For single-row datasets, nulls take precedence over NaNs if both are enabled.
-    :type nan_percentage: float, optional
-    :param mode: Mode for data generation; currently only supports 'single_target'.
-    :type mode: str, optional
-    :param time_col_numeric: If True, 'time' column is numeric instead of datetime.
-    :type time_col_numeric: bool, optional
-    :param drop_time: If True, omits the time column from output DataFrame.
-    :type drop_time: bool, optional
-    :param random_seed: Seed for random number generation to ensure reproducible results.
-    :type random_seed: int, optional
+    Parameters
+    ----------
+    backend : str
+        The backend to use for the generated data.
+    num_samples : int, optional
+        Number of samples (rows) to generate in the time series data. Default is 100.
+    num_features : int, optional
+        Number of feature columns to generate in addition to 'time' and 'target' columns. Default is 3.
+    with_nulls : bool, optional
+        Whether to introduce None values in feature columns. Default is False.
+    with_nans : bool, optional
+        Whether to introduce NaN values in feature columns. Default is False.
+    null_percentage : float, optional
+        Percentage of rows to contain null values (0.0 to 1.0). Only used if `with_nulls` is True.
+        - For datasets with few rows, ensures at least one row is affected if nulls are enabled.
+        - For single-row datasets, nulls take precedence over NaNs if both are enabled.
+        Default is 0.05 (5%).
+    nan_percentage : float, optional
+        Percentage of rows to contain NaN values (0.0 to 1.0). Only used if `with_nans` is True.
+        - For datasets with few rows, ensures at least one row is affected if NaNs are enabled.
+        - For single-row datasets, nulls take precedence over NaNs if both are enabled.
+        Default is 0.05 (5%).
+    mode : str, optional
+        Mode for data generation. Currently, only 'single_target' is supported. Default is 'single_target'.
+    time_col_numeric : bool, optional
+        If True, the 'time' column is numeric instead of a datetime object. Default is False.
+    drop_time : bool, optional
+        If True, the time column is omitted from the output DataFrame. Default is False.
+    random_seed : int, optional
+        Seed for random number generation to ensure reproducible results. Default is `RANDOM_SEED`.
 
-    :return: DataFrame or Table in the specified backend containing synthetic data.
-    :rtype: SupportedTemporalDataFrame
+    Returns
+    -------
+    SupportedTemporalDataFrame
+        DataFrame or table in the specified backend containing the generated synthetic data.
 
-    :raises ValueError: If unsupported backend, mode, or invalid parameters.
+    Raises
+    ------
+    ValueError
+        If an unsupported backend, mode, or invalid parameters are specified.
+
     """
     is_valid_temporal_backend(backend)
 

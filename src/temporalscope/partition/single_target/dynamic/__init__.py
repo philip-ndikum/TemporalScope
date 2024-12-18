@@ -41,21 +41,21 @@ TemporalScope provides the foundation for users to implement their own dynamic p
 dynamic algorithms are implemented in this module at this stage, the flexible architecture of TemporalScope allows
 users to integrate bespoke methods tailored to their specific domain requirements.
 
-.. note::
+Notes
+-----
+Users are encouraged to leverage the TemporalPartitionerProtocol for building custom dynamic partitioning workflows
+and refer to the foundational literature on dynamic partitioning techniques for guidance.
 
-    Users are encouraged to leverage the TemporalPartitionerProtocol for building custom dynamic partitioning workflows
-    and refer to the foundational literature on dynamic partitioning techniques for guidance.
-
-.. seealso::
-
-    1. Shah, A., DePavia, A., Hudson, N., Foster, I., & Stevens, R. (2024).
-       Causal Discovery over High-Dimensional Structured Hypothesis Spaces with Causal Graph Partitioning.
-       *arXiv preprint arXiv:2406.06348.*
-    2. Nodoushan, A. N. (2023). Interpretability of Deep Learning Models for Time-Series Clinical Data.
-       (Doctoral dissertation, The University of Arizona).
-    3. Saarela, M., & Podgorelec, V. (2024). Recent Applications of Explainable AI (XAI): A Systematic Literature Review.
-       *Applied Sciences, 14(19), 8884.*
-    4. Nayebi, A., Tipirneni, S., Reddy, C. K., Foreman, B., & Subbian, V. (2023).
-       WindowSHAP: An efficient framework for explaining time-series classifiers based on Shapley values.
-       *Journal of Biomedical Informatics, 144, 104438.*
+See Also
+--------
+1. Shah, A., DePavia, A., Hudson, N., Foster, I., & Stevens, R. (2024).
+   Causal Discovery over High-Dimensional Structured Hypothesis Spaces with Causal Graph Partitioning.
+   *arXiv preprint arXiv:2406.06348.*
+2. Nodoushan, A. N. (2023). Interpretability of Deep Learning Models for Time-Series Clinical Data.
+   (Doctoral dissertation, The University of Arizona).
+3. Saarela, M., & Podgorelec, V. (2024). Recent Applications of Explainable AI (XAI): A Systematic Literature Review.
+   *Applied Sciences, 14(19), 8884.*
+4. Nayebi, A., Tipirneni, S., Reddy, C. K., Foreman, B., & Subbian, V. (2023).
+   WindowSHAP: An efficient framework for explaining time-series classifiers based on Shapley values.
+   *Journal of Biomedical Informatics, 144, 104438.*
 """

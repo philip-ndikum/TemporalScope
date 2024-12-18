@@ -36,22 +36,20 @@ Engineering Design:
     - Explicit checks ensure all columns are numeric and free of null or NaN values.
 
 
-Examples:
+Examples
 --------
-.. code-block:: python
+```python
+import pandas as pd
+import numpy as np
+from temporalscope.partition.padding.functional import zero_pad
 
-    import pandas as pd
-    import numpy as np
-    from temporalscope.partition.padding.functional import zero_pad
+df = pd.DataFrame({"feature_1": [10, 20], "feature_2": [30, 40], "target": [50, 60]})
+padded_df = zero_pad(df, target_len=5, pad_value=0, padding="post")
+print(padded_df)
+```
 
-    df = pd.DataFrame({"feature_1": [10, 20], "feature_2": [30, 40], "target": [50, 60]})
-    padded_df = zero_pad(df, target_len=5, pad_value=0, padding="post")
-    print(padded_df)
-
-.. note::
-
-Note:
-----
+Notes
+-----
 This module draws inspiration from industry-standard patterns, including:
 - TensorFlow's `TimeseriesGenerator` for its emphasis on preprocessing flexibility.
 - PyTorch's `Dataset` API for its focus on functional design and data transformations.
@@ -59,30 +57,27 @@ This module draws inspiration from industry-standard patterns, including:
 
 Refer to the API documentation for further details on usage patterns and constraints.
 
+
 DataFrame Evaluation Modes:
-+--------+--------------------------------+--------------------------------+
-| Mode   | Key Characteristics            | Type Handling                  |
-+--------+--------------------------------+--------------------------------+
-| Eager  | - Immediate execution          | - Use schema for types         |
-|        | - Direct computation           | - Get Narwhals types direct    |
-|        | - Memory-bound ops             | - Narwhals ops supported       |
-+--------+--------------------------------+--------------------------------+
-| Lazy   | - Deferred execution          | - Must use native dtype         |
-|        | - Optimized planning          | - Schema not supported          |
-|        | - Large-scale data            | - Native type ops required      |
-+--------+--------------------------------+--------------------------------+
+----------------------------
+
+| Mode | Key Characteristics | Type Handling |
+|------|---------------------|---------------|
+| Eager | - Immediate execution <br>- Direct computation <br>- Memory-bound ops | - Use schema for types <br>- Get Narwhals types direct <br>- Narwhals ops supported |
+| Lazy | - Deferred execution <br>- Optimized planning <br>- Large-scale data | - Must use native dtype <br>- Schema not supported <br>- Native type ops required |
 
 Critical Rules:
+---------------
 - Never mix eager/lazy operations
 - Use narwhals operations consistently, noting Dask requires special handling for concatenation
 - Convert to native format only when required
 - Maintain same mode in concatenations, using backend-specific methods when needed (e.g. dask.concat)
 
-.. seealso::
-    1. Dwarampudi, M. and Reddy, N.V., 2019. Effects of padding on LSTMs and CNNs. arXiv preprint arXiv:1903.07288.
-    2. Lafabregue, B., Weber, J., et al., 2022. End-to-end deep representation learning for time
-    series clustering: a comparative study. Data Mining and Knowledge Discovery.
-
+See Also
+--------
+1. Dwarampudi, M. and Reddy, N.V., 2019. Effects of padding on LSTMs and CNNs. arXiv preprint arXiv:1903.07288.
+2. Lafabregue, B., Weber, J., et al., 2022. End-to-end deep representation learning for time
+series clustering: a comparative study. Data Mining and Knowledge Discovery.
 
 """
 
@@ -102,11 +97,31 @@ def mean_fill_pad(
     A simple padding function that extends a DataFrame to a target length by adding
     rows filled with each column's mean value. Handles both eager and lazy evaluation.
 
-    :param df: DataFrame to pad
-    :param target_len: Desired length after padding
-    :param padding: Where to add padding ('pre' or 'post')
-    :return: Padded DataFrame
-    :raises ValueError: If target_len <= current length or invalid padding direction
+    Parameters
+    ----------
+    df :
+        DataFrame to pad
+    target_len :
+        Desired length after padding
+    padding :
+        Where to add padding ('pre' or 'post')
+    df: SupportedTemporalDataFrame :
+
+    target_len: int :
+
+    padding: str :
+         (Default value = "post")
+
+    Returns
+    -------
+    type
+        Padded DataFrame
+
+    Raises
+    ------
+    ValueError
+        If target_len <= current length or invalid padding direction
+
     """
     # Validate data quality first
     null_counts = check_dataframe_nulls_nans(df, df.columns)
