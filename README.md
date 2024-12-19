@@ -247,11 +247,72 @@ Thank you to all of these people who have contributed to TemporalScope!
 ## Collaborators
 
 <!-- readme: collaborators -start -->
+<table>
+	<tbody>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/SylCard">
+                    <img src="https://avatars.githubusercontent.com/u/7727788?v=4" width="100;" alt="SylCard"/>
+                    <br />
+                    <sub><b>Sylvester Cardorelle</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/kanenorman">
+                    <img src="https://avatars.githubusercontent.com/u/51185594?v=4" width="100;" alt="kanenorman"/>
+                    <br />
+                    <sub><b>Kane Norman</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/philip-ndikum">
+                    <img src="https://avatars.githubusercontent.com/u/125715876?v=4" width="100;" alt="philip-ndikum"/>
+                    <br />
+                    <sub><b>Philip Ndikum</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/serge-ndikum">
+                    <img src="https://avatars.githubusercontent.com/u/180889799?v=4" width="100;" alt="serge-ndikum"/>
+                    <br />
+                    <sub><b>serge-ndikum</b></sub>
+                </a>
+            </td>
+		</tr>
+	<tbody>
+</table>
 <!-- readme: collaborators -end -->
 
 ## Contributors
 
 <!-- readme: contributors -start -->
+<table>
+	<tbody>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/philip-ndikum">
+                    <img src="https://avatars.githubusercontent.com/u/125715876?v=4" width="100;" alt="philip-ndikum"/>
+                    <br />
+                    <sub><b>Philip Ndikum</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/kanenorman">
+                    <img src="https://avatars.githubusercontent.com/u/51185594?v=4" width="100;" alt="kanenorman"/>
+                    <br />
+                    <sub><b>Kane Norman</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/SylCard">
+                    <img src="https://avatars.githubusercontent.com/u/7727788?v=4" width="100;" alt="SylCard"/>
+                    <br />
+                    <sub><b>Sylvester Cardorelle</b></sub>
+                </a>
+            </td>
+		</tr>
+	<tbody>
+</table>
 <!-- readme: contributors -end -->
 
 <!-- --8<-- [end:CONTRIBUTORS] -->
