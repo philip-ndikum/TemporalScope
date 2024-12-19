@@ -339,6 +339,12 @@ Once Hatch and pre-commit are installed, checks run automatically before each co
 Most IDEs and text editors have plugins to help adhere these standards.
 
 ---
+## Acknowledgements
+We believe every contribution is valuable and appreciate the time and effort you invest in TemporalScope.  
+As a token of our appreciation, we will acknowledge all contributors in the project's documentation and on the GitHub README.  
+If you would like to be recognized differently or remain anonymous, please let us know.
+
+---
 ## Reporting Issues & Requesting Features
 
 If you encounter any bugs or issues, please read our `SECURITY.md` for instructions on managing security issues. Alternatively, utilize Github issues to report a bug or potential long term feature request.
