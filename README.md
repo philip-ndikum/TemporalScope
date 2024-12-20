@@ -247,11 +247,72 @@ Thank you to all of these people who have contributed to TemporalScope!
 ## Collaborators
 
 <!-- readme: collaborators -start -->
+<table>
+	<tbody>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/SylCard">
+                    <img src="https://private-avatars.githubusercontent.com/u/7727788?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTEiLCJleHAiOjE3MzQ2NjUyMjAsIm5iZiI6MTczNDY2NDAyMCwicGF0aCI6Ii91Lzc3Mjc3ODgifQ.gG_2erIwtrfbz9lwYfrUEeYejw0sneRJyc4viqYCEc4&v=4" width="100;" alt="SylCard"/>
+                    <br />
+                    <sub><b>Sylvester Cardorelle</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/kanenorman">
+                    <img src="https://private-avatars.githubusercontent.com/u/51185594?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTEiLCJleHAiOjE3MzQ2NjU1ODAsIm5iZiI6MTczNDY2NDM4MCwicGF0aCI6Ii91LzUxMTg1NTk0In0.e7ZXEf_UNXn7CFE2wtMUw6Spi9y4TpIPlKl_Y6QpodQ&v=4" width="100;" alt="kanenorman"/>
+                    <br />
+                    <sub><b>Kane Norman</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/philip-ndikum">
+                    <img src="https://private-avatars.githubusercontent.com/u/125715876?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTEiLCJleHAiOjE3MzQ2NjUxMDAsIm5iZiI6MTczNDY2MzkwMCwicGF0aCI6Ii91LzEyNTcxNTg3NiJ9.IP3nUpTndFDDJZFeJMzGI7aYK6qQkfsCccB7BPca1dc&v=4" width="100;" alt="philip-ndikum"/>
+                    <br />
+                    <sub><b>Philip Ndikum</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/serge-ndikum">
+                    <img src="https://private-avatars.githubusercontent.com/u/180889799?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTEiLCJleHAiOjE3MzQ2NjUyODAsIm5iZiI6MTczNDY2NDA4MCwicGF0aCI6Ii91LzE4MDg4OTc5OSJ9.AIqD5O_jUWuZRuKtepZZVKUrurF70dyOnRE31jRl_94&v=4" width="100;" alt="serge-ndikum"/>
+                    <br />
+                    <sub><b>serge-ndikum</b></sub>
+                </a>
+            </td>
+		</tr>
+	<tbody>
+</table>
 <!-- readme: collaborators -end -->
 
 ## Contributors
 
 <!-- readme: contributors -start -->
+<table>
+	<tbody>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/philip-ndikum">
+                    <img src="https://private-avatars.githubusercontent.com/u/125715876?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTEiLCJleHAiOjE3MzQ2NjUxMDAsIm5iZiI6MTczNDY2MzkwMCwicGF0aCI6Ii91LzEyNTcxNTg3NiJ9.IP3nUpTndFDDJZFeJMzGI7aYK6qQkfsCccB7BPca1dc&v=4" width="100;" alt="philip-ndikum"/>
+                    <br />
+                    <sub><b>Philip Ndikum</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/kanenorman">
+                    <img src="https://private-avatars.githubusercontent.com/u/51185594?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTEiLCJleHAiOjE3MzQ2NjU1ODAsIm5iZiI6MTczNDY2NDM4MCwicGF0aCI6Ii91LzUxMTg1NTk0In0.e7ZXEf_UNXn7CFE2wtMUw6Spi9y4TpIPlKl_Y6QpodQ&v=4" width="100;" alt="kanenorman"/>
+                    <br />
+                    <sub><b>Kane Norman</b></sub>
+                </a>
+            </td>
+            <td align="center">
+                <a href="https://github.com/SylCard">
+                    <img src="https://private-avatars.githubusercontent.com/u/7727788?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTEiLCJleHAiOjE3MzQ2NjUyMjAsIm5iZiI6MTczNDY2NDAyMCwicGF0aCI6Ii91Lzc3Mjc3ODgifQ.gG_2erIwtrfbz9lwYfrUEeYejw0sneRJyc4viqYCEc4&v=4" width="100;" alt="SylCard"/>
+                    <br />
+                    <sub><b>Sylvester Cardorelle</b></sub>
+                </a>
+            </td>
+		</tr>
+	<tbody>
+</table>
 <!-- readme: contributors -end -->
 
 <!-- --8<-- [end:CONTRIBUTORS] -->
