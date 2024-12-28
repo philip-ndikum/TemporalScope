@@ -26,18 +26,12 @@ dependencies = [
   "statsmodels>=0.14.2", # Statsmodels: Provides statistical models and hypothesis tests, useful for traditional time series analysis.
 
   # Data Manipulation and Storage
-  "pandas>=1.5.0",           # Pandas: Core library for handling structured data in DataFrames.
-  "modin[all]>=0.31.0",      # Modin: Parallelizes Pandas operations for large datasets with Dask/Ray backend.
-  "pyarrow>=17.0.0",         # PyArrow: Enables efficient columnar data format (Arrow) for fast data processing and storage, commonly used with Parquet files.
-  "polars>=1.5.0",           # Polars: High-performance DataFrame library, ideal for handling large datasets in memory.
-  "dask[dataframe]>=2024.7", # Dask DataFrame: Handles parallelized computations for very large datasets.
+  "pandas>=1.5.0",           # Pandas: Required for DataFrame operations and compatibility with Narwhals.
+  "narwhals>=0.2.3",         # Narwhals: Backend-agnostic DataFrame operations, primary DataFrame interface.
 
   # Specialized Computation
   "flax>=0.8.5", # Flax: Neural network library for JAX, useful for building deep learning models.
   "jax>=0.4.31", # JAX: Accelerated computation for machine learning research, supporting CPU/GPU/TPU backends.
-
-  # Backend-Agnostic Processing
-  "narwhals>=0.2.3", # Narwhals: Ensures backend compatibility across Pandas, Polars, Modin, and other dataframes, optimizing performance.
 
   # Environment Configuration
   "python-dotenv>=1.0.1", # Python-Dotenv: Manages environment variables for secure and flexible configuration.
@@ -106,8 +100,13 @@ extra-dependencies = [
   "pytest",
   "pytest-cov",
   "pytest-custom_exit_code",
-  "pytest-mock",
-  "papermill>=2.5.0",
+  "pytest-mock",             # For mocking in tests
+  "papermill>=2.5.0",        # For notebook execution testing
+  # DataFrame Backends for Testing
+  "modin[all]>=0.31.0",      # Test Narwhals with Modin backend
+  "polars>=1.5.0",           # Test Narwhals with Polars backend
+  "dask[dataframe]>=2024.7", # Test Narwhals with Dask backend
+  "pyarrow>=17.0.0",         # Test Narwhals with PyArrow backend
 ]
 
 [tool.hatch.envs.docs.scripts]

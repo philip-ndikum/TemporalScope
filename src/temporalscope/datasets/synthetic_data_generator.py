@@ -17,128 +17,55 @@
 
 """TemporalScope/src/temporalscope/datasets/synthetic_data_generator.py
 
-This module provides utility functions for generating synthetic time series data, specifically designed to facilitate
-unit testing and benchmarking of various components across the TemporalScope ecosystem. The generated data simulates
-real-world time series with configurable features, ensuring comprehensive coverage of test cases for various modes, such
-as single-step and multi-step target data handling. This module is intended for use within automated test pipelines, and
-it plays a critical role in maintaining code stability and robustness across different test suites.
+This module provides utilities for generating synthetic time series data specifically for testing
+and validation purposes. While TemporalScope uses Narwhals for backend-agnostic operations, this
+generator serves as a defensive programming tool to ensure:
 
-Core Purpose:
--------------
-The `synthetic_data_generator` is a centralized utility for creating synthetic time series data that enables robust testing
-of TemporalScope's core modules. It supports the generation of data for various modes, ensuring that TemporalScope modules
-can handle a wide range of time series data, including edge cases and anomalies.
+1. Runtime Testing: Generate test data across different DataFrame backends to verify behavior
+2. Edge Case Coverage: Create data with nulls, NaNs, and various data types
+3. Backend Validation: Test Narwhals operations with different DataFrame implementations
 
-Supported Use Cases:
----------------------
-- Single-step mode: Generates scalar target values for tasks where each row represents a single time step.
-- Multi-step mode: Produces input-output sequence data for sequence forecasting, where input sequences (`X`) and output
-  sequences (`Y`) are handled as part of a unified dataset but with vectorized targets.
+The generator creates consistent test data that matches the TimeFrame API's expected structure
+(see core_utils.py for data structure details). This helps maintain code stability by providing
+reliable test data that works across all supported backends.
 
-Notes
------
-- **Batch size**: This package assumes no default batch size; batch size is typically managed by the data loader (e.g.,
- TensorFlow `DataLoader`, PyTorch `DataLoader`). The synthetic data generator provides the raw data structure, which is
- then partitioned and batched as needed in downstream pipelines (e.g., after target shifting or partitioning).
-
-- **TimeFrame and Target Shape**: The TemporalScope framework checks if the target is scalar or vector (sequence). The
- generated data in multi-step mode follows a unified structure, with the target represented as a sequence in the same
- DataFrame. This ensures compatibility with popular machine learning libraries that are compatible with SHAP, LIME, and
- other explainability methods.
-
-
-See Also
---------
-For further details on the single-step and multi-step modes, refer to the core TemporalScope documentation on data handling.
-
-Example Visualization:
-----------------------
-Here is a visual demonstration of the datasets generated for single-step and multi-step modes, including the shape
-of input (`X`) and target (`Y`) data compatible with most popular ML frameworks like TensorFlow, PyTorch, and SHAP.
-
-**Single-step mode**:
-
-| Time       | Feature 1 | Feature 2 | Feature 3 | Target  |
-|------------|-----------|-----------|-----------|---------|
-| 2023-01-01 | 0.15      | 0.67      | 0.89      | 0.33    |
-| 2023-01-02 | 0.24      | 0.41      | 0.92      | 0.28    |
-
-
-Shape:
-
-- `X`: (num_samples, num_features)
-- `Y`: (num_samples, 1)
-
-
-**Multi-step mode (with vectorized targets)**:
-
-| Time       | Feature 1 | Feature 2 | Feature 3 | Target      |
-|------------|-----------|-----------|-----------|-------------|
-| 2023-01-01 | 0.15      | 0.67      | 0.89      | [0.3, 0.4]  |
-| 2023-01-02 | 0.24      | 0.41      | 0.92      | [0.5, 0.6]  |
-
-
-Shape:
-
-- `X`: (num_samples, num_features)
-- `Y`: (num_samples, sequence_length)
-
-Examples
---------
-```python
-from temporalscope.core.core_utils import MODE_SINGLE_TARGET, MODE_MULTI_TARGET
-from temporalscope.datasets.synthetic_data_generator import create_sample_data
-
-# Generating data for single-step mode
-df = create_sample_data(num_samples=100, num_features=3, mode=MODE_SINGLE_TARGET)
-print(df.head())  # Shows the generated data with features and a scalar target.
-
-# Generating data for multi-step mode
-df = create_sample_data(num_samples=100, num_features=3, mode=MODE_MULTI_TARGET)
-print(df.head())  # Shows the generated input sequence (`X`) and target sequence (`Y`).
-```
+Note: This module is primarily intended for testing purposes, not for production data generation.
 
 """
 
-import dask.dataframe as dd
+import narwhals as nw
 import numpy as np
 import pandas as pd
-
-from temporalscope.core.core_utils import SupportedTemporalDataFrame, convert_to_backend, is_valid_temporal_backend
+from narwhals.typing import FrameT
+from narwhals.utils import Implementation
 
 # Set random seed for reproducibility for unit tests
 RANDOM_SEED = 100
 
 
-def _apply_nulls_nans_single_row(df: pd.DataFrame, feature_cols: list[str], with_nulls: bool, with_nans: bool) -> None:
+def _apply_nulls_nans_single_row(
+    df: pd.DataFrame,
+    feature_cols: list[str],
+    with_nulls: bool,
+    with_nans: bool
+) -> None:
     """Apply nulls/nans to a single row DataFrame using pandas operations.
-
-    This is an internal utility function that operates on pandas DataFrames directly for efficiency
-    and simplicity in null/nan application. The main function handles conversion to other backends.
 
     Parameters
     ----------
     df : pd.DataFrame
-        Pandas DataFrame to modify (modified in-place)
+        Single row DataFrame to modify
     feature_cols : list[str]
         List of feature column names to apply nulls/nans to
     with_nulls : bool
-        Whether to apply null values
+        If True, apply None values to feature columns
     with_nans : bool
-        Whether to apply NaN values (only if with_nulls is False)
-    df: pd.DataFrame :
+        If True and with_nulls is False, apply NaN values to feature columns
 
-    feature_cols: list[str] :
-
-    with_nulls: bool :
-
-    with_nans: bool :
-
-
-    Returns
-    -------
-    None
-
+    Notes
+    -----
+    - Modifies DataFrame in-place
+    - If both with_nulls and with_nans are True, nulls take precedence
     """
     if with_nulls:
         df.iloc[0, df.columns.get_indexer(feature_cols)] = None
@@ -153,54 +80,32 @@ def _apply_nulls_nans_multi_row(
     with_nans: bool,
     null_percentage: float,
     nan_percentage: float,
-    num_samples: int,
+    num_samples: int
 ) -> None:
     """Apply nulls/nans to multiple rows in a DataFrame using pandas operations.
-
-    This is an internal utility function that operates on pandas DataFrames directly for efficiency
-    and simplicity in null/nan application. The main function handles conversion to other backends.
-
-    For nulls and nans:
-    - Ensures at least 1 row is affected if enabled
-    - Respects maximum available rows
-    - Prevents overlap between null and nan rows
-    - Uses random selection for realistic data generation
 
     Parameters
     ----------
     df : pd.DataFrame
-        Pandas DataFrame to modify (modified in-place)
+        DataFrame to modify
     feature_cols : list[str]
         List of feature column names to apply nulls/nans to
     with_nulls : bool
-        Whether to apply null values
+        If True, apply None values to feature columns
     with_nans : bool
-        Whether to apply NaN values
+        If True, apply NaN values to feature columns
     null_percentage : float
         Percentage of rows to contain null values (0.0 to 1.0)
     nan_percentage : float
         Percentage of rows to contain NaN values (0.0 to 1.0)
     num_samples : int
-        Total number of rows in the DataFrame
-    df: pd.DataFrame :
+        Total number of rows in DataFrame
 
-    feature_cols: list[str] :
-
-    with_nulls: bool :
-
-    with_nans: bool :
-
-    null_percentage: float :
-
-    nan_percentage: float :
-
-    num_samples: int :
-
-
-    Returns
-    -------
-    None
-
+    Notes
+    -----
+    - Modifies DataFrame in-place
+    - Ensures at least one row has nulls/nans if enabled
+    - NaNs are only applied to rows that don't already have nulls
     """
     null_indices = []
     if with_nulls:
@@ -223,65 +128,38 @@ def _apply_nulls_nans_multi_row(
             df.iloc[nan_indices, df.columns.get_indexer(feature_cols)] = np.nan
 
 
-def generate_synthetic_time_series(
+def _validate_synthetic_data_params(
     backend: str,
-    num_samples: int = 100,
-    num_features: int = 3,
-    with_nulls: bool = False,
-    with_nans: bool = False,
-    null_percentage: float = 0.05,  # Default 5% nulls
-    nan_percentage: float = 0.05,  # Default 5% nans
-    mode: str = "single_target",
-    time_col_numeric: bool = False,
-    drop_time: bool = False,
-    random_seed: int = RANDOM_SEED,
-) -> SupportedTemporalDataFrame:
-    """
-    Generate synthetic time series data with specified backend support and configurations.
+    num_samples: int,
+    num_features: int,
+    mode: str,
+    null_percentage: float,
+    nan_percentage: float
+) -> None:
+    """Validate parameters for synthetic data generation.
 
     Parameters
     ----------
     backend : str
-        The backend to use for the generated data.
-    num_samples : int, optional
-        Number of samples (rows) to generate in the time series data. Default is 100.
-    num_features : int, optional
-        Number of feature columns to generate in addition to 'time' and 'target' columns. Default is 3.
-    with_nulls : bool, optional
-        Whether to introduce None values in feature columns. Default is False.
-    with_nans : bool, optional
-        Whether to introduce NaN values in feature columns. Default is False.
-    null_percentage : float, optional
-        Percentage of rows to contain null values (0.0 to 1.0). Only used if `with_nulls` is True.
-        - For datasets with few rows, ensures at least one row is affected if nulls are enabled.
-        - For single-row datasets, nulls take precedence over NaNs if both are enabled.
-        Default is 0.05 (5%).
-    nan_percentage : float, optional
-        Percentage of rows to contain NaN values (0.0 to 1.0). Only used if `with_nans` is True.
-        - For datasets with few rows, ensures at least one row is affected if NaNs are enabled.
-        - For single-row datasets, nulls take precedence over NaNs if both are enabled.
-        Default is 0.05 (5%).
-    mode : str, optional
-        Mode for data generation. Currently, only 'single_target' is supported. Default is 'single_target'.
-    time_col_numeric : bool, optional
-        If True, the 'time' column is numeric instead of a datetime object. Default is False.
-    drop_time : bool, optional
-        If True, the time column is omitted from the output DataFrame. Default is False.
-    random_seed : int, optional
-        Seed for random number generation to ensure reproducible results. Default is `RANDOM_SEED`.
-
-    Returns
-    -------
-    SupportedTemporalDataFrame
-        DataFrame or table in the specified backend containing the generated synthetic data.
+        Backend to use for generated data
+    num_samples : int
+        Number of samples (rows) to generate
+    num_features : int
+        Number of feature columns to generate
+    mode : str
+        Mode for data generation
+    null_percentage : float
+        Percentage of rows to contain null values
+    nan_percentage : float
+        Percentage of rows to contain NaN values
 
     Raises
     ------
     ValueError
-        If an unsupported backend, mode, or invalid parameters are specified.
-
+        If any parameters are invalid
     """
-    is_valid_temporal_backend(backend)
+    if backend.lower() not in [impl.name.lower() for impl in Implementation]:
+        raise ValueError(f"Backend '{backend}' is not supported by Narwhals.")
 
     if num_samples < 0 or num_features < 0:
         raise ValueError("`num_samples` and `num_features` must be non-negative.")
@@ -291,6 +169,76 @@ def generate_synthetic_time_series(
         raise ValueError("null_percentage must be between 0.0 and 1.0")
     if not 0.0 <= nan_percentage <= 1.0:
         raise ValueError("nan_percentage must be between 0.0 and 1.0")
+
+
+@nw.narwhalify
+def generate_synthetic_time_series(
+    backend: str,
+    *,  # Force keyword arguments for better readability
+    num_samples: int = 100,
+    num_features: int = 3,
+    with_nulls: bool = False,
+    with_nans: bool = False,
+    null_percentage: float = 0.05,
+    nan_percentage: float = 0.05,
+    mode: str = "single_target",
+    time_col_numeric: bool = False,
+    drop_time: bool = False,
+    random_seed: int = RANDOM_SEED
+) -> FrameT:
+    """Generate synthetic time series data with specified backend support and configurations.
+
+    Parameters
+    ----------
+    backend : str
+        Backend to use for generated data (must be supported by Narwhals)
+    num_samples : int, optional
+        Number of samples (rows) to generate, by default 100
+    num_features : int, optional
+        Number of feature columns to generate, by default 3
+    with_nulls : bool, optional
+        Whether to introduce None values in feature columns, by default False
+    with_nans : bool, optional
+        Whether to introduce NaN values in feature columns, by default False
+    null_percentage : float, optional
+        Percentage of rows to contain null values (0.0 to 1.0), by default 0.05
+    nan_percentage : float, optional
+        Percentage of rows to contain NaN values (0.0 to 1.0), by default 0.05
+    mode : str, optional
+        Mode for data generation, by default "single_target"
+    time_col_numeric : bool, optional
+        If True, time column is numeric instead of datetime, by default False
+    drop_time : bool, optional
+        If True, time column is omitted from output, by default False
+    random_seed : int, optional
+        Seed for random number generation, by default RANDOM_SEED
+
+    Returns
+    -------
+    FrameT
+        Narwhals DataFrame containing generated synthetic data
+
+    Raises
+    ------
+    ValueError
+        If backend not supported by Narwhals
+        If invalid mode specified (only "single_target" supported)
+        If invalid parameters (negative samples/features, invalid percentages)
+
+    Notes
+    -----
+    - For datasets with few rows, ensures at least one row has nulls/NaNs if enabled
+    - For single-row datasets, nulls take precedence over NaNs if both enabled
+    - Time column can be numeric (timestamps) or datetime based on time_col_numeric
+    """
+    _validate_synthetic_data_params(
+        backend=backend,
+        num_samples=num_samples,
+        num_features=num_features,
+        mode=mode,
+        null_percentage=null_percentage,
+        nan_percentage=nan_percentage
+    )
 
     np.random.seed(random_seed)
 
@@ -320,8 +268,31 @@ def generate_synthetic_time_series(
                 df, feature_cols, with_nulls, with_nans, null_percentage, nan_percentage, num_samples
             )
 
-    result = convert_to_backend(df, backend)
-    if isinstance(result, dd.DataFrame):
-        result = result.persist()
+    # Convert to Narwhals DataFrame and transform
+    df_nw = nw.from_native(df)
+
+    # Following Pattern 1 from notebook: proper column selection with nw.col() and alias()
+    result = df_nw.select(
+        [
+            # Time column if present
+            *([nw.col("time").alias("time")] if not drop_time else []),
+            # Target column (always present)
+            nw.col("target").alias("target"),
+            # Feature columns
+            *[nw.col(f"feature_{i+1}").alias(f"feature_{i+1}") for i in range(num_features)],
+        ]
+    )
+
+    # Convert to requested backend
+    if backend.lower() != "pandas":
+        # First wrap in Narwhals to use its conversion capabilities
+        df_nw = nw.from_native(result)
+        # Then convert to the target backend using the backend's native module
+        if backend.lower() == "polars":
+            import polars as pl
+            result = pl.from_pandas(df_nw.to_native())
+        else:
+            # For other backends, let Narwhals handle the conversion
+            result = df_nw.to_native()
 
     return result
