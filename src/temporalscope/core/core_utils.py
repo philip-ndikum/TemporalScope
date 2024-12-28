@@ -1,148 +1,70 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-
 """TemporalScope/src/temporalscope/core/core_utils.py.
 
-This module provides essential utility functions for the TemporalScope package,
-including support for:
-    - Backend validation (Narwhals).
-    - Checking for nulls, NaNs, and handling mixed frequency issues in time series
-      data.
-    - Managing different modes (Single-step vs. Multi-step) for machine learning and
-      deep learning workflows.
+This module provides essential utility functions used throughout the TemporalScope package. It serves
+two main purposes:
+1. Core DataFrame operations for the Temporal Data Loader, handling all data manipulations through
+   Narwhals for backend-agnostic operations.
+2. Shared utilities used across the library for data validation, type checking, and format conversion.
 
-Type safety and validation follow Linux Foundation security standards to ensure
-robust backend interoperability.
-
-Engineering Design Assumptions:
--------------------------------
-TemporalScope is designed around two core modes for time series workflows, based
-on the assumption that users handle their own preprocessing (e.g., managing NaNs,
-encoding categorical variables, scaling, etc.).
-
-These modes represent generalized structures that support both machine learning
-and deep learning tasks, giving users the flexibility to manage their own
-model-building workflows.
-
-1. Single-step mode:
-   - In this mode, each row of the data corresponds to a single time step with a
-     scalar target.
-   - Compatible with traditional machine learning frameworks (e.g., Scikit-learn,
-     XGBoost) as well as deep learning libraries like TensorFlow and PyTorch.
-   - The data is structured as a single DataFrame, where each row is an
-     observation, and the target is scalar.
-   - Example workflows include regression, classification, and survival models.
-   - TemporalScope allows simple shifting/lagging of variables within this mode.
-   - After partitioning (e.g., using a sliding window), users can convert the
-     data into the required format for their model.
-
-2. Multi-step mode:
-   - This mode supports tasks like sequence forecasting, where the target is a
-     sequence of values (multi-step).
-   - Data is split into two DataFrames: one for the input sequences (X)
-     and one for the target sequences (Y).
-   - This mode is most commonly used in deep learning frameworks such as
-     TensorFlow and PyTorch, where the task involves predicting sequences of
-     time steps (e.g., seq2seq models).
-   - TemporalScope's partitioning algorithms (e.g., sliding window) can
-     partition this data for time series forecasting, making it ready for
-     sequential models.
+For testing purposes, we use a data generator to simulate runtime behavior, ensuring consistent
+functionality across supported backends. The module supports both single-target and multi-target time
+series analysis through a flexible API.
 
 Supported Modes:
 ----------------
-The following table illustrates the two core modes supported by TemporalScope.
-These are generalized super-structures for time series tasks. Users are expected
-to customize their workflows for specific model-building tasks (e.g., tree-based
-models, neural networks, etc.):
-
-
-| Mode | Description |
-|------|-------------|
-| single_step | General machine learning tasks with scalar targets. Each row is a single time step, and the target is scalar. Single DataFrame: each row is an observation. |
-| multi_step | Sequential time series tasks (e.g., seq2seq) for deep learning. The data is split into sequences (input X, target Y). Two DataFrames: X for input sequences, Y for targets. Frameworks: TensorFlow, PyTorch, Keras. |
++----------------+-------------------------------------------------------------------+
+| Mode           | Description                                                       |
+|                | Data Structure                                                    |
++----------------+-------------------------------------------------------------------+
+| single_target  | General machine learning tasks with scalar targets. Each row is   |
+|                | a single time step, and the target is scalar.                     |
+|                | Single DataFrame: each row is an observation.                     |
++----------------+-------------------------------------------------------------------+
+| multi_target   | Sequential time series tasks (e.g., seq2seq) for deep learning.   |
+|                | The data is split into sequences (input X, target Y).             |
+|                | Two DataFrames: X for input sequences, Y for targets.             |
+|                | Frameworks: TensorFlow, PyTorch, Keras.                           |
++----------------+-------------------------------------------------------------------+
 
 Example Visualization:
 ----------------------
-Here is a visual demonstration of the datasets generated for single-step and multi-step
-modes, including the shape of input (`X`) and target (`Y`) data compatible with most
-popular ML frameworks like TensorFlow, PyTorch, and SHAP.
+Single-target mode:
+    +------------+------------+------------+------------+-----------+
+    |   time     | feature_1  | feature_2  | feature_3  |  target   |
+    +============+============+============+============+===========+
+    | 2023-01-01 |   0.15     |   0.67     |   0.89     |   0.33    |
+    +------------+------------+------------+------------+-----------+
+    | 2023-01-02 |   0.24     |   0.41     |   0.92     |   0.28    |
+    +------------+------------+------------+------------+-----------+
 
-**Single-step mode**:
+    Shape:
+    - `X`: (num_samples, num_features)
+    - `Y`: (num_samples, 1)  # Single target value per time step
 
-- Input shape: X (num_samples, num_features)
-- Target shape: Y (num_samples, 1)  # Scalar target for each time step
+Multi-target mode (with vectorized targets):
+    +------------+------------+------------+------------+-------------+
+    |   time     | feature_1  | feature_2  | feature_3  |    target   |
+    +============+============+============+============+=============+
+    | 2023-01-01 |   0.15     |   0.67     |   0.89     |  [0.3, 0.4] |
+    +------------+------------+------------+------------+-------------+
+    | 2023-01-02 |   0.24     |   0.41     |   0.92     |  [0.5, 0.6] |
+    +------------+------------+------------+------------+-------------+
 
-| time       | feature_1 | feature_2 | feature_3 | target |
-|------------|-----------|-----------|-----------|--------|
-| 2023-01-01 | 0.15      | 0.67      | 0.89      | 0.33   |
-| 2023-01-02 | 0.24      | 0.41      | 0.92      | 0.28   |
-
-**Multi-step mode (with vectorized targets)**:
-
-- Input shape: X (num_samples, num_features)
-- Target shape: Y (num_samples, sequence_length)  # Vectorized target for each input sequence
-
-
-| time       | feature_1 | feature_2 | feature_3 | target       |
-|------------|-----------|-----------|-----------|--------------|
-| 2023-01-01 | 0.15      | 0.67      | 0.89      | [0.3, 0.4]   |
-| 2023-01-02 | 0.24      | 0.41      | 0.92      | [0.5, 0.6]   |
-
-DataFrame Types:
-----------------
-TemporalScope handles various DataFrame types throughout the data processing pipeline. The following table
-illustrates the supported DataFrame types and validation cases:
-
-| DataFrame Type | Description | Example |
-|---------------|--------------|---------|
-| Narwhalified (FrameT) | DataFrames wrapped by Narwhals for backend-agnostic operations. These are validated first to ensure consistent handling across backends. | @nw.narwhalify decorated functions create these during operations. |
-| Native DataFrames | Core DataFrame implementations from supported backends. These are validated directly against TEMPORALSCOPE_CORE_BACKEND_TYPES. | pd.DataFrame, pl.DataFrame, pa.Table |
-| DataFrame Subclasses | Custom or specialized DataFrames that inherit from native types. Common in: - Custom DataFrame implementations - Backend optimizations (e.g. lazy evaluation) - Backend compatibility layers | TimeSeriesDataFrame (pd.DataFrame), dask.dataframe.DataFrame (inherits from pandas) |
-| Intermediate States | DataFrames in the middle of narwhalify operations or backend conversions. These may be temporary subclasses used for optimization or compatibility. | LazyDataFrame during backend conversion operation chaining |
-Naming Conventions:
--------------------
-The following naming conventions are used for utility functions in this module:
-
-| Pattern | Purpose |
-|---------|---------|
-| `validate_<object>` | Checks that an object meets specific requirements and raises an error if it doesn't. |
-| `is_<property>` | Returns metadata about an object (Boolean or other). |
-| `convert_<object>` | Transforms an object to a desired type or structure. |
-| `check_<condition>` | Performs a specific check and returns a result or raises an error if the condition is violated. |
-| `sort_<object>` | Orders an object based on specified criteria. |
-
+    Shape:
+    - `X`: (num_samples, num_features)
+    - `Y`: (num_samples, sequence_length)  # Multiple target values per time step
 """
 
 import os
-import warnings
-from importlib import util
-from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-import dask.dataframe as dd
-import modin.pandas as mpd
 import narwhals as nw
 import pandas as pd
-import polars as pl
-import pyarrow as pa
 from dotenv import load_dotenv
 from narwhals.typing import FrameT, IntoDataFrame
 from narwhals.utils import Implementation
 
-from temporalscope.core.exceptions import TimeColumnError, UnsupportedBackendError
+from temporalscope.core.exceptions import DataFrameValidationError, TimeColumnError
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -154,47 +76,8 @@ MODE_SINGLE_TARGET = "single_target"
 MODE_MULTI_TARGET = "multi_target"
 VALID_MODES = [MODE_SINGLE_TARGET, MODE_MULTI_TARGET]
 
-# Backend constants for TemporalScope
-TEMPORALSCOPE_CORE_BACKENDS = {"pandas", "modin", "pyarrow", "polars", "dask"}
-# TODO: Add optional backend "cudf" when Conda setup is confirmed
-TEMPORALSCOPE_OPTIONAL_BACKENDS = {"cudf"}
-
-# Define a type alias combining Narwhals' FrameT with the supported TemporalScope dataframes
-SupportedTemporalDataFrame = Union[
-    FrameT,  # narwhals.typing.FrameT - narwhals DataFrame wrapper
-    pd.DataFrame,  # pandas.core.frame.DataFrame - actual pandas DataFrame class
-    mpd.DataFrame,  # modin.pandas.dataframe.DataFrame - actual modin DataFrame class
-    pa.Table,  # pyarrow.lib.Table - actual pyarrow Table class
-    pl.DataFrame,  # polars.dataframe.frame.DataFrame - actual polars DataFrame class
-    dd.DataFrame,  # dask.dataframe.core.DataFrame - actual dask DataFrame class
-]
-
-# Backend type classes for TemporalScope backends
-TEMPORALSCOPE_CORE_BACKEND_TYPES: Dict[str, Type] = {
-    "pandas": pd.DataFrame,  # Main pandas DataFrame class
-    "modin": mpd.DataFrame,  # Main modin DataFrame class
-    "pyarrow": pa.Table,  # Main pyarrow Table class
-    "polars": pl.DataFrame,  # Main polars DataFrame class
-    "dask": dd.DataFrame,  # Main dask DataFrame class
-}
-
-# Module paths for DataFrame validation
-TEMPORALSCOPE_MODULE_PATHS: Dict[str, Union[str, Tuple[str, ...]]] = {
-    "pandas": "pandas.core.frame",
-    "modin": "modin.pandas.dataframe",
-    "pyarrow": "pyarrow.lib",
-    "polars": "polars.dataframe.frame",
-    "dask": ("dask.dataframe.core", "dask_expr._collection"),
-}
-
-# Backend converters for DataFrame conversion
-TEMPORALSCOPE_BACKEND_CONVERTERS: Dict[str, Callable[[pd.DataFrame, int], Any]] = {
-    "pandas": lambda df, _: df,
-    "modin": lambda df, _: mpd.DataFrame(df),
-    "polars": lambda df, _: pl.DataFrame(df),
-    "pyarrow": lambda df, _: pa.Table.from_pandas(df),
-    "dask": lambda df, npartitions: dd.from_pandas(df, npartitions=npartitions),
-}
+# Narwhals-supported backends
+NARWHALS_BACKENDS = [backend.name.lower() for backend in Implementation]
 
 # ---------------------------------------------------------
 # Utility Functions
@@ -308,7 +191,7 @@ def get_default_backend_cfg() -> Dict[str, List[str]]:
     Returns
     -------
     Dict[str, List[str]]
-        Dictiona a single key 'BACKENDS' containing a list of all
+        Dictionary containing a single key 'BACKENDS' with a list of all
         Narwhals-supported backends.
 
     """
@@ -316,102 +199,21 @@ def get_default_backend_cfg() -> Dict[str, List[str]]:
     return {"BACKENDS": available_backends}
 
 
-def get_temporalscope_backends() -> List[str]:
-    """Retrieve the subset of Narwhals-supported backends compatible with TemporalScope.
-
-    Returns
-    -------
-        List[str]
-
-    Examples
-    --------
-    ```python
-    backends = get_temporalscope_backends()
-    print(backends)
-    # Output: ['pandas', 'modin', 'pyarrow', 'polars', 'dask']
-    ```
-
-    Returns
-    -------
-    List[str]
-        List of backend names supported by TemporalScope.
-
-    """
-    available_backends = get_narwhals_backends()
-    return [backend for backend in available_backends if backend in TEMPORALSCOPE_CORE_BACKENDS]
-
-
-def is_valid_temporal_backend(backend_name: str) -> None:
-    """Validate that a backend is supported by TemporalScope and Narwhals.
+def is_valid_temporal_dataframe(df: Union[FrameT, Any]) -> Tuple[bool, Optional[str]]:
+    """Validate that a DataFrame is supported by Narwhals.
 
     Parameters
     ----------
-    backend_name : str
-        Name of the backend to validate.
-    backend_name: str :
-
+    df : Union[FrameT, Any]
+        Object to validate, can be any DataFrame type or arbitrary object.
 
     Returns
     -------
-    None
-
-    Raises
-    ------
-    UnsupportedBackendError
-        If the backend is not in supported or optional backends.
-    UserWarning
-        If the backend is in the optional set but not installed.
-
-    Examples
-    --------
-    ```python
-    # Validate a valid backend
-    is_valid_temporal_backend("pandas")  # Passes silently
-
-    # Validate an unsupported backend
-    try:
-        is_valid_temporal_backend("unsupported_backend")
-    except UnsupportedBackendError as e:
-        print(e)
-    # Output: Backend 'unsupported_backend' is not supported by TemporalScope.
-    ```
-
-    """
-    # Assume TEMPORALSCOPE_CORE_BACKENDS and TEMPORALSCOPE_OPTIONAL_BACKENDS are sets
-    available_backends = TEMPORALSCOPE_CORE_BACKENDS | TEMPORALSCOPE_OPTIONAL_BACKENDS
-
-    if backend_name in available_backends:
-        if backend_name in TEMPORALSCOPE_OPTIONAL_BACKENDS:
-            # Check if the optional backend is installed
-            if util.find_spec(backend_name) is None:
-                warnings.warn(
-                    f"The '{backend_name}' backend is optional and requires additional setup. "
-                    f"Please install it (e.g., using Conda).",
-                    UserWarning,
-                )
-        return
-    else:
-        raise UnsupportedBackendError(
-            f"Backend '{backend_name}' is not supported by TemporalScope. "
-            f"Supported backends are: {', '.join(sorted(available_backends))}."
-        )
-
-
-def is_valid_temporal_dataframe(df: Union[SupportedTemporalDataFrame, Any]) -> Tuple[bool, Optional[str]]:
-    """Validate that a DataFrame is supported by TemporalScope and Narwhals.
-
-    Uses TEMPORALSCOPE_CORE_BACKEND_TYPES to validate actual DataFrame instances.
-    Handles both native DataFrame types and narwhalified (FrameT) DataFrames.
-
-    Parameters
-    ----------
-    df : Union[SupportedTemporalDataFrame, Any]
-        Object to validate, can be any supported DataFrame type or arbitrary object.
-    df: Union[SupportedTemporalDataFrame, Any]
-
-    Returns
-    -------
-        Tuple[bool, Optional[str]]
+    Tuple[bool, Optional[str]]
+        Tuple of (is_valid, df_type) where df_type is:
+        - "narwhals" for FrameT DataFrames
+        - "native" for supported DataFrame types
+        - None if not valid
 
     Examples
     --------
@@ -426,108 +228,31 @@ def is_valid_temporal_dataframe(df: Union[SupportedTemporalDataFrame, Any]) -> T
     print(result)
     # Output: (False, None)
     ```
-
-    Returns
-    -------
-    Tuple[bool, Optional[str]]
-        Tuple of (is_valid, df_type) where df_type is:
-        - "narwhals" for FrameT DataFrames
-        - "native" for supported DataFrame types
-        - None if not valid
-
     """
     try:
         # Case 1: Narwhalified DataFrames
         if hasattr(df, "__class__") and df.__class__.__module__ == "narwhals.dataframe":
             return True, "narwhals"
 
-        # Case 2: Native DataFrames - check module path
-        df_type = type(df)
-        df_module = df_type.__module__
-
-        # Check module path against all possible paths
-        module_paths = []
-        for paths in TEMPORALSCOPE_MODULE_PATHS.values():
-            if isinstance(paths, str):
-                module_paths.append(paths)
-            else:
-                module_paths.extend(paths)
-
-        if df_module in module_paths:
+        # Case 2: Native DataFrames - check if Narwhals can handle it
+        try:
+            nw.from_native(df)
             return True, "native"
+        except Exception:
+            return False, None
 
-        # If no match found
-        return False, None
     except Exception:  # pragma: no cover
         # Defensive programming: safeguard against unforeseen exceptions
         return False, None
 
 
-def get_dataframe_backend(df: Union[SupportedTemporalDataFrame, Any]) -> str:
-    """Get the backend name for a DataFrame.
-
-    Parameters
-    ----------
-    df : Union[SupportedTemporalDataFrame, Any]
-        DataFrame to get backend for.
-
-    Returns
-    -------
-    str
-        Backend name ('pandas', 'modin', 'polars', 'pyarrow', 'dask').
-
-    Raises
-    ------
-    UnsupportedBackendError
-        If DataFrame type not supported.
-
-    Examples
-    --------
-    ```python
-    from temporalscope.core.core_utils import get_dataframe_backend
-    import pandas as pd
-
-    # Example with a Pandas DataFrame
-    df = pd.DataFrame({"col1": [1, 2, 3]})
-    backend = get_dataframe_backend(df)
-    print(backend)  # Output: 'pandas'
-
-    # Example with a Polars DataFrame
-    import polars as pl
-
-    df = pl.DataFrame({"col1": [1, 2, 3]})
-    backend = get_dataframe_backend(df)
-    print(backend)  # Output: 'polars'
-    ```
-
-    """
-    # First validate DataFrame type
-    is_valid, df_type = is_valid_temporal_dataframe(df)
-    if not is_valid:
-        raise UnsupportedBackendError(f"Unknown DataFrame type: {type(df).__name__}")
-
-    # If narwhalified, get native form
-    if df_type == "narwhals":
-        df = df.to_native()
-
-    # Get backend from type
-    for name, cls in TEMPORALSCOPE_CORE_BACKEND_TYPES.items():
-        if isinstance(df, cls):
-            return name
-
-    # If no backend matches, raise an error
-    raise UnsupportedBackendError(
-        f"Failed to determine backend for DataFrame of type {type(df).__name__}"
-    )  # pragma: no cover
-
-
 @nw.narwhalify
-def is_lazy_evaluation(df: SupportedTemporalDataFrame) -> bool:
+def is_lazy_evaluation(df: FrameT) -> bool:
     """Check if a DataFrame uses lazy evaluation.
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         The DataFrame to check for evaluation mode.
 
     Returns
@@ -537,8 +262,8 @@ def is_lazy_evaluation(df: SupportedTemporalDataFrame) -> bool:
 
     Raises
     ------
-    UnsupportedBackendError
-        If the DataFrame's backend is not supported by TemporalScope.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
 
     Examples
     --------
@@ -562,54 +287,33 @@ def is_lazy_evaluation(df: SupportedTemporalDataFrame) -> bool:
     - This distinction is important for maintaining consistent evaluation modes during computations.
 
     """
-    # Validate the input DataFrame
-    is_valid, _ = is_valid_temporal_dataframe(df)
-    if not is_valid:
-        raise UnsupportedBackendError("The input DataFrame is not supported by TemporalScope.")
-
-    df_native = df.to_native()
-    return hasattr(df_native, "compute") or hasattr(df_native, "collect")
+    try:
+        df_native = df.to_native()
+        return hasattr(df_native, "compute") or hasattr(df_native, "collect")
+    except Exception as e:
+        raise DataFrameValidationError(f"Failed to check evaluation mode: {str(e)}")
 
 
 @nw.narwhalify
-def convert_to_backend(
-    df: Union[SupportedTemporalDataFrame, IntoDataFrame],
-    backend: str,
-    npartitions: int = 1,
-    backend_converter_dict: Dict[str, Callable[[pd.DataFrame, int], Any]] = TEMPORALSCOPE_BACKEND_CONVERTERS,
-) -> SupportedTemporalDataFrame:
+def convert_to_backend(df: Union[FrameT, IntoDataFrame], backend: str) -> FrameT:
     """Convert a DataFrame to the specified backend format.
-
-    Converts a DataFrame (e.g., Pandas) to a backend (e.g., Dask, Polars) using DIP.
-    Narwhals handles validation and lazy evaluation, while `backend_converter_dict`
-    manages conversion.
 
     Parameters
     ----------
-    df : Union[SupportedTemporalDataFrame, IntoDataFrame]
-        Input DataFrame (pandas, modin, polars, pyarrow, dask).
+    df : Union[FrameT, IntoDataFrame]
+        Input DataFrame to convert.
     backend : str
-        Target backend ('pandas', 'modin', 'polars', 'pyarrow', 'dask').
-    npartitions : int
-        Number of partitions for Dask backend. Default is 1.
-    backend_converter_dict : Dict[str, Callable[[pd.DataFrame, int], Any]], optional
-        Backend conversion functions.
-    df: Union[SupportedTemporalDataFrame, IntoDataFrame]
-    backend: str
-    npartitions: int :
-         (Default value = 1)
-    backend_converter_dict: Dict[str, Callable[[pd.DataFrame, int, Any]] :
-         (Default value = TEMPORALSCOPE_BACKEND_CONVERTERS)
+        Target backend name.
 
     Returns
     -------
-    SupportedTemporalDataFrame
+    FrameT
         Converted DataFrame in the target backend.
 
     Raises
     ------
-    UnsupportedBackendError
-        If the backend or DataFrame is unsupported.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals or conversion fails.
 
     Examples
     --------
@@ -626,67 +330,30 @@ def convert_to_backend(
     Notes
     -----
     Steps:
-    - Validate: Narwhals checks input compatibility (`is_valid_temporal_dataframe`).
+    - Validate: Narwhals checks input compatibility.
     - Materialize: Handles lazy evaluation (Dask/Polars LazyFrames).
-    - Convert: Uses `backend_converter_dict` for backend-specific transformations.
+    - Convert: Uses Narwhals' built-in backend conversion.
 
     """
-    # Validate backend and DataFrame using helper functions
-    is_valid_temporal_backend(backend)
-    is_valid, df_type = is_valid_temporal_dataframe(df)
-
-    if not is_valid:
-        raise UnsupportedBackendError(f"Input DataFrame type '{type(df).__name__}' is not supported")
-
-    # Handle narwhalified DataFrames
-    if df_type == "narwhals":
-        df = df.to_native()
-
-    # Materialize lazy DataFrames
-    if is_lazy_evaluation(df):
-        df = df.compute() if hasattr(df, "compute") else df.collect()
-
-    # Convert to target backend using the converter dictionary
     try:
-        conversion_func = TEMPORALSCOPE_BACKEND_CONVERTERS[backend]
-        converted_df = conversion_func(df, npartitions)
-
-        # Ensure Pandas compatibility if converting to Pandas
-        if backend == "pandas":
-            # Import inline to avoid unnecessary global imports
-            if "pyarrow" in str(type(converted_df)):  # Check if it's a pyarrow object
-                import pyarrow  # pragma: no cover
-
-                if isinstance(converted_df, (pyarrow.Table, pyarrow.lib.ChunkedArray)):  # pragma: no cover
-                    converted_df = converted_df.to_pandas()  # pragma: no cover
-            elif "polars" in str(type(converted_df)):  # Check if it's a polars object
-                import polars  # pragma: no cover
-
-                if isinstance(converted_df, polars.DataFrame):  # pragma: no cover
-                    converted_df = converted_df.to_pandas()  # pragma: no cover
-
-        return converted_df
-
-    except KeyError:  # pragma: no cover
-        raise UnsupportedBackendError(f"The backend '{backend}' is not supported by TemporalScope.")
-    except Exception as e:  # pragma: no cover
-        raise UnsupportedBackendError(f"Failed to convert DataFrame: {str(e)}")
+        # Let Narwhals handle the conversion
+        return nw.to_backend(df, backend)
+    except Exception as e:
+        raise DataFrameValidationError(f"Failed to convert DataFrame to {backend}: {str(e)}")
 
 
 @nw.narwhalify
-def check_dataframe_empty(df: SupportedTemporalDataFrame) -> bool:
+def check_dataframe_empty(df: FrameT) -> bool:
     """Check if a DataFrame is empty using backend-agnostic operations.
 
-    This function validates the input DataFrame using `is_valid_temporal_dataframe` and
-    determines whether it is empty based on standard backend attributes such as `shape`.
-    It handles lazy evaluation transparently for backends like Dask and Polars.
+    This function validates the input DataFrame and determines whether it is empty
+    based on standard backend attributes such as `shape`. It handles lazy evaluation
+    transparently for backends like Dask and Polars.
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         The input DataFrame to check.
-    df: SupportedTemporalDataFrame :
-
 
     Returns
     -------
@@ -697,8 +364,8 @@ def check_dataframe_empty(df: SupportedTemporalDataFrame) -> bool:
     ------
     ValueError
         If the input DataFrame is None or invalid.
-    UnsupportedBackendError
-        If the backend is not supported by TemporalScope.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
 
     Examples
     --------
@@ -721,7 +388,6 @@ def check_dataframe_empty(df: SupportedTemporalDataFrame) -> bool:
     This function checks for emptiness using attributes like `shape`, `__len__`,
     and `num_rows` to support various backends. These attributes cover common
     DataFrame implementations, ensuring robust handling across the Narwhals API.
-    If none of these attributes are present, an `UnsupportedBackendError` is raised.
 
     """
     if df is None:
@@ -751,7 +417,7 @@ def check_dataframe_empty(df: SupportedTemporalDataFrame) -> bool:
 
 
 @nw.narwhalify
-def check_dataframe_nulls_nans(df: SupportedTemporalDataFrame, column_names: List[str]) -> Dict[str, int]:
+def check_dataframe_nulls_nans(df: FrameT, column_names: List[str]) -> Dict[str, int]:
     """Check for null values in specified DataFrame columns using Narwhals operations.
 
     This function first validates if the DataFrame is empty using `check_dataframe_empty`
@@ -759,14 +425,10 @@ def check_dataframe_nulls_nans(df: SupportedTemporalDataFrame, column_names: Lis
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         DataFrame to check for null values.
     column_names : List[str]
         List of column names to check.
-    df: SupportedTemporalDataFrame :
-
-    column_names: List[str] :
-
 
     Returns
     -------
@@ -777,8 +439,8 @@ def check_dataframe_nulls_nans(df: SupportedTemporalDataFrame, column_names: Lis
     ------
     ValueError
         If the DataFrame is empty or a column is nonexistent.
-    UnsupportedBackendError
-        If the backend is unsupported.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
 
     Examples
     --------
@@ -815,7 +477,7 @@ def check_dataframe_nulls_nans(df: SupportedTemporalDataFrame, column_names: Lis
     # Step 0: Validate the input DataFrame
     is_valid, _ = is_valid_temporal_dataframe(df)
     if not is_valid:
-        raise UnsupportedBackendError("The input DataFrame is not supported by TemporalScope.")
+        raise DataFrameValidationError("The input DataFrame is not supported by TemporalScope.")
 
     # Step 1: Validate if the DataFrame is empty
     if check_dataframe_empty(df):
@@ -855,14 +517,12 @@ def check_dataframe_nulls_nans(df: SupportedTemporalDataFrame, column_names: Lis
 
 
 @nw.narwhalify
-def convert_to_numeric(
-    df: SupportedTemporalDataFrame, time_col: str, col_expr: Any, col_dtype: Any
-) -> SupportedTemporalDataFrame:
+def convert_to_numeric(df: FrameT, time_col: str, col_expr: Any, col_dtype: Any) -> FrameT:
     """Convert a datetime column to numeric using Narwhals API.
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         The input DataFrame containing the column to convert.
     time_col : str
         The name of the time column to convert.
@@ -873,15 +533,15 @@ def convert_to_numeric(
 
     Returns
     -------
-    SupportedTemporalDataFrame
+    FrameT
         The DataFrame with the converted time column.
 
     Raises
     ------
     ValueError
         If the column is not a datetime type.
-    UnsupportedBackendError
-        If the backend is not supported by TemporalScope.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
 
     Examples
     --------
@@ -913,8 +573,8 @@ def convert_to_numeric(
 
 @nw.narwhalify
 def convert_datetime_column_to_numeric(
-    df: SupportedTemporalDataFrame, time_col: str, time_unit: Literal["us", "ms", "ns"] = "us"
-) -> SupportedTemporalDataFrame:
+    df: FrameT, time_col: str, time_unit: Literal["us", "ms", "ns"] = "us"
+) -> FrameT:
     """Convert a datetime column to a numeric representation.
 
     This function converts the specified datetime column into a numeric
@@ -924,7 +584,7 @@ def convert_datetime_column_to_numeric(
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         Input DataFrame containing the datetime column.
     time_col : str
         Name of the column to convert. Must be of datetime type.
@@ -935,13 +595,13 @@ def convert_datetime_column_to_numeric(
 
     Returns
     -------
-    SupportedTemporalDataFrame
+    FrameT
         DataFrame with the converted time column.
 
     Raises
     ------
-    UnsupportedBackendError
-        If the DataFrame's backend is not supported.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
     ValueError
         If the specified column is not a datetime type or does not exist.
 
@@ -971,7 +631,7 @@ def convert_datetime_column_to_numeric(
     # Step 1: Validate the DataFrame
     is_valid, _ = is_valid_temporal_dataframe(df)
     if not is_valid:
-        raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
+        raise DataFrameValidationError(f"Unsupported DataFrame type: {type(df).__name__}")
 
     # Step 2: Validate the time column exists
     if time_col not in df.columns:
@@ -1002,14 +662,12 @@ def convert_datetime_column_to_numeric(
 
 
 @nw.narwhalify
-def convert_time_column_to_datetime(
-    df: SupportedTemporalDataFrame, time_col: str, col_expr: Any, col_dtype: Any
-) -> SupportedTemporalDataFrame:
+def convert_time_column_to_datetime(df: FrameT, time_col: str, col_expr: Any, col_dtype: Any) -> FrameT:
     """Convert a string or numeric column to datetime using Narwhals API.
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         The input DataFrame containing the column to convert.
     time_col : str
         The name of the time column to convert.
@@ -1020,15 +678,15 @@ def convert_time_column_to_datetime(
 
     Returns
     -------
-    SupportedTemporalDataFrame
+    FrameT
         The DataFrame with the converted time column.
 
     Raises
     ------
     ValueError
         If the column is not convertible to datetime.
-    UnsupportedBackendError
-        If the backend is not supported by TemporalScope.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
 
     Examples
     --------
@@ -1050,7 +708,7 @@ def convert_time_column_to_datetime(
     # Validate the DataFrame
     is_valid, _ = is_valid_temporal_dataframe(df)
     if not is_valid:
-        raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
+        raise DataFrameValidationError(f"Unsupported DataFrame type: {type(df).__name__}")
 
     if "string" in str(col_dtype).lower():
         return df.with_columns([col_expr.str.to_datetime().alias(time_col)])
@@ -1110,15 +768,15 @@ def validate_time_column_type(time_col: str, col_dtype: Any) -> None:
 
 @nw.narwhalify
 def validate_and_convert_time_column(
-    df: SupportedTemporalDataFrame,
+    df: FrameT,
     time_col: str,
     conversion_type: Optional[str] = None,
-) -> SupportedTemporalDataFrame:
+) -> FrameT:
     """Validate and optionally convert the time column in a DataFrame.
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         The input DataFrame to process.
     time_col : str
         The name of the time column to validate or convert.
@@ -1130,7 +788,7 @@ def validate_and_convert_time_column(
 
     Returns
     -------
-    SupportedTemporalDataFrame
+    FrameT
         The validated and optionally converted DataFrame.
 
     Raises
@@ -1139,8 +797,8 @@ def validate_and_convert_time_column(
         If validation or conversion fails or if an invalid conversion_type is provided.
     ValueError
         If the column dtype cannot be resolved.
-    UnsupportedBackendError
-        If the backend is not supported by TemporalScope.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
 
     Examples
     --------
@@ -1159,7 +817,7 @@ def validate_and_convert_time_column(
     # Validate the DataFrame
     is_valid, _ = is_valid_temporal_dataframe(df)
     if not is_valid:
-        raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
+        raise DataFrameValidationError(f"Unsupported DataFrame type: {type(df).__name__}")
 
     if time_col not in df.columns:
         raise TimeColumnError(f"Column '{time_col}' does not exist in the DataFrame.")
@@ -1187,7 +845,7 @@ def validate_and_convert_time_column(
 
 
 @nw.narwhalify
-def validate_dataframe_column_types(df: SupportedTemporalDataFrame, time_col: str) -> None:
+def validate_dataframe_column_types(df: FrameT, time_col: str) -> None:
     """Validate the column types in a DataFrame for compatibility with TemporalScope.
 
     This function ensures the following:
@@ -1196,7 +854,7 @@ def validate_dataframe_column_types(df: SupportedTemporalDataFrame, time_col: st
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         The input DataFrame to validate.
     time_col : str
         The name of the time column to validate.
@@ -1211,8 +869,8 @@ def validate_dataframe_column_types(df: SupportedTemporalDataFrame, time_col: st
         If the `time_col` does not exist or has an invalid type.
     ValueError
         If any non-time column has an invalid type.
-    UnsupportedBackendError
-        If the backend is not supported by TemporalScope.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
 
     Examples
     --------
@@ -1226,11 +884,17 @@ def validate_dataframe_column_types(df: SupportedTemporalDataFrame, time_col: st
     validate_dataframe_column_types(df, time_col="time")
     ```
 
+    Notes
+    -----
+    - Uses Narwhals' schema API for type checking
+    - Handles lazy evaluation by materializing when needed
+    - Validates both time column and feature columns
+    - Ensures numeric features for ML compatibility
     """
     # Validate the DataFrame
     is_valid, _ = is_valid_temporal_dataframe(df)
     if not is_valid:
-        raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
+        raise DataFrameValidationError(f"Unsupported DataFrame type: {type(df).__name__}")
 
     # Handle lazy evaluation first
     if is_lazy_evaluation(df):
@@ -1260,14 +924,12 @@ def validate_dataframe_column_types(df: SupportedTemporalDataFrame, time_col: st
 
 
 @nw.narwhalify
-def sort_dataframe_time(
-    df: SupportedTemporalDataFrame, time_col: str, ascending: bool = True
-) -> SupportedTemporalDataFrame:
+def sort_dataframe_time(df: FrameT, time_col: str, ascending: bool = True) -> FrameT:
     """Sort a DataFrame by the specified time column using Narwhals' backend-agnostic operations.
 
     Parameters
     ----------
-    df : SupportedTemporalDataFrame
+    df : FrameT
         The input DataFrame to sort.
     time_col : str
         The name of the column to sort by. Must exist in the DataFrame.
@@ -1276,15 +938,15 @@ def sort_dataframe_time(
 
     Returns
     -------
-    SupportedTemporalDataFrame
+    FrameT
         A DataFrame sorted by the specified time column.
 
     Raises
     ------
     ValueError
         If the `time_col` does not exist in the DataFrame or has invalid type.
-    UnsupportedBackendError
-        If the backend is not supported by TemporalScope.
+    DataFrameValidationError
+        If the DataFrame is not supported by Narwhals.
 
     Examples
     --------
@@ -1302,27 +964,15 @@ def sort_dataframe_time(
 
     Notes
     -----
-    - The `@nw.narwhalify` decorator automatically handles backend detection
-    and adapts sorting to Pandas, Modin, Dask, Polars, and PyArrow.
-    - Validates that the time column exists and has a valid type (numeric or datetime).
-    - Uses string column names for sorting to ensure compatibility across all backends.
-    - Handles lazy evaluation in backends like Dask and Polars.
-
-    **Dask Specific Note**:
-
-    - DaskLazyFrame requires explicit computation using `collect()` or `compute()`.
-    - This function ensures such materialization happens before sorting.
-
-    Warnings
-    --------
-    Sorting large DataFrames in lazy backends like Dask or Polars may cause
-    computations or require additional memory. Ensure memory constraints are handled.
-
+    - Uses Narwhals' sort operation for backend-agnostic sorting
+    - Validates time column type before sorting
+    - Handles lazy evaluation by materializing when needed
+    - Preserves DataFrame schema during sorting
     """
     # Validate the DataFrame
     is_valid, _ = is_valid_temporal_dataframe(df)
     if not is_valid:
-        raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
+        raise DataFrameValidationError(f"Unsupported DataFrame type: {type(df).__name__}")
 
     # Validate that the time column exists
     if time_col not in df.columns:
@@ -1336,139 +986,6 @@ def sort_dataframe_time(
     # Validate time_col type
     validate_time_column_type(time_col, df.schema.get(time_col, None))
 
+    # Use Narwhals' sort operation
     sorted_df = df.sort(by=time_col, descending=not ascending)
     return sorted_df
-
-
-@nw.narwhalify
-def validate_temporal_uniqueness(
-    df: SupportedTemporalDataFrame, time_col: str, raise_error: bool = True, id_col: str = ""
-) -> None:
-    """Validate temporal uniqueness in the given DataFrame.
-
-    This function checks that timestamps in the specified `time_col` are unique within
-    the groups defined by the `id_col` (e.g., within a patient's records). It does not enforce ordering,
-    allowing for mixed-frequency data and flexible temporal patterns.
-
-    Parameters
-    ----------
-    df : SupportedTemporalDataFrame
-        The DataFrame to validate.
-    time_col : str
-        The column representing time.
-    raise_error : bool
-        Whether to raise an error if validation fails.
-    id_col : str
-        An optional string to indicate the grouping identifier (e.g., group name).
-
-    Returns
-    -------
-    None
-
-    Raises
-    ------
-    ValueError
-        If validation fails and `raise_error` is True.
-        :warns UserWarning: If validation fails and `raise_error` is False.
-
-    Examples
-    --------
-    ```python
-    import narwhals as nw
-    import pandas as pd
-
-    # Create insurance claims data with patient visits
-    df = pd.DataFrame(
-        {
-            "patient_id": [1, 1, 1, 2, 2],
-            "time": [
-                "2023-01-01",
-                "2023-02-15",
-                "2023-04-01",  # Patient 1's visits
-                "2023-01-01",
-                "2023-03-15",
-            ],  # Patient 2's visits
-            "claim_amount": [100.0, 250.0, 150.0, 300.0, 200.0],
-        }
-    )
-
-    # Validate timestamps within each patient's records
-    for patient in df["patient_id"].unique():
-        patient_records = df[df["patient_id"] == patient]
-        validate_temporal_uniqueness(
-            patient_records, time_col="time", id_col=f"patient {patient} "
-        )  # Will pass - each patient has unique visit dates
-
-    # Example with duplicate timestamps
-    df_invalid = pd.DataFrame(
-        {
-            "patient_id": [1, 1, 1],
-            "time": ["2023-01-01", "2023-01-01", "2023-02-15"],  # Duplicate visit date
-            "claim_amount": [100.0, 150.0, 200.0],
-        }
-    )
-
-    # This will raise ValueError: "Duplicate timestamps in patient 1 column 'time'."
-    validate_temporal_uniqueness(df_invalid, time_col="time", id_col="patient 1 ")
-    ```
-
-    Notes
-    -----
-    - This function only validates uniqueness within the given `id_col` (e.g., per patient).
-    - It does not enforce temporal ordering, allowing for mixed-frequency data.
-    - Different `id_col` groups (e.g., different patients) can have events on the same dates.
-
-    """
-    # Step 1: Validate time column type and convert if needed
-    try:
-        df = nw.from_native(validate_and_convert_time_column(df, time_col))
-    except Exception as e:
-        raise TimeColumnError(f"Invalid time column: {str(e)}")
-
-    # Step 2: Check for existence of id_col
-    if id_col and id_col not in df.columns:
-        raise ValueError(f"Column '{id_col}' does not exist.")
-
-    # Step 3: Check for null values in the time column
-    null_counts = check_dataframe_nulls_nans(df, [time_col])
-    if null_counts.get(time_col, 0) > 0:
-        message = f"Null values found in {id_col}column '{time_col}'."
-        if raise_error:
-            raise ValueError(message)
-        warnings.warn(message)  # pragma: no cover
-
-    # Step 4: Materialize lazy DataFrames
-    if is_lazy_evaluation(df):
-        df = df.collect() if hasattr(df, "collect") else df.compute()
-
-    # Handle PyArrow's unique count differently
-    if get_dataframe_backend(df) == "pyarrow":
-        df = nw.from_native(df.to_pandas())
-
-    # Step 5: Check for duplicates using proper aggregation and raise error if found
-    if id_col:
-        # Count occurrences of each timestamp within each group
-        duplicate_check_df = df.group_by([id_col, time_col], drop_null_keys=True).agg(
-            [nw.col(time_col).count().alias("count")]
-        )
-        # If any timestamp appears more than once in its group, it's a duplicate
-        has_duplicates = duplicate_check_df.select([(nw.col("count") > 1).any()]).item()
-        if has_duplicates:
-            message = f"Duplicate timestamps in id_col '{id_col}' column '{time_col}'."
-            if raise_error:
-                raise ValueError(message)
-            warnings.warn(message)  # pragma: no cover
-    else:
-        # Global duplicate check
-        duplicate_check_df = df.select(
-            [nw.col(time_col).n_unique().alias("unique_count"), nw.col(time_col).count().alias("total_count")]
-        )
-        if (
-            duplicate_check_df.select([(nw.col("unique_count") < nw.col("total_count")).alias("has_duplicates")])
-            .select([nw.col("has_duplicates").any()])
-            .item()
-        ):
-            message = f"Duplicate timestamps in id_col '' column '{time_col}'."
-            if raise_error:
-                raise ValueError(message)
-            warnings.warn(message)
