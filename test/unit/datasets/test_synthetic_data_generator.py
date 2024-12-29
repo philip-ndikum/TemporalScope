@@ -248,7 +248,9 @@ def test_generate_synthetic_time_series_single_row(backend: str) -> None:
     assert pd.isna(feature_val), "Expected null/nan value"
 
     # Test with nans only (covers line 51)
-    df_nans = generate_synthetic_time_series(backend=backend, num_samples=1, num_features=2, with_nulls=False, with_nans=True)
+    df_nans = generate_synthetic_time_series(
+        backend=backend, num_samples=1, num_features=2, with_nulls=False, with_nans=True
+    )
     feature_val_nan = get_row_value(df_nans, "feature_1")
     assert pd.isna(feature_val_nan), "Expected nan value"
 
@@ -258,8 +260,4 @@ def test_generate_synthetic_time_series_single_row(backend: str) -> None:
 def test_generate_synthetic_time_series_negative_values(backend: str, num_samples: int, num_features: int) -> None:
     """Test that negative values for samples or features raise ValueError."""
     with pytest.raises(ValueError, match="`num_samples` and `num_features` must be non-negative"):
-        generate_synthetic_time_series(
-            backend=backend,
-            num_samples=num_samples,
-            num_features=num_features
-        )
+        generate_synthetic_time_series(backend=backend, num_samples=num_samples, num_features=num_features)

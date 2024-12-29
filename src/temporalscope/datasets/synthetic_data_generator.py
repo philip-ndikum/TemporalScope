@@ -43,12 +43,7 @@ from narwhals.utils import Implementation
 RANDOM_SEED = 100
 
 
-def _apply_nulls_nans_single_row(
-    df: pd.DataFrame,
-    feature_cols: list[str],
-    with_nulls: bool,
-    with_nans: bool
-) -> None:
+def _apply_nulls_nans_single_row(df: pd.DataFrame, feature_cols: list[str], with_nulls: bool, with_nans: bool) -> None:
     """Apply nulls/nans to a single row DataFrame using pandas operations.
 
     Parameters
@@ -80,7 +75,7 @@ def _apply_nulls_nans_multi_row(
     with_nans: bool,
     null_percentage: float,
     nan_percentage: float,
-    num_samples: int
+    num_samples: int,
 ) -> None:
     """Apply nulls/nans to multiple rows in a DataFrame using pandas operations.
 
@@ -129,12 +124,7 @@ def _apply_nulls_nans_multi_row(
 
 
 def _validate_synthetic_data_params(
-    backend: str,
-    num_samples: int,
-    num_features: int,
-    mode: str,
-    null_percentage: float,
-    nan_percentage: float
+    backend: str, num_samples: int, num_features: int, mode: str, null_percentage: float, nan_percentage: float
 ) -> None:
     """Validate parameters for synthetic data generation.
 
@@ -184,7 +174,7 @@ def generate_synthetic_time_series(
     mode: str = "single_target",
     time_col_numeric: bool = False,
     drop_time: bool = False,
-    random_seed: int = RANDOM_SEED
+    random_seed: int = RANDOM_SEED,
 ) -> FrameT:
     """Generate synthetic time series data with specified backend support and configurations.
 
@@ -237,7 +227,7 @@ def generate_synthetic_time_series(
         num_features=num_features,
         mode=mode,
         null_percentage=null_percentage,
-        nan_percentage=nan_percentage
+        nan_percentage=nan_percentage,
     )
 
     np.random.seed(random_seed)
@@ -290,6 +280,7 @@ def generate_synthetic_time_series(
         # Then convert to the target backend using the backend's native module
         if backend.lower() == "polars":
             import polars as pl
+
             result = pl.from_pandas(df_nw.to_native())
         else:
             # For other backends, let Narwhals handle the conversion

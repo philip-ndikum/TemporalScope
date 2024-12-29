@@ -17,106 +17,70 @@
 
 """TemporalScope/src/temporalscope/core/temporal_data_loader.py.
 
-This module provides `TimeFrame`, a universal data loader for time series forecasting,
-designed for state-of-the-art models, including multi-modal and mixed-frequency workflows.
-It supports integration with explainability tools such as SHAP, LIME, and Boruta-SHAP,
-enabling advanced insights for supported models. TemporalScope prioritizes flexibility,
-allowing users to adapt the package for causal partitioning and other custom workflows,
-while leaving data preparation and preprocessing entirely to the end user.
+This module provides `TimeFrame`, a universal data loader for time series forecasting that can store metadata
+for conversions between DataFrame and PyTorch/TensorFlow types. It supports state-of-the-art models including
+multi-modal and mixed-frequency workflows, with integration for explainability tools (SHAP, LIME, Boruta-SHAP).
 
+TimeFrame is designed to support different modeling approaches by allowing users to add columns that generalize
+temporal patterns. For example, adding a market regime column to analyze feature importance across different
+market conditions, or a treatment phase column to understand changing feature effects during patient care.
+TimeFrame enforces minimal restrictions to maintain flexibility:
 
-AI Modeling for Time Series Data:
----------------------------------
+1. The time column must be numeric or timestamp-like
+2. Non-time columns must be numeric (preprocess categorical features)
+3. Data can have mixed frequencies and asynchronous records
 
-TemporalScope is designed with several key assumptions to ensure performance,
-scalability, and flexibility across a wide range of time series forecasting and
-XAI workflows:
+Supported Modeling Approaches:
+------------------------------
++------------------------+-----------------------------------------------+
+| Approach               | Description                                   |
++------------------------+-----------------------------------------------+
+| Standard Regression    | Basic ML models where Temporal SHAP reveals   |
+|                        | how feature importance evolves naturally      |
+|                        | over time without enforced constraints.       |
++------------------------+-----------------------------------------------+
+| Time Series            | Group-aware models (e.g., by stock_id) where  |
+| Regression             | Temporal SHAP shows how features impact       |
+|                        | predictions differently across groups and     |
+|                        | their unique temporal patterns.               |
++------------------------+-----------------------------------------------+
+| Bayesian               | Probabilistic models where Temporal SHAP      |
+| Regression             | explains how features drive both predictions  |
+|                        | and uncertainty estimates through time.       |
++------------------------+-----------------------------------------------+
 
-| Approach | Description |
-|----------|-------------|
-| Implicit & Static Time Series | The `time_col` is treated as a feature, enabling ML/DL workflows with mixed-frequency datasets. By default, `enforce_temporal_uniqueness` is False. |
-| Strict Time Series | Enforces temporal ordering and uniqueness, suited for forecasting. Group or segment validation is supported via the `id_col` parameter. |
-
-1. Preprocessed Data Requirement:
-   TemporalScope assumes users provide preprocessed data, including categorical
-   encoding, missing value imputation, and feature scaling. The focus remains on
-   explainability and partitioning, leaving general preprocessing to user
-   workflows. This design aligns with standards in libraries like TensorFlow
-   and GluonTS.
-
-2. Time Column Flexibility:
-   The `time_col` must be numeric or timestamp-like. TemporalScope supports
-   workflows with partial temporal ordering for flexible partitioning while
-   enabling strict validation with `enforce_temporal_uniqueness` where needed,
-   especially for grouped forecasts or sequence validation.
-
-3. Mixed-Frequency and Asynchronous Support:
-   Designed to handle mixed-frequency datasets and asynchronous records (e.g.,
-   sensor or trading data), TemporalScope does not enforce uniform temporal
-   spacing. Users can define their temporal logic through preprocessing while
-   benefiting from backend-agnostic sorting and validation.
-
-4. Universal Workflow Design:
-   TemporalScope assumes models operate on the entire dataset without implicit
-   groupings, ensuring compatibility with model-agnostic XAI tools like SHAP,
-   LIME, and Boruta-SHAP. This design choice supports both static feature
-   modeling and forecasting across diverse use cases.
-
-5. Supported Data Modes:
-
-| Mode | Description | Compatible Frameworks |
-|------|-------------|------------------------|
-| Single-step mode | For scalar target machine learning tasks. Each row represents a single time step. | Scikit-learn, XGBoost, LightGBM, SHAP, TensorFlow (standard regression) |
-| Multi-step mode | For sequence forecasting tasks. Input sequences (`X`) and output sequences (`Y`) are handled as separate datasets. | TensorFlow, PyTorch, Keras, SHAP, LIME |
-
-By enforcing these constraints, TemporalScope focuses on its core purpose—time series
-partitioning,  explainability, and scalability—while leaving more general preprocessing
-tasks to the user. This follows industry standards seen in popular time series libraries.
+Supported Modes:
+----------------
++----------------+-------------------------------------------------------------------+
+| Mode           | Description                                                       |
+|                | Data Structure                                                    |
++----------------+-------------------------------------------------------------------+
+| single_target  | General machine learning tasks with scalar targets. Each row is   |
+|                | a single time step, and the target is scalar.                     |
+|                | Single DataFrame: each row is an observation.                     |
++----------------+-------------------------------------------------------------------+
+| multi_target   | Sequential time series tasks (e.g., seq2seq) for deep learning.   |
+|                | The data is split into sequences (input X, target Y).             |
+|                | Two DataFrames: X for input sequences, Y for targets.             |
+|                | Frameworks: TensorFlow, PyTorch, Keras.                           |
++----------------+-------------------------------------------------------------------+
 
 References
 ----------
-- Filho, L.L., de Oliveira Werneck, R., Castro, M., Ribeiro Mendes Júnior, P.,
-Lustosa, A., Zampieri, M., Linares, O., Moura, R., Morais, E., Amaral, M., &
-Salavati, S. (2024). A multi-modal approach for mixed-frequency time series
-forecasting. Neural Computing and Applications, pp.1-25.
+1. Van Ness, M., et al. (2023). Cross-Frequency Time Series Meta-Forecasting.
+   arXiv:2302.02077.
 
-- Trirat, P., Shin, Y., Kang, J., Nam, Y., Bae, M., Kim, J., Kim, B., &
-Lee, J.-G. (2024). Universal time-series representation learning: A survey.
-arXiv preprint arXiv:2401.03717.
+2. Woo, G., et al. (2024). Unified training of universal time series forecasting
+   transformers. arXiv:2402.02592.
 
-- Van Ness, M., Shen, H., Wang, H., Jin, X., Maddix, D.C., & Gopalswamy, K.
-(2023). Cross-Frequency Time Series Meta-Forecasting. arXiv preprint
-arXiv:2302.02077.
+3. Trirat, P., et al. (2024). Universal time-series representation learning:
+   A survey. arXiv:2401.03717.
 
-- Woo, G., Liu, C., Kumar, A., Xiong, C., Savarese, S., & Sahoo, D. (2024).
-Unified training of universal time series forecasting transformers. arXiv
-preprint arXiv:2402.02592.
+4. Xu, Q., et al. (2019). An artificial neural network for mixed frequency data.
+   Expert Systems with Applications, 118, pp.127-139.
 
-- Xu, Q., Zhuo, X., Jiang, C., & Liu, Y. (2019). An artificial neural network
-for mixed frequency data. Expert Systems with Applications, 118, pp.127-139.
-
-
-
-Notes
------
-- Multi-Step Mode Limitation: Currently unsupported due to limitations in
-  backends like Modin and Polars, which lack native support for vectorized
-  (sequence-based) targets in a single cell. Future updates will include
-  compatibility with formats like TensorFlow's `tf.data.Dataset` or flattened
-  target sequences.
-- Single-Step Mode Support: Narwhals-backed operations ensure that single-step
-  mode is fully supported across Pandas, Modin, and Polars without additional
-  adjustments, handling scalar target workflows seamlessly.
-- Recommendation: Use Pandas for multi-step workflows as it best supports
-  the necessary data structures. Future releases will extend compatibility
-  for vectorized targets across all backends.
-
-See Also
---------
-- Narwhals documentation: https://narwhals.readthedocs.io/
-- SHAP documentation: https://shap.readthedocs.io/
-- Boruta-SHAP documentation: https://github.com/Ekeany/Boruta-Shap
-- LIME documentation: https://lime-ml.readthedocs.io/
+5. Filho, L.L., et al. (2024). A multi-modal approach for mixed-frequency time
+   series forecasting. Neural Computing and Applications, pp.1-25.
 """
 
 from typing import Any, Dict, Optional
