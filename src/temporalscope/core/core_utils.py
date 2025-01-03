@@ -95,6 +95,12 @@ VALID_MODES = [MODE_SINGLE_TARGET, MODE_MULTI_TARGET]
 # Narwhals-supported backends
 NARWHALS_BACKENDS = [backend.name.lower() for backend in Implementation]
 
+# Test environment backends (from pyproject.toml)
+TEST_BACKENDS = ["pandas", "modin", "polars", "dask", "pyarrow"]
+
+# Validation constants
+MAX_UNIQUE_DELTAS = 1  # Maximum allowed unique time deltas for equidistant sampling
+
 # ---------------------------------------------------------
 # Utility Functions
 # ---------------------------------------------------------
@@ -219,12 +225,6 @@ def get_narwhals_backends() -> List[str]:
     List[str]
         List of Narwhals-supported backend names in lowercase.
         Common backends include:
-        - 'pandas': Standard pandas DataFrame
-        - 'polars': Polars DataFrame (both eager and lazy modes)
-        - 'dask': Dask DataFrame for distributed computing
-        - 'modin': Modin DataFrame for parallel processing
-        - 'pyarrow': PyArrow Table/Dataset
-        - 'pyspark': Spark DataFrame for big data
 
     Examples
     --------
@@ -301,262 +301,371 @@ def get_default_backend_cfg() -> Dict[str, List[str]]:
 
 
 @nw.narwhalify(eager_only=True)
-def check_dataframe_empty(df: FrameT) -> bool:
+def is_dataframe_empty(df: FrameT) -> bool:
     """Check if a DataFrame is empty using Narwhals operations.
 
     This function uses Narwhals' backend-agnostic operations to check if a DataFrame
-    is empty. It handles all DataFrame types supported by Narwhals transparently.
+    is empty. Uses eager evaluation (eager_only=True) because it returns an immediate
+    boolean result that cannot be deferred, following Narwhals' pattern for functions
+    returning Python primitives.
+
+    Implementation Details
+    --------------------
+    The function performs a two-step validation:
+    1. Checks if DataFrame has any columns
+    2. If columns exist, checks if first column has any rows
+
+    This approach is more efficient than materializing the entire DataFrame
+    for counting rows, especially with large datasets or lazy backends like Dask.
 
     Parameters
     ----------
     df : FrameT
-        The input DataFrame to check.
+        The input DataFrame to check. Can be any backend supported by Narwhals
+        (pandas, polars, dask, etc.).
 
     Returns
     -------
     bool
-        True if the DataFrame is empty, False otherwise.
+        True if the DataFrame is empty (no columns or no rows), False otherwise.
 
     Raises
     ------
     ValueError
-        If the input DataFrame is None.
+        If the input DataFrame is None. Early validation ensures consistent
+        error handling across backends.
 
     Examples
     --------
     ```python
-    from temporalscope.core.core_utils import check_dataframe_empty
+    from temporalscope.core.core_utils import is_dataframe_empty
+    import pandas as pd
 
-    # Example with any DataFrame type
-    df = pd.DataFrame(columns=["col1"])
-    assert check_dataframe_empty(df) == True
+    # Empty DataFrame (no columns)
+    df1 = pd.DataFrame()
+    assert is_dataframe_empty(df1) == True
+
+    # Empty DataFrame (has columns but no rows)
+    df2 = pd.DataFrame(columns=["col1"])
+    assert is_dataframe_empty(df2) == True
+
+    # Non-empty DataFrame
+    df3 = pd.DataFrame({"col1": [1, 2, 3]})
+    assert is_dataframe_empty(df3) == False
     ```
 
     Notes
     -----
-    - Uses Narwhals' native operations for backend-agnostic handling
-    - Handles all DataFrame types supported by Narwhals
-    - Uses eager evaluation for consistent behavior
+    Backend Independence:
+        - Uses with_columns for backend-agnostic operations
+        - Avoids backend-specific row counting methods
+        - Works consistently across all Narwhals-supported backends
+
+    Performance Considerations:
+        - Checks columns first to avoid unnecessary operations
+        - Only creates test column if needed
+        - Minimizes data materialization for lazy backends
+
+    Type Safety:
+        - Uses proper Narwhals column operations
+        - Avoids type-specific comparisons
+        - Handles all DataFrame implementations consistently
     """
     if df is None:
         raise ValueError("DataFrame cannot be None.")
 
     # Use Narwhals operations for checking emptiness
-    return len(df.columns) == 0 or len(df.with_columns([
-        nw.col(df.columns[0])
-           .alias(f"{df.columns[0]}_test")
-    ])) == 0
+    return len(df.columns) == 0 or len(df.with_columns([nw.col(df.columns[0]).alias(f"{df.columns[0]}_test")])) == 0
 
 
 @nw.narwhalify(eager_only=True)
-def check_dataframe_nulls_nans(df: FrameT, column_names: List[str]) -> Dict[str, int]:
-    """Check for null values in specified DataFrame columns using Narwhals operations.
+def count_dataframe_column_nulls(df: FrameT, column_names: List[str]) -> Dict[str, int]:
+    """Count null values in specified DataFrame columns using Narwhals operations.
 
     This function uses Narwhals' backend-agnostic operations to count null values
-    in the specified columns. It ensures consistent behavior across all DataFrame
-    backends.
+    in the specified columns. Uses eager evaluation (eager_only=True) because it returns
+    an immediate dictionary result and requires materialization for accurate null counts
+    across all backends.
+
+    Implementation Details
+    --------------------
+    The function performs efficient null counting through:
+    1. Single select operation for all columns
+    2. Proper type casting to ensure consistent counting
+    3. Unified null handling across different backends
+
+    This approach is more efficient than checking columns individually, especially
+    with large datasets or when using lazy backends like Dask.
 
     Parameters
     ----------
     df : FrameT
-        DataFrame to check for null values.
+        DataFrame to check for null values. Can be any backend supported by
+        Narwhals (pandas, polars, dask, etc.).
     column_names : List[str]
-        List of column names to check.
+        List of column names to check. All columns must exist in the DataFrame.
 
     Returns
     -------
     Dict[str, int]
         Dictionary mapping column names to their null value counts.
+        Example: {"column1": 5, "column2": 0} means column1 has 5 nulls
+        and column2 has no nulls.
 
     Raises
     ------
     ValueError
-        If the DataFrame is empty or a column is nonexistent.
+        - If the DataFrame is empty
+        - If any specified column does not exist
+        Early validation ensures data quality before processing.
     TimeColumnError
-        If a column operation fails.
+        If a column operation fails during null checking.
+        Provides detailed error context for debugging.
 
     Examples
     --------
     ```python
-    from temporalscope.core.core_utils import check_dataframe_nulls_nans
-
-    # Example input DataFrame
+    from temporalscope.core.core_utils import count_dataframe_column_nulls
     import pandas as pd
 
+    # Create test DataFrame with known null values
     df = pd.DataFrame(
         {
-            "col1": [1, 2, None],
-            "col2": [4, None, 6],
+            "col1": [1, None, 3],  # One null
+            "col2": [4, 5, None],  # One null
+            "col3": [7, 8, 9],  # No nulls
         }
     )
 
-    # Define columns to check
-    column_names = ["col1", "col2"]
+    # Check specific columns
+    null_counts = count_dataframe_column_nulls(df, ["col1", "col2"])
+    print(null_counts)  # Output: {"col1": 1, "col2": 1}
 
-    # Call check_dataframe_nulls_nans
-    null_counts = check_dataframe_nulls_nans(df, column_names)
-
-    # Output: {"col1": 1, "col2": 1}
-    print(null_counts)
+    # Check all columns
+    all_nulls = count_dataframe_column_nulls(df, df.columns)
+    print(all_nulls)  # Output: {"col1": 1, "col2": 1, "col3": 0}
     ```
 
     Notes
     -----
-    - Uses Narwhals' native operations for backend-agnostic handling
-    - Forces eager evaluation for consistent behavior
-    - Handles all DataFrame types supported by Narwhals
-    - Properly handles PyArrow scalar types
+    Backend Independence:
+        - Uses select() for unified null checking
+        - Handles different null representations
+        - Works consistently across all backends
+
+    Performance Considerations:
+        - Single pass through the DataFrame
+        - Efficient column selection
+        - Optimized for large datasets
+
+    Type Safety:
+        - Proper null type handling
+        - Consistent Int64 casting
+        - Robust error handling
     """
     # Step 1: Validate if the DataFrame is empty
-    if check_dataframe_empty(df):
+    if is_dataframe_empty(df):
         raise ValueError("Empty DataFrame provided.")
 
-    result = {}
-    for col in column_names:
-        try:
-            # Use Narwhals operations to compute and cast null counts
-            result[col] = int(df.with_columns([
-                nw.col(col)
-                   .is_null()
-                   .sum()
-                   .cast(nw.Int64())
-                   .alias(f"{col}_null_count")
-            ])[f"{col}_null_count"][0])
+    try:
+        # More efficient: Single select operation for all columns
+        exprs = [nw.col(col).is_null().sum().cast(nw.Int64()).alias(f"{col}_null_count") for col in column_names]
+        result_df = df.select(exprs)
 
-        except KeyError:
-            # Handle nonexistent column error
-            raise ValueError(f"Column '{col}' not found.")
-        except Exception as e:  # pragma: no cover
-            # Handle unforeseen errors
-            raise TimeColumnError(f"Error checking null values in column '{col}': {str(e)}")
-
-    return result
+        # Convert to dictionary
+        return {col: result_df[f"{col}_null_count"][0] for col in column_names}
+    except KeyError:
+        # Find which column is missing
+        missing_cols = [col for col in column_names if col not in df.columns]
+        raise ValueError(f"Column '{missing_cols[0]}' not found")
+    except Exception as e:  # pragma: no cover
+        # Handle unforeseen errors
+        raise TimeColumnError(f"Error checking null values: {str(e)}")
 
 
 @nw.narwhalify(eager_only=True)
-def convert_to_numeric(df: FrameT, time_col: str) -> FrameT:
-    """Convert a datetime column to numeric using Narwhals operations.
+def convert_datetime_column_to_microseconds(df: FrameT, time_col: str) -> FrameT:
+    """Convert a datetime column to microsecond timestamps using Narwhals operations.
 
     This function uses Narwhals' backend-agnostic operations to convert a datetime
-    column to a numeric representation. It ensures consistent behavior across all
-    DataFrame backends.
+    column to numeric microsecond timestamps. Uses eager evaluation (eager_only=True)
+    because it performs immediate type validation and conversion that cannot be
+    deferred, following Narwhals' pattern for type transformations.
+
+    Implementation Details
+    --------------------
+    The function performs a two-step conversion:
+    1. Validates the column is datetime type through casting
+    2. Converts to microsecond timestamps with Float64 precision
+
+    This approach ensures type safety and consistent precision across all backends,
+    particularly important for time series analysis and ML pipelines.
 
     Parameters
     ----------
     df : FrameT
-        The input DataFrame containing the column to convert.
+        The input DataFrame containing the column to convert. Can be any backend
+        supported by Narwhals (pandas, polars, dask, etc.).
     time_col : str
-        The name of the time column to convert.
+        The name of the datetime column to convert. Must exist in the DataFrame
+        and be of datetime type.
 
     Returns
     -------
     FrameT
-        The DataFrame with the converted time column.
+        The DataFrame with the time column converted to microsecond timestamps.
+        The column maintains its original name but contains Float64 values.
 
     Raises
     ------
     TimeColumnError
         If the column is not a datetime type or conversion fails.
+        Provides detailed error context for debugging.
 
     Examples
     --------
     ```python
-    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3)})
-    df = convert_to_numeric(df, "time")
+    from temporalscope.core.core_utils import convert_datetime_column_to_microseconds
+    import pandas as pd
+
+    # Create test DataFrame with datetime column
+    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3), "value": [1, 2, 3]})
+
+    # Convert time column to microsecond timestamps
+    df = convert_datetime_column_to_microseconds(df, "time")
     print(df)
+    # Output shows microseconds since epoch
     ```
 
     Notes
     -----
-    - Uses Narwhals' native operations for backend-agnostic handling
-    - Forces eager evaluation for consistent behavior
-    - Uses microsecond precision for optimal compatibility
-    - Handles all DataFrame types supported by Narwhals
+    Backend Independence:
+        - Uses with_columns for unified operations
+        - Handles timezone-aware datetimes
+        - Works consistently across backends
+
+    Performance Considerations:
+        - Single pass validation and conversion
+        - Efficient type casting
+        - Minimal data copying
+
+    Type Safety:
+        - Explicit datetime validation
+        - Consistent Float64 precision
+        - Preserves column name and schema
     """
+    # Get column type
+    col_dtype = str(df.schema.get(time_col)).lower()
+
+    # Return if already numeric
+    if "int" in col_dtype or "float" in col_dtype:
+        return df
+
     try:
         # Try casting to datetime first to validate type
-        df.with_columns([
-            nw.col(time_col)
-               .cast(nw.Datetime())
-               .alias(f"{time_col}_datetime_test")
-        ])
+        df.with_columns([nw.col(time_col).cast(nw.Datetime()).alias(f"{time_col}_datetime_test")])
 
         # Convert to numeric timestamp
-        return df.with_columns([
-            nw.col(time_col)
-               .dt.timestamp(time_unit="us")
-               .cast(nw.Float64())
-               .alias(time_col)
-        ])
+        return df.with_columns([nw.col(time_col).dt.timestamp(time_unit="us").cast(nw.Float64()).alias(time_col)])
     except:
         raise TimeColumnError(f"Column '{time_col}' is not a datetime column, cannot convert to numeric.")
 
 
 @nw.narwhalify(eager_only=True)
-def convert_datetime_column_to_numeric(
+def convert_datetime_column_to_timestamp(
     df: FrameT, time_col: str, time_unit: Literal["us", "ms", "ns"] = "us"
 ) -> FrameT:
-    """Convert a datetime column to numeric using Narwhals operations.
+    """Convert a datetime column to timestamp with specified precision using Narwhals operations.
 
     This function uses Narwhals' backend-agnostic operations to convert a datetime
-    column to a numeric timestamp. It ensures consistent behavior across all
-    DataFrame backends.
+    column to numeric timestamps. Uses eager evaluation (eager_only=True) because it
+    performs immediate type validation and conversion that cannot be deferred, following
+    Narwhals' pattern for type transformations.
+
+    Implementation Details
+    --------------------
+    The function performs a three-step process:
+    1. Validates column existence and emptiness
+    2. Checks if already numeric (early return)
+    3. Converts datetime to timestamp with appropriate precision
+
+    This approach ensures type safety and consistent precision across all backends,
+    particularly important for time series analysis and ML pipelines.
 
     Parameters
     ----------
     df : FrameT
-        Input DataFrame containing the datetime column.
+        The input DataFrame containing the column to convert. Can be any backend
+        supported by Narwhals (pandas, polars, dask, etc.).
     time_col : str
-        Name of the column to convert. Must be of datetime type.
+        The name of the datetime column to convert. Must exist in the DataFrame
+        and be of datetime type.
     time_unit : Literal["us", "ms", "ns"]
-        Time unit for conversion ("us", "ms", "ns"). Default is "us".
-        The choice of "us" provides optimal compatibility across backends.
+        Time unit for conversion:
+        - "us": microseconds (default, optimal compatibility)
+        - "ms": milliseconds (reduced precision)
+        - "ns": nanoseconds (highest precision, uses Int64)
 
     Returns
     -------
     FrameT
-        DataFrame with the converted time column.
+        The DataFrame with the time column converted to timestamps.
+        The column maintains its original name but contains:
+        - Float64 values for microseconds/milliseconds
+        - Int64 values for nanoseconds (prevents overflow)
 
     Raises
     ------
     TimeColumnError
         If the column is not a datetime type or conversion fails.
+        Provides detailed error context for debugging.
     ValueError
-        If the column does not exist or contains nulls.
+        - If the column does not exist
+        - If the DataFrame is empty
+        Early validation ensures data quality.
 
     Examples
     --------
     ```python
-    from temporalscope.core.core_utils import convert_datetime_column_to_numeric
+    from temporalscope.core.core_utils import convert_datetime_column_to_timestamp
     import pandas as pd
 
-    # Create example DataFrame with a datetime column
-    df = pd.DataFrame({"time": pd.date_range(start="2023-01-01", periods=3, freq="D"), "value": [10, 20, 30]})
+    # Create test DataFrame with datetime column
+    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3, freq="H"), "value": [1, 2, 3]})
 
-    # Convert 'time' column to numeric (microseconds precision)
-    df = convert_datetime_column_to_numeric(df, time_col="time", time_unit="us")
-    print(df)
+    # Convert with different precisions
+    df_us = convert_datetime_column_to_timestamp(df, "time", "us")  # microseconds
+    df_ms = convert_datetime_column_to_timestamp(df, "time", "ms")  # milliseconds
+    df_ns = convert_datetime_column_to_timestamp(df, "time", "ns")  # nanoseconds
+
+    print(df_us)  # Shows microsecond timestamps (Float64)
+    print(df_ns)  # Shows nanosecond timestamps (Int64)
     ```
 
     Notes
     -----
-    - Uses Narwhals' native operations for backend-agnostic handling
-    - Forces eager evaluation for consistent behavior
-    - Handles all DataFrame types supported by Narwhals
-    - Uses Int64 for nanoseconds to avoid overflow
-    - Uses Float64 for microseconds/milliseconds
+    Backend Independence:
+        - Uses with_columns for unified operations
+        - Handles timezone-aware datetimes
+        - Works consistently across backends
+
+    Performance Considerations:
+        - Early return for already numeric columns
+        - Efficient type casting
+        - Minimal data copying
+
+    Type Safety:
+        - Explicit datetime validation
+        - Precision-appropriate types
+        - Preserves column name and schema
     """
     # Validate column exists
     if time_col not in df.columns:
         raise ValueError(f"Column '{time_col}' does not exist in the DataFrame.")
 
     # Check for nulls
-    if check_dataframe_empty(df):
+    if is_dataframe_empty(df):
         raise ValueError("Empty DataFrame provided")
-
-    null_counts = check_dataframe_nulls_nans(df, [time_col])
-    if null_counts.get(time_col, 0) > 0:
-        raise ValueError(f"Null values detected in column '{time_col}'")
 
     # Get column type
     col_dtype = df.schema.get(time_col) if hasattr(df, "schema") else df[time_col].dtype
@@ -575,50 +684,93 @@ def convert_datetime_column_to_numeric(
 
 
 @nw.narwhalify(eager_only=True)
-def convert_time_column_to_datetime(df: FrameT, time_col: str) -> FrameT:
-    """Convert a string or numeric column to datetime using Narwhals operations.
+def convert_column_to_datetime_type(df: FrameT, time_col: str) -> FrameT:
+    """Convert a string or numeric column to datetime type using Narwhals operations.
 
     This function uses Narwhals' backend-agnostic operations to convert a column
-    to datetime format. It handles both string and numeric timestamps, ensuring
-    consistent behavior across all DataFrame backends.
+    to datetime format. Uses eager evaluation (eager_only=True) because it performs
+    immediate type validation and conversion that cannot be deferred, following
+    Narwhals' pattern for type transformations.
+
+    Implementation Details
+    --------------------
+    The function performs a cascading conversion attempt:
+    1. Validates column existence and current type
+    2. Returns early if already datetime type
+    3. Attempts conversions in order:
+       a. Direct datetime casting
+       b. String to datetime parsing
+       c. Numeric to datetime conversion
+
+    This approach ensures maximum compatibility with different input formats
+    while maintaining type safety across all backends.
 
     Parameters
     ----------
     df : FrameT
-        The input DataFrame containing the column to convert.
+        The input DataFrame containing the column to convert. Can be any backend
+        supported by Narwhals (pandas, polars, dask, etc.).
     time_col : str
-        The name of the time column to convert.
+        The name of the column to convert. Must exist in the DataFrame and be
+        either string (date format) or numeric (timestamp).
 
     Returns
     -------
     FrameT
-        The DataFrame with the converted time column.
+        The DataFrame with the specified column converted to datetime type.
+        The column maintains its original name but contains datetime values.
 
     Raises
     ------
     TimeColumnError
-        If the column is not convertible to datetime or conversion fails.
+        - If the column does not exist
+        - If the column is boolean type
+        - If conversion fails for all attempted methods
+        Provides detailed error context for debugging.
 
     Examples
     --------
     ```python
+    from temporalscope.core.core_utils import convert_column_to_datetime_type
+    import pandas as pd
+
     # Convert Unix timestamps to datetime
-    df = pd.DataFrame({"time": [1672531200000, 1672617600000]})
-    df = convert_time_column_to_datetime(df, "time")
-    print(df)
+    df1 = pd.DataFrame(
+        {
+            "time": [1672531200000, 1672617600000],  # Unix timestamps
+            "value": [1, 2],
+        }
+    )
+    df1 = convert_column_to_datetime_type(df1, "time")
+    print(df1)  # Shows datetime values
 
     # Convert string dates to datetime
-    df = pd.DataFrame({"time": ["2023-01-01", "2023-01-02"]})
-    df = convert_time_column_to_datetime(df, "time")
-    print(df)
+    df2 = pd.DataFrame(
+        {
+            "time": ["2023-01-01", "2023-01-02"],  # ISO format strings
+            "value": [3, 4],
+        }
+    )
+    df2 = convert_column_to_datetime_type(df2, "time")
+    print(df2)  # Shows datetime values
     ```
 
     Notes
     -----
-    - Uses Narwhals' native operations for backend-agnostic handling
-    - Forces eager evaluation for consistent behavior
-    - Handles string dates and numeric timestamps
-    - Preserves timezone information where applicable
+    Backend Independence:
+        - Uses with_columns for unified operations
+        - Handles multiple input formats
+        - Works consistently across backends
+
+    Performance Considerations:
+        - Early return for datetime columns
+        - Efficient type casting
+        - Minimal data copying
+
+    Type Safety:
+        - Explicit type validation
+        - Multiple conversion attempts
+        - Preserves column name and schema
     """
     # First check if column exists
     if time_col not in df.columns:
@@ -637,92 +789,111 @@ def convert_time_column_to_datetime(df: FrameT, time_col: str) -> FrameT:
 
     # Try direct datetime conversion first
     try:
-        return df.with_columns([
-            nw.col(time_col)
-               .cast(nw.Datetime())
-               .alias(time_col)
-        ])
+        return df.with_columns([nw.col(time_col).cast(nw.Datetime()).alias(time_col)])
     except:
         # Try string to datetime conversion
         try:
-            return df.with_columns([
-                nw.col(time_col)
-                   .cast(nw.String())
-                   .str.to_datetime()
-                   .alias(time_col)
-            ])
+            return df.with_columns([nw.col(time_col).cast(nw.String()).str.to_datetime().alias(time_col)])
         except:
             # Try numeric to datetime conversion
             try:
-                return df.with_columns([
-                    nw.col(time_col)
-                       .cast(nw.Float64())
-                       .cast(nw.Datetime())
-                       .alias(time_col)
-                ])
+                return df.with_columns([nw.col(time_col).cast(nw.Float64()).cast(nw.Datetime()).alias(time_col)])
             except:
                 raise TimeColumnError(f"Column '{time_col}' must be string or numeric to convert to datetime")
 
 
 @nw.narwhalify(eager_only=True)
-def validate_time_column_type(df: FrameT, time_col: str) -> None:
-    """Validate that a column is either numeric or datetime using Narwhals operations.
+def validate_column_numeric_or_datetime(df: FrameT, time_col: str) -> None:
+    """Validate that a column is either numeric or datetime type using Narwhals operations.
+
+    This function uses Narwhals' backend-agnostic operations to validate column types.
+    Uses eager evaluation (eager_only=True) because it performs immediate type validation
+    that cannot be deferred, following Narwhals' pattern for validation functions.
+
+    Implementation Details
+    --------------------
+    The function performs a two-step validation:
+    1. Attempts numeric type casting (Float64)
+    2. If numeric fails, attempts datetime casting
+
+    This approach ensures proper type validation across all backends while
+    maintaining consistent error handling and type safety.
 
     Parameters
     ----------
     df : FrameT
-        The DataFrame containing the column to validate.
+        The input DataFrame containing the column to validate. Can be any backend
+        supported by Narwhals (pandas, polars, dask, etc.).
     time_col : str
-        The name of the time column to validate.
+        The name of the column to validate. Must exist in the DataFrame and be
+        either numeric (int/float) or datetime type.
 
     Returns
     -------
     None
+        Function returns None if validation passes, otherwise raises an error.
 
     Raises
     ------
     ValueError
-        If the column is neither numeric nor datetime.
+        If the column is neither numeric nor datetime type.
+        Provides clear error context for debugging.
 
     Examples
     --------
     ```python
-    # Validate numeric column
-    df = pd.DataFrame({"time": [1, 2, 3]})
-    validate_time_column_type(df, "time")  # Passes
+    from temporalscope.core.core_utils import validate_column_numeric_or_datetime
+    import pandas as pd
 
-    # Validate datetime column
-    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3)})
-    validate_time_column_type(df, "time")  # Passes
+    # Test with numeric column
+    df1 = pd.DataFrame(
+        {
+            "time": [1, 2, 3],  # Integer type
+            "value": [1.1, 2.2, 3.3],  # Float type
+        }
+    )
+    validate_column_numeric_or_datetime(df1, "time")  # Passes
+    validate_column_numeric_or_datetime(df1, "value")  # Passes
 
-    # Invalid column type
-    df = pd.DataFrame({"time": ["a", "b", "c"]})
-    validate_time_column_type(df, "time")  # Raises ValueError
+    # Test with datetime column
+    df2 = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3), "value": [1, 2, 3]})
+    validate_column_numeric_or_datetime(df2, "time")  # Passes
+
+    # Test with invalid type
+    df3 = pd.DataFrame(
+        {
+            "time": ["a", "b", "c"],  # String type (invalid)
+            "value": [1, 2, 3],
+        }
+    )
+    validate_column_numeric_or_datetime(df3, "time")  # Raises ValueError
     ```
 
     Notes
     -----
-    - Uses Narwhals' native operations for type validation
-    - Forces eager evaluation for consistent behavior
-    - Handles all DataFrame types supported by Narwhals
-    - Provides clear error messages for unsupported types
+    Backend Independence:
+        - Uses with_columns for unified validation
+        - Handles different numeric representations
+        - Works consistently across backends
+
+    Performance Considerations:
+        - Minimal type casting operations
+        - Early return on first success
+        - No data copying required
+
+    Type Safety:
+        - Explicit type validation
+        - Clear error messages
+        - Proper null handling
     """
     # Try numeric cast first
     try:
-        df.with_columns([
-            nw.col(time_col)
-               .cast(nw.Float64())
-               .alias(f"{time_col}_numeric_test")
-        ])
+        df.with_columns([nw.col(time_col).cast(nw.Float64()).alias(f"{time_col}_numeric_test")])
         return
     except:
         # Try datetime cast
         try:
-            df.with_columns([
-                nw.col(time_col)
-                   .cast(nw.Datetime())
-                   .alias(f"{time_col}_datetime_test")
-            ])
+            df.with_columns([nw.col(time_col).cast(nw.Datetime()).alias(f"{time_col}_datetime_test")])
             return
         except:
             raise ValueError(f"Column '{time_col}' is neither numeric nor datetime.")
@@ -794,83 +965,246 @@ def validate_and_convert_time_column(
 
     # Perform conversion if requested
     if conversion_type == "numeric":
-        return convert_to_numeric(df, time_col)
+        return convert_datetime_column_to_microseconds(df, time_col)
 
     if conversion_type == "datetime":
-        return convert_time_column_to_datetime(df, time_col)
+        return convert_column_to_datetime_type(df, time_col)
 
     # Validation-only path
-    validate_time_column_type(df, time_col)
+    validate_column_numeric_or_datetime(df, time_col)
     return df
 
 
 @nw.narwhalify(eager_only=True)
-def validate_dataframe_column_types(df: FrameT, time_col: str) -> None:
-    """Validate DataFrame column types using Narwhals operations.
+def validate_feature_columns_numeric(df: FrameT, time_col: Optional[str] = None) -> None:
+    """Validate that feature columns are numeric using Narwhals operations.
 
-    This function uses Narwhals' backend-agnostic operations to validate that:
-    - The time column is numeric or datetime type
-    - All other columns are numeric type
+    Uses eager evaluation (eager_only=True) for immediate type validation that cannot
+    be deferred. Ensures feature columns are numeric for ML/DL compatibility.
+    If time_col is provided, that column is excluded from numeric validation.
+
+    Implementation Details
+    --------------------
+    1. If time_col provided, validates it exists
+    2. Identifies feature columns (all columns except time_col if provided)
+    3. Validates each feature column is numeric via Float64 casting
+    4. Uses with_columns for backend-agnostic validation
 
     Parameters
     ----------
     df : FrameT
-        The input DataFrame to validate.
-    time_col : str
-        The name of the time column to validate.
+        Input DataFrame to validate
+    time_col : Optional[str]
+        Optional name of time column to exclude from validation.
+        If None, all columns are validated as numeric.
 
     Returns
     -------
     None
+        Raises error if validation fails
 
     Raises
     ------
     TimeColumnError
-        If validation fails for the time column.
+        If time_col provided but doesn't exist
     ValueError
-        If any column does not exist or has invalid type.
+        If any feature column is not numeric type
 
     Examples
     --------
     ```python
-    # Example DataFrame with valid types
-    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=5), "value": [1.0, 2.0, 3.0, 4.0, 5.0]})
-    validate_dataframe_column_types(df, time_col="time")  # Passes
-
-    # Example with invalid type
-    df = pd.DataFrame(
+    # Validate all columns are numeric
+    df1 = pd.DataFrame(
         {
-            "time": pd.date_range("2023-01-01", periods=5),
-            "value": ["a", "b", "c", "d", "e"],  # String type not allowed
+            "value": [1.0, 2.0, 3.0],  # numeric ok
+            "feature": [4, 5, 6],  # numeric ok
         }
     )
-    validate_dataframe_column_types(df, time_col="time")  # Raises ValueError
+    validate_feature_columns_numeric(df1)  # passes
+
+    # Validate all except time column
+    df2 = pd.DataFrame(
+        {
+            "time": pd.date_range("2023-01", periods=3),  # ignored
+            "value": [1.0, 2.0, 3.0],  # numeric ok
+            "feature": [4, 5, 6],  # numeric ok
+            "category": ["a", "b", "c"],  # error: must be numeric
+        }
+    )
+    validate_feature_columns_numeric(df2, time_col="time")  # raises ValueError
     ```
 
     Notes
     -----
-    - Uses Narwhals' native operations for backend-agnostic handling
-    - Forces eager evaluation for consistent behavior
-    - Validates all columns in a single pass
-    - Ensures ML-compatible numeric features
+    Backend Independence:
+        - Uses with_columns for validation
+        - Works across all backends
+    Type Safety:
+        - Explicit type validation
+        - Clear error messages
     """
-    # Validate time column exists and type
-    if time_col not in df.columns:
+    # If time_col provided, validate it exists
+    if time_col is not None and time_col not in df.columns:
         raise TimeColumnError(f"Column '{time_col}' does not exist")
-    validate_time_column_type(df, time_col)
 
-    # Validate other columns are numeric
-    non_time_cols = [col for col in df.columns if col != time_col]
-    for col in non_time_cols:
+    # Get columns to validate (all columns except time_col if provided)
+    cols_to_validate = [col for col in df.columns if col != time_col]
+
+    # Validate columns are numeric
+    for col in cols_to_validate:
         try:
             # Try casting to numeric (Float64)
-            df.with_columns([
-                nw.col(col)
-                   .cast(nw.Float64())
-                   .alias(f"{col}_numeric_test")
-            ])
+            df.with_columns([nw.col(col).cast(nw.Float64()).alias(f"{col}_numeric_test")])
         except:
             raise ValueError(f"Column '{col}' must be numeric")
+
+
+@nw.narwhalify(eager_only=True)
+def validate_temporal_ordering(
+    df: FrameT, time_col: str, id_col: Optional[str] = None, enforce_equidistant_sampling: bool = False
+) -> None:
+    """Validate temporal ordering of time series data.
+
+    Default Behavior (enforce_equidistant_sampling=False):
+    - Enforces temporal uniqueness within groups (if id_col provided) or globally
+    - Required for most ML/DL models to ensure:
+        1. No information leakage in train/test splits
+        2. Proper sequence ordering for time series models
+        3. Valid feature/target relationships
+
+    Special Cases:
+    - Some use cases may allow overlapping timestamps across groups:
+        1. Multi-sensor data with different sampling rates
+        2. Event data from different sources
+        3. Hierarchical time series with nested groupings
+    - Handle these by processing each group separately or using appropriate
+      resampling/aggregation strategies before modeling
+
+    Equidistant Sampling (enforce_equidistant_sampling=True):
+    - Validates constant time deltas (equal spacing between timestamps)
+    - Critical for specific modeling approaches:
+        1. Classical time series models (ARIMA, SARIMA)
+            - Assumes regular intervals for seasonality
+            - Required for proper lag calculations
+        2. Bayesian models (PyMC3, Stan)
+            - Needed for proper prior specification
+            - Required for state space models
+        3. Spectral analysis
+            - FFT and wavelets assume uniform sampling
+            - Required for frequency domain analysis
+
+    Parameters
+    ----------
+    df : FrameT
+        Input DataFrame to validate
+    time_col : str
+        Name of time column
+    id_col : Optional[str]
+        Optional column for grouped validation. If provided, validates temporal
+        ordering within each group.
+    enforce_equidistant_sampling : bool
+        If True, validates equidistant sampling required by:
+        - Classical time series models (ARIMA)
+        - Bayesian packages (PyMC3)
+        If False (default), only validates ordering.
+
+    Returns
+    -------
+    None
+        Raises error if validation fails
+
+    Raises
+    ------
+    TimeColumnError
+        - If time_col missing or invalid type
+        - If duplicate timestamps exist within groups
+        - If irregular sampling when enforce_regular_sampling=True
+    ValueError
+        If id_col provided but doesn't exist
+
+    Examples
+    --------
+    ```python
+    # Basic ML case (default)
+    validate_temporal_ordering(df, "time")  # Ensures unique, ordered timestamps
+
+    # Multi-entity ML case
+    validate_temporal_ordering(df, "time", id_col="stock_id")
+
+    # ARIMA/PyMC3 case
+    validate_temporal_ordering(df, "time", id_col="stock_id", enforce_regular_sampling=True)
+    ```
+
+    Notes
+    -----
+    - Most ML models require unique, ordered timestamps (default behavior)
+    - Some models (ARIMA, PyMC3) require regular sampling (enforce_regular_sampling)
+    - Uses Narwhals operations for backend-agnostic validation
+    """
+    # Validate time_col exists and is numeric/datetime
+    validate_column_numeric_or_datetime(df, time_col)
+
+    # Validate id_col if provided
+    if id_col is not None and id_col not in df.columns:
+        raise ValueError(f"Column '{id_col}' does not exist")
+
+    # Sort by time (and id_col if provided)
+    sort_cols = [time_col] if id_col is None else [id_col, time_col]
+    df_sorted = df.sort(sort_cols)
+
+    # Check for duplicates within groups
+    if id_col is not None:
+        # Group by id and time, count occurrences
+        duplicates = (
+            df_sorted.group_by([id_col, time_col])
+            .agg([nw.col(time_col).count().alias("count")])
+            .filter(nw.col("count") > 1)
+        )
+        if len(duplicates) > 0:
+            raise TimeColumnError(f"Duplicate timestamps found within groups in '{time_col}'")
+    else:
+        # Check for global duplicates
+        duplicates = (
+            df_sorted.group_by(time_col).agg([nw.col(time_col).count().alias("count")]).filter(nw.col("count") > 1)
+        )
+        if len(duplicates) > 0:
+            raise TimeColumnError(f"Duplicate timestamps found in '{time_col}'")
+
+    # Check for equidistant sampling if required
+    if enforce_equidistant_sampling:
+        # Calculate time deltas using minus operator
+        if id_col is not None:
+            # First compute deltas within groups
+            df_deltas = df_sorted.select(
+                [(nw.col(time_col).shift(-1) - nw.col(time_col)).alias("delta"), nw.col(id_col)]
+            )
+            # Only check within groups
+            df_deltas = df_deltas.filter(nw.col(id_col) == nw.col(id_col).shift(-1))
+            # For each group, get unique deltas (excluding nulls)
+            group_deltas = (
+                df_deltas.filter(~nw.col("delta").is_null())
+                .group_by(id_col)
+                .agg([nw.col("delta").n_unique().alias("unique_deltas")])
+            )
+            # Check if any group has more unique deltas than allowed
+            irregular_groups = group_deltas.filter(nw.col("unique_deltas") > MAX_UNIQUE_DELTAS)
+            if len(irregular_groups) > 0:
+                raise TimeColumnError(  # pragma: no cover
+                    f"Irregular time sampling found within group(s) for '{time_col}'. "
+                    "Equidistant sampling is required within each group when enforce_equidistant_sampling=True."
+                )
+        else:
+            # Compute deltas globally
+            df_deltas = df_sorted.select([(nw.col(time_col).shift(-1) - nw.col(time_col)).alias("delta")])
+            # Get unique deltas (excluding nulls)
+            delta_stats = df_deltas.filter(~nw.col("delta").is_null()).select(
+                [nw.col("delta").n_unique().alias("unique_deltas")]
+            )
+            if delta_stats["unique_deltas"][0] > MAX_UNIQUE_DELTAS:
+                raise TimeColumnError(
+                    f"Irregular time sampling found in '{time_col}'. "
+                    "Equidistant sampling is required when enforce_equidistant_sampling=True."
+                )
 
 
 @nw.narwhalify(eager_only=True)
@@ -922,10 +1256,10 @@ def sort_dataframe_time(df: FrameT, time_col: str, ascending: bool = True) -> Fr
     """
     # Validate time column exists
     if time_col not in df.columns:
-        raise ValueError(f"Column '{time_col}' does not exist in the DataFrame.")
+        raise ValueError(f"Column '{time_col}' does not exist in DataFrame")
 
     # Validate time column type
-    validate_time_column_type(df, time_col)
+    validate_column_numeric_or_datetime(df, time_col)
 
     # Sort using Narwhals operations
     return df.sort(by=time_col, descending=not ascending)
