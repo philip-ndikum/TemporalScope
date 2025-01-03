@@ -25,46 +25,42 @@ Testing Strategy:
 
 from unittest import mock
 
+import narwhals as nw
 import pandas as pd
 import pytest
+from narwhals.typing import FrameT
 
-from temporalscope.core.core_utils import (
+from temporalscope.core.core_utils import TEST_BACKENDS
+from temporalscope.core.temporal_data_loader import (
     MODE_MULTI_TARGET,
     MODE_SINGLE_TARGET,
-    TEMPORALSCOPE_CORE_BACKEND_TYPES,
-    SupportedTemporalDataFrame,
-    convert_to_backend,
+    TimeFrame,
 )
-from temporalscope.core.exceptions import UnsupportedBackendError
-from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
-
-# Constants
-VALID_BACKENDS = list(TEMPORALSCOPE_CORE_BACKEND_TYPES.keys())
 
 # ========================= Fixtures =========================
 
 
-@pytest.fixture(params=VALID_BACKENDS)
-def df_basic(request) -> SupportedTemporalDataFrame:
+@pytest.fixture(params=TEST_BACKENDS)
+def df_basic(request) -> FrameT:
     """Basic DataFrame with clean data."""
     return generate_synthetic_time_series(backend=request.param, num_samples=5, num_features=3)
 
 
-@pytest.fixture(params=VALID_BACKENDS)
-def df_nulls(request) -> SupportedTemporalDataFrame:
+@pytest.fixture(params=TEST_BACKENDS)
+def df_nulls(request) -> FrameT:
     """DataFrame with null values."""
     return generate_synthetic_time_series(backend=request.param, num_samples=5, num_features=3, with_nulls=True)
 
 
-@pytest.fixture(params=VALID_BACKENDS)
-def df_nans(request) -> SupportedTemporalDataFrame:
+@pytest.fixture(params=TEST_BACKENDS)
+def df_nans(request) -> FrameT:
     """DataFrame with NaN values."""
     return generate_synthetic_time_series(backend=request.param, num_samples=5, num_features=3, with_nans=True)
 
 
-@pytest.fixture(params=VALID_BACKENDS)
-def df_datetime(request) -> SupportedTemporalDataFrame:
+@pytest.fixture(params=TEST_BACKENDS)
+def df_datetime(request) -> FrameT:
     """DataFrame with datetime time column."""
     return generate_synthetic_time_series(backend=request.param, num_samples=5, num_features=3, time_col_numeric=False)
 
@@ -81,7 +77,7 @@ def test_init_basic(df_basic):
 
 def test_init_invalid_backend(df_basic):
     """Test initialization with an invalid backend."""
-    with pytest.raises(UnsupportedBackendError, match="Unsupported backend"):
+    with pytest.raises(ValueError, match="Unsupported backend"):
         TimeFrame(df_basic, time_col="time", target_col="target", dataframe_backend="invalid")
 
 
@@ -99,7 +95,7 @@ def test_init_invalid_target_col(df_basic):
 
 def test_init_invalid_backend_type(df_basic):
     """Test initialization with invalid `dataframe_backend` type."""
-    with pytest.raises(UnsupportedBackendError, match="Unsupported backend: Backend '123' is not supported"):
+    with pytest.raises(ValueError, match="Unsupported backend: Backend '123' is not supported"):
         TimeFrame(df_basic, time_col="time", target_col="target", dataframe_backend=123)
 
 
@@ -141,7 +137,7 @@ def test_init_invalid_mode(df_basic):
 def test_init_unsupported_backend_error():
     """Test that UnsupportedBackendError is raised for unsupported DataFrame types."""
     invalid_df = {"unsupported": "type"}  # Example of an invalid DataFrame type
-    with pytest.raises(UnsupportedBackendError, match="Unsupported DataFrame type"):
+    with pytest.raises(ValueError, match="Unsupported DataFrame type"):
         TimeFrame(invalid_df, time_col="time", target_col="target")
 
 
@@ -234,18 +230,9 @@ def test_backend_conversion(df_basic, target_backend):
 # ========================= Update DataFrame =========================
 
 
-def convert_to_pandas(df):
-    """Convert a DataFrame to Pandas, handling backend-specific cases."""
-    if hasattr(df, "to_pandas"):
-        return df.to_pandas()  # Works for modin, dask, etc.
-    elif isinstance(df, pd.DataFrame):  # Native Pandas DataFrame
-        return df
-    elif hasattr(df, "compute"):  # For Dask DataFrames
-        return df.compute()
-    elif hasattr(df, "to_dataframe"):  # For PyArrow tables
-        return df.to_dataframe()
-    else:
-        raise ValueError(f"Unsupported DataFrame type: {type(df)}")
+def convert_to_pandas(df: FrameT) -> pd.DataFrame:
+    """Convert a DataFrame to Pandas using Narwhals."""
+    return df.to_native() if hasattr(df, "to_native") else df
 
 
 @pytest.mark.parametrize("backend", ["pandas", "modin", "pyarrow", "polars", "dask"])
@@ -386,20 +373,20 @@ def test_validate_parameters_direct_invalid_id_col(df_basic):
 # ========================= Setup Tests =========================
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_setup_enforce_temporal_uniquenessing_invalid_time_column(backend):
     """Test setup with invalid time column when enforce_temporal_uniqueness is True."""
     df = pd.DataFrame({"time": ["a", "b", "c"], "target": [1, 2, 3]})
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
     with pytest.raises(ValueError, match=r".*neither numeric nor datetime.*"):
         TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_setup_validate_columns_missing_columns(backend):
     """Test setup with missing columns required for validation."""
     df = pd.DataFrame({"other": [1, 2, 3]})
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
 
     # Test missing time column
     with pytest.raises(ValueError, match=r"Column .* does not exist"):
@@ -407,7 +394,7 @@ def test_setup_validate_columns_missing_columns(backend):
 
     # Test missing id column when enforcing temporal uniqueness
     df_with_time = pd.DataFrame({"time": [1, 2, 3], "target": [1, 2, 3]})
-    df_with_time = convert_to_backend(df_with_time, backend)
+    df_with_time = nw.from_native(df_with_time)
     with pytest.raises(ValueError, match=r"Column .* does not exist"):
         TimeFrame(
             df_with_time,
@@ -418,16 +405,16 @@ def test_setup_validate_columns_missing_columns(backend):
         )
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_setup_enforce_temporal_uniquenessing_empty_dataframe(backend):
     """Test setup with empty DataFrame when enforce_temporal_uniqueness is True."""
     df = pd.DataFrame(columns=["time", "target"])
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
     with pytest.raises(ValueError, match="Empty DataFrame provided."):
         TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_setup_enforce_temporal_uniquenessing_duplicates(backend):
     """Test setup with duplicate timestamps when enforce_temporal_uniqueness is True."""
     df = pd.DataFrame(
@@ -436,13 +423,13 @@ def test_setup_enforce_temporal_uniquenessing_duplicates(backend):
             "target": [10, 20, 30, 40],
         }
     )
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
     # Update regex to match 'None' or empty string
     with pytest.raises(ValueError, match=r"Duplicate timestamps in id_col '.*' column 'time'."):
         TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_setup_enforce_temporal_uniqueness_group_validation(backend):
     """Test setup with group-based validation ensuring duplicate timestamps raise ValueError."""
     # Create a DataFrame with duplicates in each group
@@ -454,14 +441,14 @@ def test_setup_enforce_temporal_uniqueness_group_validation(backend):
             "target": [20, 10, 40, 30],
         }
     )
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
 
     # Expecting a ValueError due to duplicate timestamps in 'group' column 'time'
     with pytest.raises(ValueError, match=r"Duplicate timestamps in id_col 'group' column 'time'."):
         TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True, id_col="group")
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_setup_enforce_temporal_uniquenessing_valid_data(backend):
     """Test setup with valid temporal ordering."""
     df = pd.DataFrame(
@@ -470,13 +457,13 @@ def test_setup_enforce_temporal_uniquenessing_valid_data(backend):
             "target": [10, 20, 30, 40],
         }
     )
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
     # Should pass - timestamps are strictly increasing
     tf = TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
     assert tf._enforce_temporal_uniqueness is True
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_setup_print_statements_numeric_conversion(backend, capsys):
     """Test that the numeric conversion print statement is triggered."""
     df = pd.DataFrame(
@@ -485,7 +472,7 @@ def test_setup_print_statements_numeric_conversion(backend, capsys):
             "target": [10, 20, 30],
         }
     )
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
 
     # Initialize TimeFrame with verbose=True to enable printing
     tf = TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=False, verbose=True)
@@ -497,7 +484,7 @@ def test_setup_print_statements_numeric_conversion(backend, capsys):
     assert expected_message in captured.out
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_setup_print_statements_datetime_conversion(backend, capsys):
     """Test that the datetime conversion print statement is triggered."""
     df = pd.DataFrame(
@@ -506,7 +493,7 @@ def test_setup_print_statements_datetime_conversion(backend, capsys):
             "target": [10, 20, 30],
         }
     )
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
 
     # Initialize TimeFrame with verbose=True to enable printing
     tf = TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=False, verbose=True)
@@ -521,7 +508,7 @@ def test_setup_print_statements_datetime_conversion(backend, capsys):
 # ========================= Valid Numeric Conversion =========================
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_time_col_conversion_to_numeric_valid_datetime(backend):
     """Test numeric conversion of a valid datetime column."""
     # Step 1: Create the initial DataFrame in Pandas
@@ -533,7 +520,7 @@ def test_time_col_conversion_to_numeric_valid_datetime(backend):
     )
 
     # Step 2: Convert to the specified backend
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
 
     # Step 3: Initialize the TimeFrame
     tf = TimeFrame(df, time_col="time", target_col="target")
@@ -542,7 +529,7 @@ def test_time_col_conversion_to_numeric_valid_datetime(backend):
     converted_df = tf.setup(df, time_col_conversion="numeric")
 
     # Step 5: Convert back to Pandas for validation
-    pandas_df = convert_to_backend(converted_df, backend="pandas")
+    pandas_df = converted_df.to_native()
 
     # Step 6: Validate that the time column is numeric
     assert pd.api.types.is_numeric_dtype(pandas_df["time"]), "Time column was not converted to numeric."
@@ -551,7 +538,7 @@ def test_time_col_conversion_to_numeric_valid_datetime(backend):
 # ========================= Invalid Numeric Conversion =========================
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_time_col_conversion_to_numeric_invalid_non_datetime(backend):
     """Test numeric conversion skips already numeric columns gracefully."""
     # Step 1: Create a DataFrame with numeric columns
@@ -563,15 +550,15 @@ def test_time_col_conversion_to_numeric_invalid_non_datetime(backend):
     )
 
     # Step 2: Convert the DataFrame to the specified backend
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
 
     # Step 3: Initialize TimeFrame and run the setup
     tf = TimeFrame(df, time_col="time", target_col="target")
     converted_df = tf.df
 
     # Step 4: Convert back to Pandas for comparison using `convert_to_backend`
-    converted_df_native = convert_to_backend(converted_df, "pandas")
-    original_df_native = convert_to_backend(df, "pandas")
+    converted_df_native = converted_df.to_native()
+    original_df_native = df.to_native()
 
     # Step 5: Explicitly handle Modin backend if necessary
     if backend == "modin":
@@ -585,7 +572,7 @@ def test_time_col_conversion_to_numeric_invalid_non_datetime(backend):
 # ========================= Already Numeric Input =========================
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_time_col_conversion_to_numeric_already_numeric(backend):
     """Test behavior with a column that is already numeric."""
     # Step 1: Create the DataFrame in Pandas
@@ -596,12 +583,12 @@ def test_time_col_conversion_to_numeric_already_numeric(backend):
         }
     )
     # Step 2: Convert to backend
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
     # Step 3: Validate that no change is made
     tf = TimeFrame(df, time_col="time", target_col="target")
     converted_df = tf.setup(df, time_col_conversion="numeric")
     # Step 4: Convert back to Pandas for validation
-    converted_df = convert_to_backend(converted_df, backend="pandas")
+    converted_df = converted_df.to_native()
     # Step 5: Validate that the time column is still numeric
     assert pd.api.types.is_numeric_dtype(converted_df["time"]), "Time column was not numeric."
 
@@ -609,7 +596,7 @@ def test_time_col_conversion_to_numeric_already_numeric(backend):
 # ========================= Mixed Valid and Invalid Values =========================
 
 
-@pytest.mark.parametrize("backend", VALID_BACKENDS)
+@pytest.mark.parametrize("backend", TEST_BACKENDS)
 def test_time_col_conversion_to_numeric_mixed_invalid(backend):
     """Test numeric conversion with a column containing mixed valid and invalid datetime values."""
     # Step 1: Create a DataFrame with mixed valid and invalid datetime values
@@ -621,7 +608,7 @@ def test_time_col_conversion_to_numeric_mixed_invalid(backend):
     )
 
     # Step 2: Convert the DataFrame to the specified backend
-    df = convert_to_backend(df, backend)
+    df = nw.from_native(df)
 
     # Step 3: Assert that initializing TimeFrame raises a ValueError
     with pytest.raises(ValueError, match="Column 'time' is neither numeric nor datetime."):

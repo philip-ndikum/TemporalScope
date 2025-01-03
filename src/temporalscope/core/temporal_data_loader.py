@@ -86,23 +86,15 @@ References
 from typing import Any, Dict, Optional
 
 import narwhals as nw
+from narwhals.typing import FrameT
 
 # Import necessary types and utilities from the Narwhals library for handling temporal data
-from temporalscope.core.core_utils import (
-    MODE_SINGLE_TARGET,
-    VALID_MODES,
-    SupportedTemporalDataFrame,
-    check_dataframe_nulls_nans,
-    convert_datetime_column_to_numeric,
-    convert_time_column_to_datetime,
-    get_dataframe_backend,
-    is_valid_temporal_backend,
-    is_valid_temporal_dataframe,
-    sort_dataframe_time,
-    validate_dataframe_column_types,
-    validate_temporal_uniqueness,
-)
-from temporalscope.core.exceptions import UnsupportedBackendError
+from temporalscope.core.core_utils import TEST_BACKENDS
+
+# Constants for temporal data loading
+MODE_SINGLE_TARGET = "single_target"
+MODE_MULTI_TARGET = "multi_target"
+VALID_MODES = [MODE_SINGLE_TARGET, MODE_MULTI_TARGET]
 
 
 class TimeFrame:
@@ -149,7 +141,7 @@ class TimeFrame:
 
     def __init__(
         self,
-        df: SupportedTemporalDataFrame,
+        df: FrameT,
         time_col: str,
         target_col: str,
         time_col_conversion: Optional[str] = None,
@@ -330,7 +322,7 @@ class TimeFrame:
         if self._mode not in VALID_MODES:
             raise ValueError(f"Invalid mode '{self._mode}'. Must be one of {VALID_MODES}.")
 
-    def _initialize_backend(self, df: SupportedTemporalDataFrame, dataframe_backend: Optional[str]) -> str:
+    def _initialize_backend(self, df: FrameT, dataframe_backend: Optional[str]) -> str:
         """Determine and validate the backend for the DataFrame.
 
         Parameters
@@ -355,17 +347,21 @@ class TimeFrame:
             If the backend is invalid or unsupported.
 
         """
+        # Validate backend if provided
         if dataframe_backend:
-            is_valid_temporal_backend(dataframe_backend)
+            if dataframe_backend not in TEST_BACKENDS:
+                raise ValueError(f"Unsupported backend: {dataframe_backend}")
             return dataframe_backend
 
-        is_valid, _ = is_valid_temporal_dataframe(df)
-        if not is_valid:
-            raise UnsupportedBackendError(f"Unsupported DataFrame type: {type(df).__name__}")
-        return get_dataframe_backend(df)
+        # Infer backend from DataFrame type
+        try:
+            df = nw.from_native(df)  # Test if DataFrame can be converted
+            return df.__class__.__name__.lower()
+        except:
+            raise ValueError(f"Unsupported DataFrame type: {type(df).__name__}")
 
     @nw.narwhalify
-    def sort_dataframe_time(self, df: SupportedTemporalDataFrame, ascending: bool = True) -> SupportedTemporalDataFrame:
+    def sort_dataframe_time(self, df: FrameT, ascending: bool = True) -> FrameT:
         """Sort DataFrame by time column using backend-agnostic Narwhals operations.
 
         Parameters
@@ -401,10 +397,10 @@ class TimeFrame:
         Sorted DataFrame
 
         """
-        return sort_dataframe_time(df, time_col=self._time_col, ascending=ascending)
+        return df.sort([self._time_col], ascending=ascending)
 
     @nw.narwhalify
-    def validate_dataframe(self, df: SupportedTemporalDataFrame) -> None:
+    def validate_dataframe(self, df: FrameT) -> None:
         """Run streamlined validation checks on the DataFrame to ensure it meets required constraints.
 
         This function validates the DataFrame by:
@@ -459,14 +455,26 @@ class TimeFrame:
         - All other columns must be numeric and free from null values.
 
         """
-        # Step 1: Ensure all columns are free of nulls and NaNs
-        null_counts = check_dataframe_nulls_nans(df, df.columns)
-        null_columns = [col for col, count in null_counts.items() if count > 0]
-        if null_columns:
-            raise ValueError(f"Missing values detected in columns: {', '.join(null_columns)}")
+        # Check for nulls in each column
+        null_counts = {}
+        for col in df.columns:
+            null_count = df.select([nw.col(col).is_null().sum().alias("nulls")])["nulls"][0]
+            if null_count > 0:
+                null_counts[col] = null_count
 
-        # Step 2: Validate column types (time_col and others)
-        validate_dataframe_column_types(df, self._time_col)
+        if null_counts:
+            raise ValueError(f"Missing values detected in columns: {', '.join(null_counts.keys())}")
+
+        # Validate time column type
+        try:
+            df.with_columns([nw.col(self._time_col).cast(nw.Float64()).alias("_test")])
+            return  # Numeric type is valid
+        except:
+            try:
+                df.with_columns([nw.col(self._time_col).cast(nw.Datetime()).alias("_test")])
+                return  # Datetime type is valid
+            except:
+                raise ValueError(f"Column '{self._time_col}' must be numeric or datetime")
 
         # If verbose, notify the user about validation success
         if self._verbose:
@@ -475,13 +483,13 @@ class TimeFrame:
     @nw.narwhalify
     def setup(
         self,
-        df: SupportedTemporalDataFrame,
+        df: FrameT,
         sort: bool = True,
         ascending: bool = True,
         time_col_conversion: Optional[str] = None,
         enforce_temporal_uniqueness: bool = False,
         id_col: Optional[str] = None,
-    ) -> SupportedTemporalDataFrame:
+    ) -> FrameT:
         """Initialize and validate a TimeFrame's DataFrame with proper sorting and validation.
 
         This method performs the necessary validation, conversion, and sorting operations to prepare
@@ -575,19 +583,41 @@ class TimeFrame:
         # Step 1: Basic validation
         self.validate_dataframe(df)
 
-        # Step 2: Time column conversion
+        # Convert time column if requested
         if time_col_conversion == "numeric":
-            df = convert_datetime_column_to_numeric(df, self._time_col)
-            if self._verbose:
-                print(f"Converted column '{self._time_col}' to numeric (Unix timestamp).")
+            try:
+                df = df.with_columns(
+                    [
+                        nw.col(self._time_col)
+                        .cast(nw.Datetime())
+                        .dt.timestamp(time_unit="us")
+                        .cast(nw.Float64())
+                        .alias(self._time_col)
+                    ]
+                )
+                if self._verbose:
+                    print(f"Converted column '{self._time_col}' to numeric (Unix timestamp).")
+            except:
+                pass  # Already numeric
         elif time_col_conversion == "datetime":
-            df = convert_time_column_to_datetime(df, self._time_col, nw.col(self._time_col), df.schema[self._time_col])
-            if self._verbose:
-                print(f"Converted column '{self._time_col}' to datetime.")
+            try:
+                df = df.with_columns([nw.col(self._time_col).cast(nw.Datetime()).alias(self._time_col)])
+                if self._verbose:
+                    print(f"Converted column '{self._time_col}' to datetime.")
+            except:
+                pass  # Already datetime
 
-        # Step 3: If enforce temporal uniqueness is enabled, validate with `validate_temporal_uniqueness`
+        # Check temporal uniqueness if required
         if enforce_temporal_uniqueness:
-            validate_temporal_uniqueness(df, self._time_col, raise_error=True, id_col=id_col)
+            # Group by id_col and time_col if id_col provided, otherwise just time_col
+            group_cols = [id_col, self._time_col] if id_col else [self._time_col]
+            duplicates = (
+                df.group_by(group_cols).agg([nw.col(self._time_col).count().alias("count")]).filter(nw.col("count") > 1)
+            )
+
+            if len(duplicates) > 0:
+                id_msg = f"id_col '{id_col}' " if id_col else ""
+                raise ValueError(f"Duplicate timestamps found in {id_msg}column '{self._time_col}'")
 
         # Step 4: Optional sorting (user's choice for data organization)
         if sort:
@@ -596,7 +626,7 @@ class TimeFrame:
         return df
 
     @nw.narwhalify
-    def update_dataframe(self, df: SupportedTemporalDataFrame) -> None:
+    def update_dataframe(self, df: FrameT) -> None:
         """Update TimeFrame's internal DataFrame with new data.
 
         Whilst TemporalScope target shifter and padding functions are available, the user must
@@ -667,7 +697,7 @@ class TimeFrame:
         self._df = self.setup(df, sort=True, ascending=self._ascending)
 
     @property
-    def df(self) -> SupportedTemporalDataFrame:
+    def df(self) -> FrameT:
         """Return the DataFrame in its current state.
 
         Returns
