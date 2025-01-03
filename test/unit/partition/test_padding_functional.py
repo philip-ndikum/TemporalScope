@@ -42,11 +42,13 @@ from typing import Any, Callable, Dict
 
 import narwhals as nw
 import pytest
+from narwhals.typing import FrameT
 
 from temporalscope.core.core_utils import (
-    SupportedTemporalDataFrame,
-    get_temporalscope_backends,
-    is_lazy_evaluation,
+    get_narwhals_backends as get_temporalscope_backends,
+)
+from temporalscope.core.core_utils import (
+    is_dataframe_empty as is_lazy_evaluation,
 )
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 from temporalscope.partition.single_target.padding.functional import mean_fill_pad
@@ -79,14 +81,14 @@ def data_config(backend: str) -> Callable[..., Dict[str, Any]]:
 
 
 @pytest.fixture
-def sample_df(data_config: Callable[..., Dict[str, Any]]) -> SupportedTemporalDataFrame:
+def sample_df(data_config: Callable[..., Dict[str, Any]]) -> FrameT:
     """Generate sample DataFrame for testing."""
     config = data_config()
     return generate_synthetic_time_series(**config)
 
 
 @nw.narwhalify
-def assert_padding_length(df: SupportedTemporalDataFrame, target_len: int) -> None:
+def assert_padding_length(df: FrameT, target_len: int) -> None:
     """Verify padding length using Narwhals operations."""
     count_result = df.select([nw.col(df.columns[0]).count().cast(nw.Int64).alias("count")])
 
@@ -104,7 +106,7 @@ def assert_padding_length(df: SupportedTemporalDataFrame, target_len: int) -> No
 
 
 @nw.narwhalify
-def assert_mean_values(df: SupportedTemporalDataFrame, original_df: SupportedTemporalDataFrame) -> None:
+def assert_mean_values(df: FrameT, original_df: FrameT) -> None:
     """Verify mean values in padding rows match original column means."""
     for col in df.columns:
         mean_expr = nw.col(col).mean().cast(nw.Float64).alias("mean")
@@ -126,7 +128,7 @@ def assert_mean_values(df: SupportedTemporalDataFrame, original_df: SupportedTem
         assert abs(original_mean - padded_mean) < 1e-6, f"Mean mismatch for column {col}"
 
 
-def test_mean_fill_pad_basic(sample_df: SupportedTemporalDataFrame) -> None:
+def test_mean_fill_pad_basic(sample_df: FrameT) -> None:
     """Test basic mean-fill padding functionality."""
     df = nw.from_native(sample_df)
     target_len = 5
@@ -162,7 +164,7 @@ def test_mean_fill_pad_nan_data(data_config: Callable[..., Dict[str, Any]]) -> N
         mean_fill_pad(df, target_len=5)
 
 
-def test_mean_fill_pad_invalid_target_len(sample_df: SupportedTemporalDataFrame) -> None:
+def test_mean_fill_pad_invalid_target_len(sample_df: FrameT) -> None:
     """Test invalid target length handling."""
     df = nw.from_native(sample_df)
 
@@ -170,7 +172,7 @@ def test_mean_fill_pad_invalid_target_len(sample_df: SupportedTemporalDataFrame)
         mean_fill_pad(df, target_len=2)
 
 
-def test_mean_fill_pad_invalid_padding(sample_df: SupportedTemporalDataFrame) -> None:
+def test_mean_fill_pad_invalid_padding(sample_df: FrameT) -> None:
     """Test invalid padding direction handling."""
     df = nw.from_native(sample_df)
 
