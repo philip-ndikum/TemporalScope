@@ -15,12 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.
-# See the NOTICE file for additional information regarding copyright ownership.
-# The ASF licenses this file to you under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
-
 """TemporalScope/src/temporalscope/datasets/datasets.py
 
 Utility for loading datasets with multi-backend support. This class simplifies dataset loading, enabling
@@ -40,16 +34,14 @@ print(data.head())  # Example access
 ```
 """
 
-from typing import Any, Tuple
+from typing import Tuple
 
+import narwhals as nw
 import pandas as pd
+from narwhals.typing import FrameT
 from statsmodels.datasets import macrodata
 
-from temporalscope.core.core_utils import (
-    convert_to_backend,
-    is_valid_temporal_backend,
-    print_divider,
-)
+from temporalscope.core.core_utils import NARWHALS_BACKENDS, print_divider
 
 # Dictionary of available datasets and their loaders
 AVAILABLE_DATASETS = {
@@ -64,7 +56,6 @@ def _load_macrodata() -> Tuple[pd.DataFrame, str]:
     -------
     Tuple[pd.DataFrame, str]
         Preprocessed DataFrame and default target column 'realgdp'.
-
     """
     loaded_data = macrodata.load_pandas().data
     if loaded_data is None:
@@ -88,8 +79,6 @@ class DatasetLoader:
     ----------
     dataset_name : str
         Name of the dataset to load, as defined in AVAILABLE_DATASETS.
-
-
     """
 
     def __init__(self, dataset_name: str = "macrodata") -> None:
@@ -104,7 +93,6 @@ class DatasetLoader:
         ------
         ValueError
             if the specified dataset is not available.
-
         """
         if dataset_name not in AVAILABLE_DATASETS:
             raise ValueError(
@@ -119,7 +107,6 @@ class DatasetLoader:
         -------
         Tuple[pd.DataFrame, str]
             DataFrame and associated target column name.
-
         """
         print_divider()
         print(f"Loading dataset: '{self.dataset_name}'")
@@ -130,30 +117,32 @@ class DatasetLoader:
         print_divider()
         return dataset_df, target_col
 
-    def load_data(self, backend: str = "pandas") -> Any:
+    @nw.narwhalify
+    def load_data(self, backend: str = "pandas") -> FrameT:
         """Load the dataset and convert it to the specified backend format.
 
         Parameters
         ----------
         backend : str
             Backend to convert the dataset to. Default is 'pandas'.
-        backend: str :
-             (Default value = "pandas")
 
         Returns
         -------
-        Backend-specific DataFrame type (e.g., pandas.DataFrame, modin.DataFrame, polars.DataFrame)
+        FrameT
             Dataset in the specified backend format.
 
         Raises
         ------
         ValueError
             If the backend is unsupported.
-
         """
-        # Validate and load the dataset in pandas format
-        is_valid_temporal_backend(backend)
+        # Validate backend
+        backend = backend.lower()
+        if backend not in NARWHALS_BACKENDS:
+            raise ValueError(f"Backend '{backend}' is not supported. Available backends: {NARWHALS_BACKENDS}")
+
+        # Load dataset in pandas format
         df, _ = self._load_dataset_and_target()
 
-        # Convert to specified backend
-        return convert_to_backend(df, backend)
+        # Convert to Narwhals DataFrame
+        return nw.from_native(df)

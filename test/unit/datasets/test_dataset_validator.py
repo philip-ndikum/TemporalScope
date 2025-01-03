@@ -50,8 +50,9 @@ from typing import Any, Callable, Dict, Generator, Tuple
 import narwhals as nw
 import pandas as pd
 import pytest
+from narwhals.typing import FrameT
 
-from temporalscope.core.core_utils import SupportedTemporalDataFrame, get_temporalscope_backends
+from temporalscope.core.core_utils import NARWHALS_BACKENDS
 from temporalscope.datasets.dataset_validator import DatasetValidator, ValidationResult
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
@@ -59,7 +60,7 @@ from temporalscope.datasets.synthetic_data_generator import generate_synthetic_t
 DataConfigType = Callable[..., Dict[str, Any]]
 
 
-@pytest.fixture(params=get_temporalscope_backends())
+@pytest.fixture(params=NARWHALS_BACKENDS)
 def backend(request) -> str:
     """Fixture providing all supported backends for testing."""
     return request.param
@@ -84,7 +85,7 @@ def data_config(backend: str) -> DataConfigType:
 
 
 @pytest.fixture
-def sample_df(data_config: DataConfigType) -> Generator[Tuple[SupportedTemporalDataFrame, str], None, None]:
+def sample_df(data_config: DataConfigType) -> Generator[Tuple[FrameT, str], None, None]:
     """Generate sample DataFrame for testing."""
     config = data_config()
     # Remove time_col and target_col from config
@@ -165,9 +166,7 @@ def test_sample_size_validation(validator: DatasetValidator, data_config: DataCo
     assert result.details["num_samples"] == 100
 
 
-def test_feature_count_validation(
-    validator: DatasetValidator, sample_df: Tuple[SupportedTemporalDataFrame, str]
-) -> None:
+def test_feature_count_validation(validator: DatasetValidator, sample_df: Tuple[FrameT, str]) -> None:
     """Test feature count validation."""
     df, _ = sample_df
     result = validator._check_feature_count(df)
@@ -176,9 +175,7 @@ def test_feature_count_validation(
     assert result.details["num_features"] == 4
 
 
-def test_feature_ratio_validation(
-    validator: DatasetValidator, sample_df: Tuple[SupportedTemporalDataFrame, str]
-) -> None:
+def test_feature_ratio_validation(validator: DatasetValidator, sample_df: Tuple[FrameT, str]) -> None:
     """Test feature-to-sample ratio validation."""
     df, _ = sample_df
     result = validator._check_feature_ratio(df)
@@ -187,9 +184,7 @@ def test_feature_ratio_validation(
     assert result.details["ratio"] == 4 / 100  # 4 features, 100 samples
 
 
-def test_numerical_uniqueness_validation(
-    validator: DatasetValidator, sample_df: Tuple[SupportedTemporalDataFrame, str]
-) -> None:
+def test_numerical_uniqueness_validation(validator: DatasetValidator, sample_df: Tuple[FrameT, str]) -> None:
     """Test numerical feature uniqueness validation."""
     df, _ = sample_df
     result = validator._check_feature_variability(df)
@@ -197,9 +192,7 @@ def test_numerical_uniqueness_validation(
     assert "numeric_feature" in result.details
 
 
-def test_class_balance_validation(
-    validator: DatasetValidator, sample_df: Tuple[SupportedTemporalDataFrame, str]
-) -> None:
+def test_class_balance_validation(validator: DatasetValidator, sample_df: Tuple[FrameT, str]) -> None:
     """Test class balance validation."""
     df, target_col = sample_df
     result = validator._check_class_balance(df, target_col)
@@ -207,7 +200,7 @@ def test_class_balance_validation(
     assert_validation_details(result, ["class_counts"])
 
 
-def test_validate_all(validator: DatasetValidator, sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+def test_validate_all(validator: DatasetValidator, sample_df: Tuple[FrameT, str]) -> None:
     """Test running all validation checks."""
     df, target_col = sample_df
     results = validator.transform(df, target_col=target_col)
@@ -215,7 +208,7 @@ def test_validate_all(validator: DatasetValidator, sample_df: Tuple[SupportedTem
     assert set(results.keys()) >= {"sample_size", "feature_count", "feature_ratio"}
 
 
-def test_selective_validation(validator: DatasetValidator, sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+def test_selective_validation(validator: DatasetValidator, sample_df: Tuple[FrameT, str]) -> None:
     """Test running only selected validation checks."""
     df, _ = sample_df
     validator.checks_to_run = {"sample_size", "feature_count"}
@@ -238,9 +231,7 @@ def test_invalid_checks() -> None:
         DatasetValidator(time_col="time", target_col="target", checks_to_run=["invalid_check"])
 
 
-def test_print_report(
-    validator: DatasetValidator, sample_df: Tuple[SupportedTemporalDataFrame, str], capsys: Any
-) -> None:
+def test_print_report(validator: DatasetValidator, sample_df: Tuple[FrameT, str], capsys: Any) -> None:
     """Test validation report printing."""
     df, target_col = sample_df
     results = validator.transform(df, target_col=target_col)
@@ -269,13 +260,11 @@ def test_edge_cases(validator: DatasetValidator) -> None:
     assert not results["feature_variability"].passed
 
 
-def test_fit_transform_equivalence(
-    validator: DatasetValidator, sample_df: Tuple[SupportedTemporalDataFrame, str]
-) -> None:
+def test_fit_transform_equivalence(validator: DatasetValidator, sample_df: Tuple[FrameT, str]) -> None:
     """Test fit_transform equivalence to separate fit and transform."""
     df, target_col = sample_df
 
-    # Compare fit_trƒansform vs separate fit/transform
+    # Compare fit_transform vs separate fit/transform
     result1 = validator.fit_transform(df, target_col=target_col)
     result2 = validator.fit(df).transform(df, target_col=target_col)
 
@@ -287,14 +276,8 @@ def test_fit_transform_equivalence(
         assert result1[key].details == result2[key].details
 
 
-def test_narwhals_integration(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
-    """Test integration with Narwhals operations.
-
-    This test verifies that:
-    1. We can use narwhals operations (select, col) on the input DataFrame
-    2. The validator can process a narwhalified DataFrame
-    3. The validator returns results in the expected format
-    """
+def test_narwhals_integration(sample_df: Tuple[FrameT, str]) -> None:
+    """Test integration with Narwhals operations."""
     df, target_col = sample_df
 
     # Test with narwhalified DataFrame
@@ -348,13 +331,7 @@ def test_validation_error_paths(validator: DatasetValidator, data_config: DataCo
 
 
 def test_validation_edge_cases_extended(validator: DatasetValidator, data_config: DataConfigType) -> None:
-    """Test additional edge cases in validation.
-
-    Tests edge cases around:
-    - Feature variability with null/missing values
-    - Class balance validation with/without target column
-    - Feature validation with invalid column types
-    """
+    """Test additional edge cases in validation."""
     # Test feature variability with null values
     config = data_config(with_nulls=True)
     null_df = generate_synthetic_time_series(**config)
@@ -379,23 +356,13 @@ def test_validation_edge_cases_extended(validator: DatasetValidator, data_config
     invalid_df = generate_synthetic_time_series(**config)
     results = validator.transform(invalid_df)
     assert not results["feature_count"].passed
-    # Update assertion to match actual message
     assert "dataset has 0 features" in results["feature_count"].message.lower()
 
 
-def test_validation_report_formatting_andf_null_handling(
+def test_validation_report_formatting_and_null_handling(
     validator: DatasetValidator, data_config: DataConfigType, capsys: Any
 ) -> None:
-    """Test validation report formatting with null/empty values and edge cases.
-
-    Tests:
-    1. Report formatting with empty details
-    2. Report formatting with null messages
-    3. Report formatting with completely null results
-    4. Report formatting with failed checks and no details
-    5. Class balance handling with null/empty target columns
-    6. Feature variability handling with insufficient unique values
-    """
+    """Test validation report formatting with null/empty values and edge cases."""
     # Create validator with stricter thresholds to force failures
     strict_validator = DatasetValidator(
         time_col="time",
@@ -441,28 +408,18 @@ def test_validation_report_formatting_andf_null_handling(
 
 
 def test_invalid_dataframe_validation(validator: DatasetValidator) -> None:
-    """Test validation of invalid DataFrames through fit().
-
-    Tests that fit() properly validates DataFrame type before transform()
-    can use narwhals operations on it.
-    """
+    """Test validation of invalid DataFrames through fit()."""
 
     class InvalidDF:
         def __init__(self):
             self.columns = ["col1"]
 
-    with pytest.raises(TypeError, match="must be a valid temporal DataFrame"):
+    with pytest.raises(TypeError, match="Input must be convertible to a Narwhals DataFrame"):
         validator.fit(InvalidDF())
 
 
 def test_feature_ratio_edge_cases(validator: DatasetValidator, data_config: DataConfigType) -> None:
-    """Test feature ratio validation edge cases.
-
-    Tests:
-    - Zero samples
-    - No features
-    - High feature-to-sample ratio
-    """
+    """Test feature ratio validation edge cases."""
     # Test with zero samples
     zero_samples_df = generate_synthetic_time_series(**data_config(num_samples=1))
     results = validator.transform(zero_samples_df)
@@ -508,13 +465,7 @@ def test_validation_report_formatting(validator: DatasetValidator) -> None:
 
 
 def test_check_method_error_paths(validator: DatasetValidator, data_config: DataConfigType) -> None:
-    """Test error paths in check methods.
-
-    Tests:
-    1. Empty DataFrame handling in _check_sample_size
-    2. PyArrow scalar conversion in _check_sample_size
-    3. collect() and to_list() paths in _check_feature_count
-    """
+    """Test error paths in check methods."""
 
     # Test empty DataFrame in _check_sample_size
     @nw.narwhalify
@@ -554,7 +505,7 @@ def test_ensure_narwhals_df_error_path(validator: DatasetValidator) -> None:
             self.columns = ["col1"]
             self.select = None  # Has select but it's None
 
-    with pytest.raises(TypeError, match="must be a valid temporal DataFrame"):
+    with pytest.raises(TypeError, match="Input must be convertible to a Narwhals DataFrame"):
         validator.fit(InvalidDF())
 
 
@@ -627,12 +578,7 @@ def test_check_class_balance_error_paths(validator: DatasetValidator) -> None:
 
 
 def test_transform_warning_paths(validator: DatasetValidator) -> None:
-    """Test transform() warning paths.
-
-    Tests both warning paths in transform():
-    1. Non-critical failures (UserWarning)
-    2. Critical failures (RuntimeWarning)
-    """
+    """Test transform() warning paths."""
 
     @nw.narwhalify
     def create_df():
@@ -650,15 +596,7 @@ def test_transform_warning_paths(validator: DatasetValidator) -> None:
 
 
 def test_comprehensive_error_paths(validator: DatasetValidator) -> None:
-    """Test all error paths systematically.
-
-    Creates a DataFrame that triggers multiple validation failures to test:
-    1. No features case
-    2. Sample size issues
-    3. Invalid ratios
-    4. Missing target
-    5. Warning paths
-    """
+    """Test all error paths systematically."""
 
     @nw.narwhalify
     def create_problematic_df():
@@ -690,17 +628,7 @@ def test_comprehensive_error_paths(validator: DatasetValidator) -> None:
 
 
 def test_dataframe_method_failures(validator: DatasetValidator) -> None:
-    """Test validation when DataFrame methods fail.
-
-    Tests handling of DataFrame method failures:
-    1. select() returns None
-    2. collect() returns None
-    3. to_list() returns None
-    4. as_py() returns None
-
-    These represent error conditions that could occur when DataFrame methods
-    fail to return expected values.
-    """
+    """Test validation when DataFrame methods fail."""
 
     class SelectFailureDF:
         def __init__(self):

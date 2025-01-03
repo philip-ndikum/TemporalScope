@@ -79,12 +79,9 @@ from typing import Optional, Union
 import narwhals as nw
 import numpy as np
 import pandas as pd
+from narwhals.typing import FrameT
 
-from temporalscope.core.core_utils import (
-    MODE_SINGLE_TARGET,
-    SupportedTemporalDataFrame,
-    is_valid_temporal_dataframe,
-)
+from temporalscope.core.core_utils import MODE_SINGLE_TARGET
 from temporalscope.core.temporal_data_loader import TimeFrame
 
 
@@ -232,23 +229,20 @@ class SingleStepTargetShifter:
         return int(value)
 
     @nw.narwhalify
-    def _get_row_count(self, df: SupportedTemporalDataFrame, check_empty: bool = True) -> int:
+    def _get_row_count(self, df: FrameT, check_empty: bool = True) -> int:
         """Get row count using Narwhals operations.
 
         Parameters
         ----------
-        df : SupportedTemporalDataFrame
+        df : FrameT
             DataFrame to count rows for
         check_empty : bool
             Whether to raise "Cannot transform empty DataFrame" error
-        df: SupportedTemporalDataFrame :
-
-        check_empty: bool :
-             (Default value = True)
 
         Returns
         -------
         int
+            Number of rows in DataFrame
 
         Notes
         -----
@@ -256,8 +250,7 @@ class SingleStepTargetShifter:
         - nw.Int64 for scalar type conversion
         - collect() for scalar access
         - Handles LazyFrame and PyArrow scalars
-        - Controls empty DataFrame error handling based on check_empty parameter Number of rows in DataFrame
-
+        - Controls empty DataFrame error handling based on check_empty parameter
         """
         try:
             result = df.select([nw.col(df.columns[0]).count().cast(nw.Int64).alias("count")])
@@ -270,27 +263,25 @@ class SingleStepTargetShifter:
             raise e
 
     @nw.narwhalify
-    def _shift_target(self, df: SupportedTemporalDataFrame) -> SupportedTemporalDataFrame:
+    def _shift_target(self, df: FrameT) -> FrameT:
         """Shift target column using Narwhals operations.
 
         Parameters
         ----------
-        df : SupportedTemporalDataFrame
+        df : FrameT
             DataFrame to transform
-        df: SupportedTemporalDataFrame :
-
 
         Returns
         -------
-        SupportedTemporalDataFrame
+        FrameT
+            DataFrame with shifted target column
 
         Notes
         -----
         Uses Narwhals operations for backend-agnostic shifting:
         - with_columns() for adding shifted column
         - filter() for removing null values
-        - drop() for removing original target DataFrame with shifted target
-
+        - drop() for removing original target
         """
         if self.target_col not in df.columns:
             raise ValueError("target_col must be set before transform (call fit first)")
@@ -309,21 +300,20 @@ class SingleStepTargetShifter:
 
         return shifted_df
 
-    def fit(self, X: Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray], y=None) -> "SingleStepTargetShifter":
+    def fit(self, X: Union[TimeFrame, FrameT, np.ndarray], y=None) -> "SingleStepTargetShifter":
         """Validate inputs and prepare for transformation.
 
         This method handles all input validation before any Narwhals operations:
         - TimeFrame: Uses existing target_col
-        - DataFrame: Validates using is_valid_temporal_dataframe
+        - DataFrame: Validates using Narwhals operations
         - numpy array: Converts to DataFrame first
 
         Parameters
         ----------
-        X : Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray]
+        X : Union[TimeFrame, FrameT, np.ndarray]
             Input data to validate
-        y :
-            Ignored, exists for scikit-learn compatibility (Default value = None)
-        X: Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray] :
+        y : Any, optional
+            Ignored, exists for scikit-learn compatibility
 
         Returns
         -------
@@ -334,6 +324,7 @@ class SingleStepTargetShifter:
         ------
         ValueError
             If target_col not set and cannot be inferred
+            If target_col does not exist in DataFrame
         TypeError
             If input type is not supported
 
@@ -371,7 +362,6 @@ class SingleStepTargetShifter:
         - No Narwhals operations in fit()
         - Validates before any transformations
         - Handles all input types consistently
-
         """
         if isinstance(X, TimeFrame):
             self.target_col = X._target_col
@@ -384,10 +374,11 @@ class SingleStepTargetShifter:
             if self.target_col is None:
                 self.target_col = target_col
         else:
-            # Get native DataFrame for validation
-            native_df = X.to_native() if hasattr(X, "to_native") else X
-            if not is_valid_temporal_dataframe(native_df):
-                raise TypeError(f"Input type {type(X)} is not a supported DataFrame type")
+            # Convert to Narwhals DataFrame
+            df = nw.from_native(X)
+            # Validate target column exists
+            if self.target_col not in df.columns:
+                raise ValueError(f"Column '{self.target_col}' does not exist in DataFrame")
 
         if self.target_col is None:
             raise ValueError("target_col must be set before transform (call fit first)")
@@ -395,9 +386,7 @@ class SingleStepTargetShifter:
         return self
 
     @nw.narwhalify
-    def transform(
-        self, X: Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray], y=None
-    ) -> Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray]:
+    def transform(self, X: Union[TimeFrame, FrameT, np.ndarray], y=None) -> Union[TimeFrame, FrameT, np.ndarray]:
         """Transform input data using Narwhals operations.
 
         This method assumes inputs are already validated by fit() and uses pure
@@ -405,44 +394,44 @@ class SingleStepTargetShifter:
 
         Parameters
         ----------
-        X : Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray]
+        X : Union[TimeFrame, FrameT, np.ndarray]
             Input data to transform
-        y :
-            Ignored, exists for scikit-learn compatibility (Default value = None)
-        X: Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray] :
+        y : Any, optional
+            Ignored, exists for scikit-learn compatibility
 
         Returns
         -------
-        Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray]
+        Union[TimeFrame, FrameT, np.ndarray]
+            Transformed data with shifted target column
 
         Examples
         --------
         ```python
-          import pandas as pd
-          from temporalscope.target_shifters.single_step import SingleStepTargetShifter
-          from temporalscope.core.temporal_data_loader import TimeFrame
+        import pandas as pd
+        from temporalscope.target_shifters.single_step import SingleStepTargetShifter
+        from temporalscope.core.temporal_data_loader import TimeFrame
 
-          # Create TimeFrame
-          df = pd.DataFrame({"time": range(5), "target": range(5), "feature": range(5)})
-          tf = TimeFrame(df=df, time_col="time", target_col="target")
+        # Create TimeFrame
+        df = pd.DataFrame({"time": range(5), "target": range(5), "feature": range(5)})
+        tf = TimeFrame(df=df, time_col="time", target_col="target")
 
-          # Initialize and transform
-          shifter = SingleStepTargetShifter(n_lags=1)
-          shifter.fit(tf)
-          transformed_tf = shifter.transform(tf)
+        # Initialize and transform
+        shifter = SingleStepTargetShifter(n_lags=1)
+        shifter.fit(tf)
+        transformed_tf = shifter.transform(tf)
         ```
 
         ```python
-          import pandas as pd
-          from temporalscope.target_shifters.single_step import SingleStepTargetShifter
+        import pandas as pd
+        from temporalscope.target_shifters.single_step import SingleStepTargetShifter
 
-          # Create DataFrame
-          df = pd.DataFrame({"target": range(5), "feature": range(5)})
+        # Create DataFrame
+        df = pd.DataFrame({"target": range(5), "feature": range(5)})
 
-          # Initialize and transform
-          shifter = SingleStepTargetShifter(target_col="target")
-          shifter.fit(df)
-          transformed_df = shifter.transform(df)
+        # Initialize and transform
+        shifter = SingleStepTargetShifter(target_col="target")
+        shifter.fit(df)
+        transformed_df = shifter.transform(df)
         ```
 
         Notes
@@ -451,8 +440,7 @@ class SingleStepTargetShifter:
         - _get_row_count() for counting
         - _shift_target() for shifting
         - Backend-agnostic operations
-        - Handles LazyFrame and PyArrow scalars transformed data
-
+        - Handles LazyFrame and PyArrow scalars
         """
         was_numpy = isinstance(X, np.ndarray)
         if was_numpy:
@@ -488,7 +476,6 @@ class SingleStepTargetShifter:
                 transformed,
                 time_col=X._time_col,
                 target_col=f"{self.target_col}_shift_{self.n_lags}",
-                dataframe_backend=X.backend,
                 mode=self.mode,
                 ascending=X.ascending,
             )
@@ -501,9 +488,7 @@ class SingleStepTargetShifter:
 
         return transformed
 
-    def fit_transform(
-        self, X: Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray], y=None
-    ) -> Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray]:
+    def fit_transform(self, X: Union[TimeFrame, FrameT, np.ndarray], y=None) -> Union[TimeFrame, FrameT, np.ndarray]:
         """Fit the transformer and transform the input data.
 
         This method combines input validation (fit) with Narwhals transformations
@@ -511,14 +496,15 @@ class SingleStepTargetShifter:
 
         Parameters
         ----------
-        X : Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray]
+        X : Union[TimeFrame, FrameT, np.ndarray]
             Input data to transform
-        y :
-            Ignored, exists for scikit-learn compatibility (Default value = None)
+        y : Any, optional
+            Ignored, exists for scikit-learn compatibility
 
         Returns
         -------
-        Union[TimeFrame, SupportedTemporalDataFrame, np.ndarray]
+        Union[TimeFrame, FrameT, np.ndarray]
+            Transformed data with shifted target column
 
         Examples
         --------
@@ -536,8 +522,6 @@ class SingleStepTargetShifter:
         transformed_tf = shifter.fit_transform(tf)
         ```
 
-        Examples
-        --------
         ```python
         import pandas as pd
         from temporalscope.target_shifters.single_step import SingleStepTargetShifter
@@ -555,7 +539,6 @@ class SingleStepTargetShifter:
         Operation Flow:
         1. fit(): Validates inputs
         2. transform(): Pure Narwhals operations
-        3. Handles all backend types consistently transformed data
-
+        3. Handles all backend types consistently
         """
         return self.fit(X).transform(X)

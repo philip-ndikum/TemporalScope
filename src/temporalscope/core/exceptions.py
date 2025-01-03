@@ -18,7 +18,8 @@
 """TemporalScope/src/temporalscope/core/exceptions.py
 
 This module defines custom exceptions and warnings used throughout the TemporalScope package.
-These exceptions provide clear, actionable feedback for users during time-series forecasting workflows.
+These exceptions provide clear, actionable feedback for users during time-series forecasting workflows,
+particularly for DataFrame validation and time column handling through Narwhals.
 """
 
 
@@ -38,7 +39,8 @@ class TimeColumnError(TimeFrameError):
     Examples
     --------
     ```python
-    if not nw.is_numeric(df[time_col]) and not nw.is_timestamp(df[time_col]):
+    # Validate time column type using Narwhals
+    if not (nw.col(time_col).cast(nw.Float64()).is_valid() or nw.col(time_col).cast(nw.Datetime()).is_valid()):
         raise TimeColumnError("`time_col` must be numeric or timestamp-like.")
     ```
     """
@@ -50,12 +52,13 @@ class TargetColumnWarning(UserWarning):
     """Warning raised for potential issues with the target column.
 
     This warning is issued when the target column appears to contain sequential or vectorized data,
-    which may require transformation depending on the selected mode (e.g., `MODE_MULTI_TARGET`).
+    which may require transformation depending on the selected mode (MODE_SINGLE_TARGET vs MODE_MULTI_TARGET).
 
     Examples
     --------
     ```python
-    if mode == "multi_target" and target_col_is_vectorized:
+    # Check if target column contains sequence data
+    if mode == MODE_MULTI_TARGET and df.select([nw.col(target_col).is_list()]).item():
         warnings.warn(
             "`target_col` appears to contain sequential data. Ensure it is transformed appropriately for MODE_MULTI_TARGET.",
             TargetColumnWarning,
@@ -99,26 +102,22 @@ class ModeValidationError(TimeFrameError):
         super().__init__(self.message)
 
 
-class UnsupportedBackendError(TimeFrameError):
-    """Exception raised when an unsupported backend is encountered.
+class DataFrameValidationError(TimeFrameError):
+    """Exception raised for DataFrame validation issues.
 
-    Parameters
-    ----------
-    backend : str
-        The invalid backend that caused the error.
-    message : str
+    This error is raised when DataFrame operations fail due to invalid data,
+    schema mismatches, or other validation issues.
 
     Examples
     --------
     ```python
-    if backend not in TEMPORALSCOPE_CORE_BACKENDS:
-        raise UnsupportedBackendError(backend)
+    try:
+        # Validate numeric columns using Narwhals
+        for col in feature_cols:
+            df = df.select([nw.col(col).cast(nw.Float64()).alias(col)])
+    except Exception as e:
+        raise DataFrameValidationError(f"Failed to validate numeric columns: {str(e)}")
     ```
-
     """
 
-    def __init__(self, backend, message="Unsupported backend"):
-        """Initialize UnsupportedBackendError."""
-        self.backend = backend
-        self.message = f"{message}: {backend}."
-        super().__init__(self.message)
+    pass

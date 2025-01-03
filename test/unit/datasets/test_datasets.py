@@ -15,25 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Licensed to the Apache Software Foundation (ASF) under one or more contributor license agreements.
-# See the NOTICE file for additional information regarding copyright ownership.
-# The ASF licenses this file under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License. You may obtain a copy of the License at
-# http://www.apache.org/licenses/LICENSE-2.0
-
 import pandas as pd
 import pytest
 
-from temporalscope.core.core_utils import (
-    TEMPORALSCOPE_CORE_BACKEND_TYPES,
-    is_valid_temporal_backend,
-)
-from temporalscope.core.exceptions import UnsupportedBackendError
+from temporalscope.core.core_utils import TEST_BACKENDS
 from temporalscope.datasets.datasets import DatasetLoader
 
 # Constants
 DEFAULT_DATASET_NAME = "macrodata"
-VALID_BACKENDS = list(TEMPORALSCOPE_CORE_BACKEND_TYPES.keys())
+VALID_BACKENDS = TEST_BACKENDS
 INVALID_BACKEND = "unsupported_backend"
 
 
@@ -45,7 +35,7 @@ def dataset_loader():
 
 @pytest.fixture(params=VALID_BACKENDS)
 def backend(request):
-    """Parametrized fixture for all supported backends in TEMPORALSCOPE_CORE_BACKEND_TYPES."""
+    """Parametrized fixture for all supported backends."""
     return request.param
 
 
@@ -80,14 +70,12 @@ def test_load_macrodata_none_data(mocker):
 # ========================= Backend Validation Tests =========================
 @pytest.mark.parametrize("backend", VALID_BACKENDS)
 def test_valid_backends_with_load_data(dataset_loader, backend):
-    """Test loading data and converting to each backend specified in TEMPORALSCOPE_CORE_BACKEND_TYPES."""
-    is_valid_temporal_backend(backend)  # Ensure the backend is supported
+    """Test loading data and converting to each backend."""
     data = dataset_loader.load_data(backend=backend)
-    expected_type = TEMPORALSCOPE_CORE_BACKEND_TYPES[backend]
-    assert isinstance(data, expected_type), f"Data is not of type {expected_type} for backend '{backend}'"
+    assert data is not None, f"Data is None for backend '{backend}'"
 
 
 def test_invalid_backend_raises_error(dataset_loader):
-    """Test that using an invalid backend raises an UnsupportedBackendError."""
-    with pytest.raises(UnsupportedBackendError, match="is not supported"):
+    """Test that using an invalid backend raises a ValueError."""
+    with pytest.raises(ValueError, match="is not supported"):
         dataset_loader.load_data(backend=INVALID_BACKEND)

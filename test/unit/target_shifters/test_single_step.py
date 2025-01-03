@@ -51,12 +51,9 @@ import narwhals as nw
 import numpy as np
 import pandas as pd
 import pytest
+from narwhals.typing import FrameT
 
-from temporalscope.core.core_utils import (
-    MODE_SINGLE_TARGET,
-    SupportedTemporalDataFrame,
-    get_temporalscope_backends,
-)
+from temporalscope.core.core_utils import MODE_SINGLE_TARGET, NARWHALS_BACKENDS
 from temporalscope.core.temporal_data_loader import TimeFrame
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 from temporalscope.target_shifters.single_step import SingleStepTargetShifter
@@ -65,7 +62,7 @@ from temporalscope.target_shifters.single_step import SingleStepTargetShifter
 DataConfigType = Callable[..., Dict[str, Any]]
 
 
-@pytest.fixture(params=get_temporalscope_backends())
+@pytest.fixture(params=NARWHALS_BACKENDS)
 def backend(request) -> str:
     """Fixture providing all supported backends for testing."""
     return request.param
@@ -92,7 +89,7 @@ def data_config(backend: str) -> DataConfigType:
 
 
 @pytest.fixture
-def sample_df(data_config: DataConfigType) -> Generator[Tuple[SupportedTemporalDataFrame, str], None, None]:
+def sample_df(data_config: DataConfigType) -> Generator[Tuple[FrameT, str], None, None]:
     """Generate sample DataFrame for testing."""
     config = data_config()
     df = generate_synthetic_time_series(**config)
@@ -100,7 +97,7 @@ def sample_df(data_config: DataConfigType) -> Generator[Tuple[SupportedTemporalD
 
 
 @pytest.fixture
-def sample_timeframe(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> TimeFrame:
+def sample_timeframe(sample_df: Tuple[FrameT, str]) -> TimeFrame:
     """Create TimeFrame instance for testing."""
     df, target_col = sample_df
     return TimeFrame(df=df, time_col="time", target_col=target_col)
@@ -122,7 +119,7 @@ def _get_scalar_value(result, column: str) -> int:
 
 # Assertion Helpers
 @nw.narwhalify
-def assert_shifted_columns(df: SupportedTemporalDataFrame, target_col: str, n_lags: int, drop_target: bool) -> None:
+def assert_shifted_columns(df: FrameT, target_col: str, n_lags: int, drop_target: bool) -> None:
     """Verify shifted columns using Narwhals operations."""
     # Check shifted column exists
     shifted_col = f"{target_col}_shift_{n_lags}"
@@ -136,7 +133,7 @@ def assert_shifted_columns(df: SupportedTemporalDataFrame, target_col: str, n_la
 
 
 @nw.narwhalify
-def assert_row_reduction(df: SupportedTemporalDataFrame, original_df: SupportedTemporalDataFrame, n_lags: int) -> None:
+def assert_row_reduction(df: FrameT, original_df: FrameT, n_lags: int) -> None:
     """Verify row count reduction using Narwhals operations."""
     # Get row counts using Narwhals with proper type casting
     count_expr = nw.col(df.columns[0]).count().cast(nw.Int64).alias("count")
@@ -151,7 +148,7 @@ def assert_row_reduction(df: SupportedTemporalDataFrame, original_df: SupportedT
     ), f"Expected {original_count - n_lags} rows, got {transformed_count}"
 
 
-def test_transform_dataframe(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+def test_transform_dataframe(sample_df: Tuple[FrameT, str]) -> None:
     """Test transformation of raw DataFrame."""
     df, target_col = sample_df
     shifter = SingleStepTargetShifter(target_col=target_col, n_lags=1)
@@ -176,7 +173,6 @@ def test_transform_timeframe(sample_timeframe: TimeFrame) -> None:
 
     # Verify metadata preservation
     assert transformed_tf.mode == sample_timeframe.mode
-    assert transformed_tf.backend == sample_timeframe.backend
     assert transformed_tf.ascending == sample_timeframe.ascending
 
     # Verify transformation
@@ -184,7 +180,7 @@ def test_transform_timeframe(sample_timeframe: TimeFrame) -> None:
     assert_row_reduction(transformed_tf.df, sample_timeframe.df, 1)
 
 
-def test_verbose_output(sample_df: Tuple[SupportedTemporalDataFrame, str], capfd: Any) -> None:
+def test_verbose_output(sample_df: Tuple[FrameT, str], capfd: Any) -> None:
     """Test verbose mode output."""
     df, target_col = sample_df
     shifter = SingleStepTargetShifter(target_col=target_col, n_lags=1, verbose=True)
@@ -198,7 +194,7 @@ def test_verbose_output(sample_df: Tuple[SupportedTemporalDataFrame, str], capfd
     assert "Rows after:" in captured.out
 
 
-def test_multiple_lags(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+def test_multiple_lags(sample_df: Tuple[FrameT, str]) -> None:
     """Test transformation with different lag values."""
     df, target_col = sample_df
     n_lags = 3
@@ -231,7 +227,7 @@ def test_target_column_inference(sample_timeframe: TimeFrame) -> None:
     assert shifter.target_col == sample_timeframe._target_col
 
 
-def test_drop_target_option(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+def test_drop_target_option(sample_df: Tuple[FrameT, str]) -> None:
     """Test drop_target parameter behavior."""
     df, target_col = sample_df
 
@@ -246,7 +242,7 @@ def test_drop_target_option(sample_df: Tuple[SupportedTemporalDataFrame, str]) -
     assert_shifted_columns(transformed_keep, target_col, 1, False)
 
 
-def test_fit_transform_equivalence(sample_df: Tuple[SupportedTemporalDataFrame, str]) -> None:
+def test_fit_transform_equivalence(sample_df: Tuple[FrameT, str]) -> None:
     """Test fit_transform equivalence to separate fit and transform."""
     df, target_col = sample_df
     shifter1 = SingleStepTargetShifter(target_col=target_col)
@@ -256,7 +252,7 @@ def test_fit_transform_equivalence(sample_df: Tuple[SupportedTemporalDataFrame, 
     result1 = shifter1.fit_transform(df)
     result2 = shifter2.fit(df).transform(df)
 
-    # Convert both to pandas for comparn
+    # Convert both to pandas for comparison
     if hasattr(result1, "compute"):  # For Dask DataFrame
         result1_pd = result1.compute()
     elif hasattr(result1, "collect"):  # For LazyFrame
@@ -305,7 +301,7 @@ def test_missing_target_column() -> None:
     df = pd.DataFrame({"feature": range(5)})  # DataFrame without target column
     shifter = SingleStepTargetShifter(target_col="target")
 
-    with pytest.raises(ValueError, match="target_col must be set before transform"):
+    with pytest.raises(ValueError, match="Column 'target' does not exist in DataFrame"):
         shifter.fit_transform(df)
 
 
