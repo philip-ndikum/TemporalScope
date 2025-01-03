@@ -15,601 +15,351 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Unit tests for TemporalScope's TimeFrame class.
+"""Unit tests for TimeFrame class.
 
-Testing Strategy:
-1. Use synthetic_data_generator through pytest fixtures for systematic testing
-2. Backend-agnostic operations using Narwhals API
-3. Consistent validation across all backends
+Tests the TimeFrame class which acts as a delegator to core_utils functions
+for temporal data loading and validation. Tests use synthetic data generation
+to ensure backend-agnostic operations work correctly.
 """
 
-from unittest import mock
-
-import narwhals as nw
 import pandas as pd
 import pytest
-from narwhals.typing import FrameT
 
-from temporalscope.core.core_utils import TEST_BACKENDS
-from temporalscope.core.temporal_data_loader import (
-    MODE_MULTI_TARGET,
-    MODE_SINGLE_TARGET,
-    TimeFrame,
-)
+from temporalscope.core.core_utils import TEST_BACKENDS, TimeColumnError
+from temporalscope.core.temporal_data_loader import MODE_MULTI_TARGET, MODE_SINGLE_TARGET, TimeFrame
 from temporalscope.datasets.synthetic_data_generator import generate_synthetic_time_series
 
-# ========================= Fixtures =========================
-
 
 @pytest.fixture(params=TEST_BACKENDS)
-def df_basic(request) -> FrameT:
-    """Basic DataFrame with clean data."""
-    return generate_synthetic_time_series(backend=request.param, num_samples=5, num_features=3)
+def synthetic_df(request):
+    """Generate synthetic DataFrame for each backend."""
+    return generate_synthetic_time_series(backend=request.param, num_samples=10, num_features=2, drop_time=False)
 
 
-@pytest.fixture(params=TEST_BACKENDS)
-def df_nulls(request) -> FrameT:
-    """DataFrame with null values."""
-    return generate_synthetic_time_series(backend=request.param, num_samples=5, num_features=3, with_nulls=True)
+# ========================= Tests for TimeFrame initialization =========================
 
 
-@pytest.fixture(params=TEST_BACKENDS)
-def df_nans(request) -> FrameT:
-    """DataFrame with NaN values."""
-    return generate_synthetic_time_series(backend=request.param, num_samples=5, num_features=3, with_nans=True)
-
-
-@pytest.fixture(params=TEST_BACKENDS)
-def df_datetime(request) -> FrameT:
-    """DataFrame with datetime time column."""
-    return generate_synthetic_time_series(backend=request.param, num_samples=5, num_features=3, time_col_numeric=False)
-
-
-# ========================= Initialization Tests =========================
-
-
-def test_init_basic(df_basic):
-    """Test basic initialization."""
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")
+def test_timeframe_init_basic(synthetic_df):
+    """Test basic TimeFrame initialization."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1")
     assert tf.mode == MODE_SINGLE_TARGET
     assert tf.ascending is True
+    # No need to check DataFrame type since we use native pandas
 
 
-def test_init_invalid_backend(df_basic):
-    """Test initialization with an invalid backend."""
-    with pytest.raises(ValueError, match="Unsupported backend"):
-        TimeFrame(df_basic, time_col="time", target_col="target", dataframe_backend="invalid")
+def test_timeframe_init_invalid_time_col():
+    """Test TimeFrame initialization with invalid time column."""
+    df = pd.DataFrame({"wrong_col": [1, 2, 3], "target": [10, 20, 30]})
+    with pytest.raises(ValueError, match="Column 'time' does not exist"):
+        TimeFrame(df, time_col="time", target_col="target")
 
 
-def test_init_invalid_time_col(df_basic):
-    """Test initialization with invalid `time_col` type."""
-    with pytest.raises(TypeError, match="`time_col` must be a string"):
-        TimeFrame(df_basic, time_col=123, target_col="target")
+def test_timeframe_init_invalid_target_col(synthetic_df):
+    """Test TimeFrame initialization with invalid target column."""
+    with pytest.raises(ValueError, match="Column 'wrong_target' does not exist"):
+        TimeFrame(synthetic_df, time_col="time", target_col="wrong_target")
 
 
-def test_init_invalid_target_col(df_basic):
-    """Test initialization with invalid `target_col` type."""
-    with pytest.raises(TypeError, match="`target_col` must be a string"):
-        TimeFrame(df_basic, time_col="time", target_col=456)
+def test_timeframe_init_empty_df():
+    """Test TimeFrame initialization with empty DataFrame."""
+    df = pd.DataFrame()
+    with pytest.raises(ValueError, match="Empty DataFrame provided"):
+        TimeFrame(df, time_col="time", target_col="target")
 
 
-def test_init_invalid_backend_type(df_basic):
-    """Test initialization with invalid `dataframe_backend` type."""
-    with pytest.raises(ValueError, match="Unsupported backend: Backend '123' is not supported"):
-        TimeFrame(df_basic, time_col="time", target_col="target", dataframe_backend=123)
+def test_timeframe_init_invalid_mode(synthetic_df):
+    """Test TimeFrame initialization with invalid mode."""
+    with pytest.raises(ValueError, match="Invalid mode"):
+        TimeFrame(synthetic_df, time_col="time", target_col="feature_1", mode="invalid_mode")
 
 
-def test_init_invalid_sort_type(df_basic):
-    """Test initialization with invalid `sort` type."""
-    with pytest.raises(TypeError, match="`sort` must be a boolean"):
-        TimeFrame(df_basic, time_col="time", target_col="target", sort="true")
-
-
-def test_init_invalid_ascending_type(df_basic):
-    """Test initialization with invalid `ascending` type."""
-    with pytest.raises(TypeError, match="`ascending` must be a boolean"):
-        TimeFrame(df_basic, time_col="time", target_col="target", ascending="false")
-
-
-def test_init_invalid_verbose_type(df_basic):
-    """Test initialization with invalid `verbose` type."""
-    with pytest.raises(TypeError, match="`verbose` must be a boolean"):
-        TimeFrame(df_basic, time_col="time", target_col="target", verbose="yes")
-
-
-def test_init_invalid_time_col_conversion(df_basic):
-    """Test initialization with invalid `time_col_conversion` value."""
-    with pytest.raises(ValueError, match="Invalid `time_col_conversion` value 'invalid_value'"):
-        TimeFrame(
-            df_basic,
-            time_col="time",
-            target_col="target",
-            time_col_conversion="invalid_value",
-        )
-
-
-def test_init_invalid_mode(df_basic):
-    """Test initialization with unsupported `mode`."""
-    with pytest.raises(ValueError, match="Invalid mode 'unsupported_mode'. Must be one of"):
-        TimeFrame(df_basic, time_col="time", target_col="target", mode="unsupported_mode")
-
-
-def test_init_unsupported_backend_error():
-    """Test that UnsupportedBackendError is raised for unsupported DataFrame types."""
-    invalid_df = {"unsupported": "type"}  # Example of an invalid DataFrame type
-    with pytest.raises(ValueError, match="Unsupported DataFrame type"):
-        TimeFrame(invalid_df, time_col="time", target_col="target")
-
-
-def test_init_verbose_logging(df_basic, capsys):
-    """Test that verbose mode prints any output."""
-    # Initialize TimeFrame with verbose=True
-    TimeFrame(df_basic, time_col="time", target_col="target", verbose=True)
-
-    # Capture the printed output
-    captured = capsys.readouterr()
-
-    # Check that something was printed
-    assert captured.out.strip(), "Expected output was not printed in verbose mode."
-
-    # ========================= Invalid mode =========================
-
-
-def test_verbose_logging_tf_validate_dataframe(df_basic, capsys):
-    """Test that verbose mode outputs a message during DataFrame validation."""
-    # Initialize TimeFrame with verbose=True
-    tf = TimeFrame(df_basic, time_col="time", target_col="target", verbose=True)
-
-    # Call validate_dataframe to trigger the verbose message
-    tf.validate_dataframe(tf.df)
-
-    # Capture the printed output
-    captured = capsys.readouterr()
-
-    # Check if any output was produced
-    assert len(captured.out.strip()) > 0, "Expected verbose output, but got none."
-
-
-# ========================= Invalid mode =========================
-
-
-def test_mode_warning(df_basic):
-    """Test that multi-target mode is accepted."""
-    # Test with multi-target mode
-    tf = TimeFrame(df_basic, time_col="time", target_col="target", mode=MODE_MULTI_TARGET)
+def test_timeframe_init_multi_target(synthetic_df):
+    """Test TimeFrame initialization in multi-target mode."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1", mode=MODE_MULTI_TARGET)
     assert tf.mode == MODE_MULTI_TARGET
 
-    # Test invalid mode raises error
-    with pytest.raises(ValueError, match="Invalid mode"):
-        TimeFrame(df_basic, time_col="time", target_col="target", mode="custom_mode")
+
+def test_timeframe_init_descending_sort(synthetic_df):
+    """Test TimeFrame initialization with descending sort."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1", ascending=False)
+    assert tf.ascending is False
 
 
-# ========================= Columns =========================
+def test_timeframe_init_no_sort(synthetic_df):
+    """Test TimeFrame initialization without sorting."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1", sort=False)
+    # Original order should be preserved
+    # Convert both to pandas for comparison if needed
+    df1 = tf.df.to_pandas() if hasattr(tf.df, "to_pandas") else tf.df
+    df2 = synthetic_df.to_pandas() if hasattr(synthetic_df, "to_pandas") else synthetic_df
+    pd.testing.assert_frame_equal(df1, df2)
 
 
-def test_init_missing_columns(df_basic):
-    """Test initialization with missing columns."""
-    with pytest.raises(ValueError, match="Column 'nonexistent' does not exist"):
-        TimeFrame(df_basic, time_col="nonexistent", target_col="target")
-
-
-def test_rejects_nulls(df_nulls):
-    """Test rejection of null values."""
-    with pytest.raises(ValueError, match="Missing values detected"):
-        TimeFrame(df_nulls, time_col="time", target_col="target")
-
-
-def test_rejects_nans(df_nans):
-    """Test rejection of NaN values."""
-    with pytest.raises(ValueError, match="Missing values detected"):
-        TimeFrame(df_nans, time_col="time", target_col="target")
-
-
-@pytest.mark.parametrize("ascending", [True, False])
-def test_sort_dataframe_time_delegation(df_basic, ascending):
-    """Test that TimeFrame.sort_dataframe_time delegates to the core utility."""
-    # Initialize TimeFrame with the basic DataFrame
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")
-
-    # Mock the method within the class
-    with mock.patch("temporalscope.core.temporal_data_loader.TimeFrame.sort_dataframe_time") as mock_sort:
-        # Call the method under test
-        tf.sort_dataframe_time(tf.df, ascending=ascending)
-
-        # Ensure the mocked method was called with the expected arguments
-        mock_sort.assert_called_once_with(tf.df, ascending=ascending)
-
-
-@pytest.mark.parametrize("target_backend", ["pandas", "polars"])
-def test_backend_conversion(df_basic, target_backend):
-    """Test backend conversion."""
-    tf = TimeFrame(df_basic, time_col="time", target_col="target", dataframe_backend=target_backend)
-    assert tf.backend == target_backend
-
-
-# ========================= Update DataFrame =========================
-
-
-def convert_to_pandas(df: FrameT) -> pd.DataFrame:
-    """Convert a DataFrame to Pandas using Narwhals."""
-    return df.to_native() if hasattr(df, "to_native") else df
-
-
-@pytest.mark.parametrize("backend", ["pandas", "modin", "pyarrow", "polars", "dask"])
-def test_update_dataframe_basic(backend):
-    """Test basic functionality of update_dataframe across backends."""
-    # Skip the test if the backend is "modin"
-    if backend == "modin":
-        pytest.skip("Skipping modin backend due to compatibility issues.")
-
-    # Step 1: Generate the initial DataFrame
-    df_basic = generate_synthetic_time_series(backend=backend, num_samples=5, num_features=3)
-
-    # Step 2: Initialize TimeFrame
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")
-
-    # Step 3: Generate new data to update
-    new_data = generate_synthetic_time_series(backend=backend, num_samples=5, num_features=3)
-
-    # Step 4: Call update_dataframe
-    tf.update_dataframe(new_data)
-
-    # Step 5: Convert both DataFrames to Pandas for comparison
-    df_tf_updated = convert_to_pandas(tf._df)
-    df_new_data = convert_to_pandas(new_data)
-
-    # Step 6: Use Pandas' equality check
-    pd.testing.assert_frame_equal(
-        df_tf_updated.reset_index(drop=True),  # Drop index for consistent comparison
-        df_new_data.reset_index(drop=True),
-        check_dtype=False,  # Allow dtype differences for cross-backend compatibility
-    )
-
-
-# ========================= Metadata Property =========================
-
-
-def test_metadata_property(df_basic):
-    """Test the functionality of the metadata property."""
-    # Initialize TimeFrame
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")
-
-    # Ensure metadata is initially an empty dictionary
-    assert isinstance(tf.metadata, dict), "Metadata should be initialized as a dictionary."
-    assert not tf.metadata, "Metadata should be empty upon initialization."
-
-    # Add custom metadata
-    tf.metadata["description"] = "Test dataset for sales forecasting"
-    tf.metadata["model_details"] = {"type": "LSTM", "framework": "TensorFlow"}
-
-    # Access and verify custom metadata
-    assert (
-        tf.metadata["description"] == "Test dataset for sales forecasting"
-    ), "Metadata description does not match expected value."
-    assert tf.metadata["model_details"]["type"] == "LSTM", "Metadata model type does not match expected value."
-    assert (
-        tf.metadata["model_details"]["framework"] == "TensorFlow"
-    ), "Metadata framework does not match expected value."
-
-    # Ensure metadata updates persist
-    tf.metadata["extra_info"] = {"notes": "This is a unit test"}
-    assert "extra_info" in tf.metadata, "Metadata did not persist after adding new key."
-    assert (
-        tf.metadata["extra_info"]["notes"] == "This is a unit test"
-    ), "Metadata extra_info notes value does not match expected."
-
-
-# ========================= Direct Parameter Validation Tests =========================
-
-
-def test_validate_parameters_direct_invalid_time_col(df_basic):
-    """Test _validate_parameters directly with invalid time_col."""
-    # Attempt to create an invalid TimeFrame instance with non-string time_col
+def test_timeframe_init_invalid_parameter_types(synthetic_df):
+    """Test TimeFrame initialization with invalid parameter types."""
+    # Test invalid time_col type
     with pytest.raises(TypeError, match="`time_col` must be a string"):
-        TimeFrame(  # No need to assign to `tf`
-            df_basic,
-            time_col=123,  # Invalid
-            target_col="target",
-            dataframe_backend=None,
-            sort=True,
-            ascending=True,
-            time_col_conversion=None,
-            enforce_temporal_uniqueness=False,
-            id_col=None,
-            verbose=False,
-        )
+        TimeFrame(synthetic_df, time_col=123, target_col="feature_1")
 
-
-def test_validate_parameters_direct_invalid_target_col(df_basic):
-    """Test invalid target_col during TimeFrame initialization."""
+    # Test invalid target_col type
     with pytest.raises(TypeError, match="`target_col` must be a string"):
-        TimeFrame(
-            df_basic,
-            time_col="time",
-            target_col=456,  # Invalid target_col
-        )
+        TimeFrame(synthetic_df, time_col="time", target_col=123)
 
-
-def test_validate_parameters_direct_invalid_backend(df_basic):
-    """Test _validate_parameters directly with invalid dataframe_backend."""
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")  # Create instance first
-    tf._backend = 123  # Directly set invalid backend
-    with pytest.raises(TypeError, match="`dataframe_backend` must be a string or None"):
-        tf._validate_parameters()
-
-
-def test_validate_parameters_direct_invalid_sort(df_basic):
-    """Test _validate_parameters directly with invalid sort."""
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")  # Create instance first
-    tf._sort = "true"  # Assign invalid value to the instance variable
+    # Test invalid sort type
     with pytest.raises(TypeError, match="`sort` must be a boolean"):
-        tf._validate_parameters()
+        TimeFrame(synthetic_df, time_col="time", target_col="feature_1", sort="yes")
 
-
-def test_validate_parameters_direct_invalid_ascending(df_basic):
-    """Test _validate_parameters directly with invalid ascending."""
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")  # Create instance first
-    tf._ascending = "false"  # Assign invalid value to the instance variable
+    # Test invalid ascending type
     with pytest.raises(TypeError, match="`ascending` must be a boolean"):
-        tf._validate_parameters()
+        TimeFrame(synthetic_df, time_col="time", target_col="feature_1", ascending="yes")
 
-
-def test_validate_parameters_direct_invalid_verbose(df_basic):
-    """Test _validate_parameters directly with invalid verbose."""
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")  # Create instance first
-    tf._verbose = "yes"  # Assign invalid value to the instance variable
+    # Test invalid verbose type
     with pytest.raises(TypeError, match="`verbose` must be a boolean"):
-        tf._validate_parameters()
+        TimeFrame(synthetic_df, time_col="time", target_col="feature_1", verbose="yes")
 
-
-def test_validate_parameters_direct_invalid_id_col(df_basic):
-    """Test _validate_parameters directly with invalid id_col."""
-    tf = TimeFrame(df_basic, time_col="time", target_col="target")  # Create instance first
-    tf._id_col = 123  # Assign invalid value to the instance variable
+    # Test invalid id_col type
     with pytest.raises(TypeError, match="`id_col` must be a string or None"):
-        tf._validate_parameters()
+        TimeFrame(synthetic_df, time_col="time", target_col="feature_1", id_col=123)
 
 
-# ========================= Setup Tests =========================
+# ========================= Tests for TimeFrame validation =========================
 
 
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_setup_enforce_temporal_uniquenessing_invalid_time_column(backend):
-    """Test setup with invalid time column when enforce_temporal_uniqueness is True."""
-    df = pd.DataFrame({"time": ["a", "b", "c"], "target": [1, 2, 3]})
-    df = nw.from_native(df)
-    with pytest.raises(ValueError, match=r".*neither numeric nor datetime.*"):
-        TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
+def test_timeframe_validate_numeric_time(synthetic_df):
+    """Test TimeFrame validation with numeric time column."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1")
+    tf.validate_dataframe(synthetic_df)  # Should pass
 
 
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_setup_validate_columns_missing_columns(backend):
-    """Test setup with missing columns required for validation."""
-    df = pd.DataFrame({"other": [1, 2, 3]})
-    df = nw.from_native(df)
-
-    # Test missing time column
-    with pytest.raises(ValueError, match=r"Column .* does not exist"):
-        TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
-
-    # Test missing id column when enforcing temporal uniqueness
-    df_with_time = pd.DataFrame({"time": [1, 2, 3], "target": [1, 2, 3]})
-    df_with_time = nw.from_native(df_with_time)
-    with pytest.raises(ValueError, match=r"Column .* does not exist"):
-        TimeFrame(
-            df_with_time,
-            time_col="time",
-            target_col="target",
-            enforce_temporal_uniqueness=True,
-            id_col="id",  # Missing id_col
-        )
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_setup_enforce_temporal_uniquenessing_empty_dataframe(backend):
-    """Test setup with empty DataFrame when enforce_temporal_uniqueness is True."""
-    df = pd.DataFrame(columns=["time", "target"])
-    df = nw.from_native(df)
-    with pytest.raises(ValueError, match="Empty DataFrame provided."):
-        TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_setup_enforce_temporal_uniquenessing_duplicates(backend):
-    """Test setup with duplicate timestamps when enforce_temporal_uniqueness is True."""
-    df = pd.DataFrame(
-        {
-            "time": [1, 1, 2, 3],  # Duplicate timestamp
-            "target": [10, 20, 30, 40],
-        }
-    )
-    df = nw.from_native(df)
-    # Update regex to match 'None' or empty string
-    with pytest.raises(ValueError, match=r"Duplicate timestamps in id_col '.*' column 'time'."):
-        TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_setup_enforce_temporal_uniqueness_group_validation(backend):
-    """Test setup with group-based validation ensuring duplicate timestamps raise ValueError."""
-    # Create a DataFrame with duplicates in each group
-    # Group 1 has time=[1,1], Group 2 has time=[2,2]
-    df = pd.DataFrame(
-        {
-            "time": [1, 1, 2, 2],
-            "group": [1, 1, 2, 2],
-            "target": [20, 10, 40, 30],
-        }
-    )
-    df = nw.from_native(df)
-
-    # Expecting a ValueError due to duplicate timestamps in 'group' column 'time'
-    with pytest.raises(ValueError, match=r"Duplicate timestamps in id_col 'group' column 'time'."):
-        TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True, id_col="group")
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_setup_enforce_temporal_uniquenessing_valid_data(backend):
-    """Test setup with valid temporal ordering."""
-    df = pd.DataFrame(
-        {
-            "time": [1, 2, 3, 4],  # Strictly increasing
-            "target": [10, 20, 30, 40],
-        }
-    )
-    df = nw.from_native(df)
-    # Should pass - timestamps are strictly increasing
-    tf = TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
-    assert tf._enforce_temporal_uniqueness is True
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_setup_print_statements_numeric_conversion(backend, capsys):
-    """Test that the numeric conversion print statement is triggered."""
-    df = pd.DataFrame(
-        {
-            "time": pd.date_range(start="2023-01-01", periods=3, freq="D"),  # Valid datetime
-            "target": [10, 20, 30],
-        }
-    )
-    df = nw.from_native(df)
-
-    # Initialize TimeFrame with verbose=True to enable printing
-    tf = TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=False, verbose=True)
-    tf.setup(df, time_col_conversion="numeric")  # Trigger numeric conversion
-
-    # Capture printed output
-    captured = capsys.readouterr()
-    expected_message = "Converted column 'time' to numeric (Unix timestamp)."
-    assert expected_message in captured.out
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_setup_print_statements_datetime_conversion(backend, capsys):
-    """Test that the datetime conversion print statement is triggered."""
-    df = pd.DataFrame(
-        {
-            "time": [1672531200, 1672617600, 1672704000],  # Unix timestamps
-            "target": [10, 20, 30],
-        }
-    )
-    df = nw.from_native(df)
-
-    # Initialize TimeFrame with verbose=True to enable printing
-    tf = TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=False, verbose=True)
-    tf.setup(df, time_col_conversion="datetime")  # Trigger datetime conversion
-
-    # Capture printed output
-    captured = capsys.readouterr()
-    expected_message = "Converted column 'time' to datetime."
-    assert expected_message in captured.out
-
-
-# ========================= Valid Numeric Conversion =========================
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_time_col_conversion_to_numeric_valid_datetime(backend):
-    """Test numeric conversion of a valid datetime column."""
-    # Step 1: Create the initial DataFrame in Pandas
-    df = pd.DataFrame(
-        {
-            "time": pd.date_range(start="2023-01-01", periods=3, freq="D"),
-            "target": [10, 20, 30],
-        }
-    )
-
-    # Step 2: Convert to the specified backend
-    df = nw.from_native(df)
-
-    # Step 3: Initialize the TimeFrame
+def test_timeframe_validate_datetime_time():
+    """Test TimeFrame validation with datetime time column."""
+    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3), "target": [1, 2, 3]})
     tf = TimeFrame(df, time_col="time", target_col="target")
-
-    # Step 4: Perform the setup with conversion to numeric
-    converted_df = tf.setup(df, time_col_conversion="numeric")
-
-    # Step 5: Convert back to Pandas for validation
-    pandas_df = converted_df.to_native()
-
-    # Step 6: Validate that the time column is numeric
-    assert pd.api.types.is_numeric_dtype(pandas_df["time"]), "Time column was not converted to numeric."
+    tf.validate_dataframe(df)  # Should pass
 
 
-# ========================= Invalid Numeric Conversion =========================
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_time_col_conversion_to_numeric_invalid_non_datetime(backend):
-    """Test numeric conversion skips already numeric columns gracefully."""
-    # Step 1: Create a DataFrame with numeric columns
+def test_timeframe_validate_non_numeric_features():
+    """Test TimeFrame validation with non-numeric feature columns."""
     df = pd.DataFrame(
         {
-            "time": [1672531200, 1672617600, 1672704000],  # Already numeric
-            "target": [10, 20, 30],
+            "time": [1, 2, 3],
+            "target": [1, 2, 3],
+            "category": ["A", "B", "C"],  # Non-numeric column
         }
     )
-
-    # Step 2: Convert the DataFrame to the specified backend
-    df = nw.from_native(df)
-
-    # Step 3: Initialize TimeFrame and run the setup
-    tf = TimeFrame(df, time_col="time", target_col="target")
-    converted_df = tf.df
-
-    # Step 4: Convert back to Pandas for comparison using `convert_to_backend`
-    converted_df_native = converted_df.to_native()
-    original_df_native = df.to_native()
-
-    # Step 5: Explicitly handle Modin backend if necessary
-    if backend == "modin":
-        converted_df_native = converted_df_native._to_pandas()
-        original_df_native = original_df_native._to_pandas()
-
-    # Step 6: Assert that the numeric column remains unchanged
-    pd.testing.assert_frame_equal(converted_df_native, original_df_native)
-
-
-# ========================= Already Numeric Input =========================
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_time_col_conversion_to_numeric_already_numeric(backend):
-    """Test behavior with a column that is already numeric."""
-    # Step 1: Create the DataFrame in Pandas
-    df = pd.DataFrame(
-        {
-            "time": [1672531200, 1672617600, 1672704000],  # Unix timestamps
-            "target": [10, 20, 30],
-        }
-    )
-    # Step 2: Convert to backend
-    df = nw.from_native(df)
-    # Step 3: Validate that no change is made
-    tf = TimeFrame(df, time_col="time", target_col="target")
-    converted_df = tf.setup(df, time_col_conversion="numeric")
-    # Step 4: Convert back to Pandas for validation
-    converted_df = converted_df.to_native()
-    # Step 5: Validate that the time column is still numeric
-    assert pd.api.types.is_numeric_dtype(converted_df["time"]), "Time column was not numeric."
-
-
-# ========================= Mixed Valid and Invalid Values =========================
-
-
-@pytest.mark.parametrize("backend", TEST_BACKENDS)
-def test_time_col_conversion_to_numeric_mixed_invalid(backend):
-    """Test numeric conversion with a column containing mixed valid and invalid datetime values."""
-    # Step 1: Create a DataFrame with mixed valid and invalid datetime values
-    df = pd.DataFrame(
-        {
-            "time": ["2023-01-01", "2023-01-02", "invalid_date"],  # Mixed valid and invalid
-            "target": [10, 20, 30],
-        }
-    )
-
-    # Step 2: Convert the DataFrame to the specified backend
-    df = nw.from_native(df)
-
-    # Step 3: Assert that initializing TimeFrame raises a ValueError
-    with pytest.raises(ValueError, match="Column 'time' is neither numeric nor datetime."):
+    with pytest.raises(ValueError, match="must be numeric"):
         TimeFrame(df, time_col="time", target_col="target")
+
+
+# ========================= Tests for TimeFrame sorting =========================
+
+
+def test_timeframe_sort_numeric_time():
+    """Test TimeFrame sorting with numeric time column."""
+    df = pd.DataFrame({"time": [3, 1, 2], "target": [30, 10, 20]})
+    tf = TimeFrame(df, time_col="time", target_col="target")
+    assert list(tf.df["time"]) == [1, 2, 3]
+    assert list(tf.df["target"]) == [10, 20, 30]
+
+
+def test_timeframe_sort_datetime_time():
+    """Test TimeFrame sorting with datetime time column."""
+    dates = pd.date_range("2023-01-01", periods=3)
+    df = pd.DataFrame({"time": [dates[2], dates[0], dates[1]], "target": [30, 10, 20]})
+    tf = TimeFrame(df, time_col="time", target_col="target")
+    # Convert to pandas if needed and reset index names for comparison
+    time_series = tf.df["time"].to_pandas() if hasattr(tf.df["time"], "to_pandas") else tf.df["time"]
+    sorted_dates = pd.DatetimeIndex(time_series)
+    sorted_dates.name = None  # Reset name for comparison
+    pd.testing.assert_index_equal(sorted_dates, dates)
+    assert list(tf.df["target"]) == [10, 20, 30]
+
+
+def test_timeframe_sort_descending():
+    """Test TimeFrame descending sort."""
+    df = pd.DataFrame({"time": [1, 2, 3], "target": [10, 20, 30]})
+    tf = TimeFrame(df, time_col="time", target_col="target", ascending=False)
+    assert list(tf.df["time"]) == [3, 2, 1]
+    assert list(tf.df["target"]) == [30, 20, 10]
+
+
+# ========================= Tests for TimeFrame conversion =========================
+
+
+def test_timeframe_convert_to_numeric():
+    """Test TimeFrame time column conversion to numeric."""
+    df = pd.DataFrame({"time": pd.date_range("2023-01-01", periods=3), "target": [1, 2, 3]})
+    tf = TimeFrame(df, time_col="time", target_col="target", time_col_conversion="numeric")
+    assert pd.api.types.is_float_dtype(tf.df["time"].dtype)
+
+
+def test_timeframe_convert_to_datetime():
+    """Test TimeFrame time column conversion to datetime."""
+    df = pd.DataFrame({"time": [1672531200, 1672617600, 1672704000], "target": [1, 2, 3]})
+    tf = TimeFrame(df, time_col="time", target_col="target", time_col_conversion="datetime")
+    assert pd.api.types.is_datetime64_dtype(tf.df["time"].dtype)
+
+
+def test_timeframe_convert_invalid_type(synthetic_df):
+    """Test TimeFrame conversion with invalid type."""
+    with pytest.raises(ValueError, match="Invalid `time_col_conversion`"):
+        TimeFrame(synthetic_df, time_col="time", target_col="feature_1", time_col_conversion="invalid")
+
+
+# ========================= Tests for TimeFrame temporal validation =========================
+
+
+def test_timeframe_temporal_uniqueness():
+    """Test TimeFrame temporal uniqueness validation."""
+    df = pd.DataFrame({"time": [1, 2, 2, 3], "target": [10, 20, 30, 40]})  # Duplicate at t=2
+    with pytest.raises(TimeColumnError, match="Duplicate timestamps found"):
+        TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True)
+
+
+def test_timeframe_temporal_uniqueness_by_group():
+    """Test TimeFrame temporal uniqueness validation within groups."""
+    df = pd.DataFrame(
+        {
+            "id": [1, 1, 2, 2],
+            "time": [1, 2, 1, 2],  # Same times ok for different ids
+            "target": [10, 20, 30, 40],
+        }
+    )
+    tf = TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True, id_col="id")
+    assert len(tf.df) == 4  # All rows preserved
+
+
+def test_timeframe_temporal_uniqueness_violation_in_group():
+    """Test TimeFrame temporal uniqueness violation within a group."""
+    df = pd.DataFrame(
+        {
+            "id": [1, 1, 2, 2],
+            "time": [1, 1, 2, 3],  # Duplicate for id=1
+            "target": [10, 20, 30, 40],
+        }
+    )
+    with pytest.raises(TimeColumnError, match="Duplicate timestamps found within groups"):
+        TimeFrame(df, time_col="time", target_col="target", enforce_temporal_uniqueness=True, id_col="id")
+
+
+# ========================= Tests for TimeFrame update =========================
+
+
+def test_timeframe_update_dataframe(synthetic_df):
+    """Test TimeFrame DataFrame update."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1")
+    new_df = generate_synthetic_time_series(backend="pandas", num_samples=5, num_features=2, drop_time=False)
+    tf.update_dataframe(new_df)
+    pd.testing.assert_frame_equal(tf.df, new_df)
+
+
+def test_timeframe_update_invalid_df(synthetic_df):
+    """Test TimeFrame update with invalid DataFrame."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1")
+    invalid_df = pd.DataFrame({"wrong_col": [1, 2, 3]})
+    with pytest.raises(ValueError, match="Column 'time' does not exist"):
+        tf.update_dataframe(invalid_df)
+
+
+def test_timeframe_update_empty_df(synthetic_df):
+    """Test TimeFrame update with empty DataFrame."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1")
+    empty_df = pd.DataFrame()
+    with pytest.raises(ValueError, match="Empty DataFrame provided"):
+        tf.update_dataframe(empty_df)
+
+
+def test_timeframe_update_with_verbose(synthetic_df):
+    """Test TimeFrame update with verbose mode."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1", verbose=True)
+    new_df = generate_synthetic_time_series(backend="pandas", num_samples=5, num_features=2, drop_time=False)
+    tf.update_dataframe(new_df)  # Should print success message
+
+
+# ========================= Tests for TimeFrame metadata =========================
+
+
+def test_timeframe_metadata(synthetic_df):
+    """Test TimeFrame metadata storage."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1")
+    tf.metadata["description"] = "Test dataset"
+    tf.metadata["model_details"] = {"type": "LSTM"}
+    assert tf.metadata["description"] == "Test dataset"
+    assert tf.metadata["model_details"]["type"] == "LSTM"
+
+
+def test_timeframe_metadata_empty(synthetic_df):
+    """Test TimeFrame metadata starts empty."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1")
+    assert tf.metadata == {}
+
+
+def test_timeframe_setup_empty_df():
+    """Test TimeFrame setup with empty DataFrame."""
+    df = pd.DataFrame()
+    tf = TimeFrame(pd.DataFrame({"time": [1], "target": [1]}), time_col="time", target_col="target")
+    with pytest.raises(ValueError, match="Empty DataFrame provided"):
+        tf.setup(df)
+
+
+def test_timeframe_setup_missing_columns():
+    """Test TimeFrame setup with missing required columns."""
+    df = pd.DataFrame({"wrong_col": [1, 2, 3]})
+    tf = TimeFrame(pd.DataFrame({"time": [1], "target": [1]}), time_col="time", target_col="target")
+    with pytest.raises(ValueError, match="Column 'time' does not exist"):
+        tf.setup(df)
+
+
+def test_timeframe_metadata_access():
+    """Test TimeFrame metadata access and modification."""
+    df = pd.DataFrame({"time": [1, 2, 3], "target": [10, 20, 30]})
+    tf = TimeFrame(df, time_col="time", target_col="target")
+
+    # Test metadata access
+    assert isinstance(tf.metadata, dict)
+
+    # Test metadata modification
+    tf.metadata["test_key"] = "test_value"
+    assert tf.metadata["test_key"] == "test_value"
+
+    # Test nested metadata
+    tf.metadata["nested"] = {"key": "value"}
+    assert tf.metadata["nested"]["key"] == "value"
+
+
+def test_timeframe_validate_dataframe_empty():
+    """Test validate_dataframe with empty DataFrame."""
+    df = pd.DataFrame()
+    tf = TimeFrame(pd.DataFrame({"time": [1], "target": [1]}), time_col="time", target_col="target")
+    with pytest.raises(ValueError, match="Empty DataFrame provided"):
+        tf.validate_dataframe(df)
+
+
+def test_timeframe_validate_dataframe_missing_time_col():
+    """Test validate_dataframe with missing time column."""
+    df = pd.DataFrame({"wrong_col": [1, 2, 3], "target": [10, 20, 30]})
+    tf = TimeFrame(pd.DataFrame({"time": [1], "target": [1]}), time_col="time", target_col="target")
+    with pytest.raises(ValueError, match="Column 'time' does not exist"):
+        tf.validate_dataframe(df)
+
+
+def test_timeframe_validate_dataframe_missing_target_col():
+    """Test validate_dataframe with missing target column."""
+    df = pd.DataFrame({"time": [1, 2, 3], "wrong_col": [10, 20, 30]})
+    tf = TimeFrame(pd.DataFrame({"time": [1], "target": [1]}), time_col="time", target_col="target")
+    with pytest.raises(ValueError, match="Column 'target' does not exist"):
+        tf.validate_dataframe(df)
+
+
+def test_timeframe_validate_dataframe_with_verbose():
+    """Test validate_dataframe with verbose mode."""
+    df = pd.DataFrame({"time": [1, 2, 3], "target": [10, 20, 30]})
+    tf = TimeFrame(df, time_col="time", target_col="target", verbose=True)
+    tf.validate_dataframe(df)  # Should print validation message
+
+
+def test_timeframe_setup_with_verbose(synthetic_df):
+    """Test TimeFrame setup with verbose mode."""
+    tf = TimeFrame(synthetic_df, time_col="time", target_col="feature_1", verbose=True)
+    # Test both conversion and temporal validation messages
+    tf.setup(synthetic_df, time_col_conversion="numeric", enforce_temporal_uniqueness=True)

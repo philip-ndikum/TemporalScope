@@ -82,16 +82,17 @@ series clustering: a comparative study. Data Mining and Knowledge Discovery.
 """
 
 import narwhals as nw
+from narwhals.typing import FrameT
 
-from temporalscope.core.core_utils import SupportedTemporalDataFrame, check_dataframe_nulls_nans, is_lazy_evaluation
+from temporalscope.core.core_utils import count_dataframe_column_nulls, is_dataframe_empty
 
 
 @nw.narwhalify
 def mean_fill_pad(
-    df: SupportedTemporalDataFrame,
+    df: FrameT,
     target_len: int,
     padding: str = "post",
-) -> SupportedTemporalDataFrame:
+) -> FrameT:
     """Pad a DataFrame to target length by filling with column means.
 
     A simple padding function that extends a DataFrame to a target length by adding
@@ -99,32 +100,25 @@ def mean_fill_pad(
 
     Parameters
     ----------
-    df :
+    df : FrameT
         DataFrame to pad
-    target_len :
+    target_len : int
         Desired length after padding
-    padding :
+    padding : str
         Where to add padding ('pre' or 'post')
-    df: SupportedTemporalDataFrame :
-
-    target_len: int :
-
-    padding: str :
-         (Default value = "post")
 
     Returns
     -------
-    type
+    FrameT
         Padded DataFrame
 
     Raises
     ------
     ValueError
         If target_len <= current length or invalid padding direction
-
     """
     # Validate data quality first
-    null_counts = check_dataframe_nulls_nans(df, df.columns)
+    null_counts = count_dataframe_column_nulls(df, list(df.columns))
     if any(count > 0 for count in null_counts.values()):
         raise ValueError("Cannot process data containing null values")
 
@@ -136,7 +130,7 @@ def mean_fill_pad(
     count_expr = nw.col(df.columns[0]).count().cast(nw.Int64).alias("count")
     count_result = df.select([count_expr])
 
-    if is_lazy_evaluation(count_result):
+    if is_dataframe_empty(count_result):
         current_len = count_result.collect()["count"][0]
     else:
         current_len = count_result["count"][0]
@@ -155,7 +149,7 @@ def mean_fill_pad(
         mean_expr = nw.col(col).mean().cast(nw.Float64).alias("mean")
         mean_result = df.select([mean_expr])
 
-        mean_val = mean_result.collect()["mean"][0] if is_lazy_evaluation(mean_result) else mean_result["mean"][0]
+        mean_val = mean_result.collect()["mean"][0] if is_dataframe_empty(mean_result) else mean_result["mean"][0]
 
         # Handle PyArrow scalar for mean values too
         if hasattr(mean_val, "as_py"):
@@ -169,7 +163,7 @@ def mean_fill_pad(
     # Calculate number of padding rows needed
     padding_count = target_len - current_len
 
-    if is_lazy_evaluation(padding_rows):
+    if is_dataframe_empty(padding_rows):
         # For lazy evaluation backends (e.g. dask):
         # 1. Create a single-row DataFrame with scalar values
         # 2. Use dask's native concat for proper lazy evaluation
