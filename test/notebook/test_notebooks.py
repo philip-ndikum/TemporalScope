@@ -15,11 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Tests to verify tutorial notebooks execute successfully using Papermill.
-
-This module provides automated testing of Jupyter notebooks using Papermill,
-ensuring notebooks can execute successfully in any environment.
-"""
+"""Tests to verify tutorial notebooks execute successfully."""
 
 from pathlib import Path
 
@@ -27,32 +23,23 @@ import papermill as pm
 import pytest
 
 
-def get_notebooks():
-    """Get all notebooks from tutorial directory."""
+def collect_notebooks():
+    """Helper function to collect all notebooks in the tutorial directory."""
     notebook_dir = Path("tutorial_notebooks")
     return list(notebook_dir.rglob("*.ipynb"))
 
 
 @pytest.mark.notebook
-@pytest.mark.parametrize("notebook_path", get_notebooks())
-def test_notebook_runs(notebook_path, tmp_path):
-    """Test that notebook executes without errors."""
-    # Generate a distinct output filename to avoid any accidental overwrite
-    output_filename = notebook_path.stem + "_executed.ipynb"
-    output_path = tmp_path / output_filename
+@pytest.mark.parametrize("notebook_path", collect_notebooks())
+def test_notebook_runs(notebook_path: Path, tmp_path: Path):
+    """Test that tutorial notebooks execute without errors."""
+    output_path = tmp_path / f"{notebook_path.stem}_executed.ipynb"
 
-    try:
-        # Execute notebook and save to temporary directory
-        # Note: No 'cwd' parameter is set, ensuring no changes to the original notebook's directory.
-        # Papermill reads from 'notebook_path' and writes the executed version to 'output_path' only,
-        # leaving the original notebook file intact.
-        pm.execute_notebook(
-            str(notebook_path),
-            str(output_path),
-            kernel_name="python3",
-            progress_bar=False,  # Disable progress bar for cleaner test output
-            stdout_file=None,  # Don't capture stdout
-            stderr_file=None,  # Don't capture stderr
-        )
-    except Exception as e:
-        pytest.fail(f"Notebook {notebook_path} failed to execute: {str(e)}")
+    pm.execute_notebook(
+        input_path=str(notebook_path),
+        output_path=str(output_path),
+        kernel_name="python3",
+        progress_bar=False,
+        stdout_file=None,
+        stderr_file=None,
+    )
