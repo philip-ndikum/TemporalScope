@@ -18,14 +18,7 @@
 """Tests to verify tutorial notebooks execute successfully using Papermill.
 
 This module provides automated testing of Jupyter notebooks using Papermill,
-ensuring notebooks can execute successfully in any environment. The @pytest.mark.notebook
-marker is used to separate these execution tests from standard unit tests, as they serve
-different purposes:
-
-- Unit tests: Verify specific functionality and code correctness
-- Notebook tests: Ensure notebooks can run end-to-end without errors
-
-This separation allows for more efficient CI/CD pipelines and clearer test organization.
+ensuring notebooks can execute successfully in any environment.
 """
 
 from pathlib import Path
@@ -43,11 +36,7 @@ def get_notebooks():
 @pytest.mark.notebook
 @pytest.mark.parametrize("notebook_path", get_notebooks())
 def test_notebook_runs(notebook_path, tmp_path):
-    """Test that notebook executes without errors using Papermill.
-
-    Uses the notebook marker to separate execution tests from unit tests,
-    focusing solely on verifying that notebooks can run successfully.
-    """
+    """Test that notebook executes without errors."""
     # Generate a distinct output filename to avoid any accidental overwrite
     output_filename = notebook_path.stem + "_executed.ipynb"
     output_path = tmp_path / output_filename
