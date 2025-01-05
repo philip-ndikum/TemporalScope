@@ -32,38 +32,19 @@ TimeFrame enforces minimal restrictions to maintain flexibility:
 
 Supported Modeling Approaches:
 ------------------------------
-+------------------------+-----------------------------------------------+
-| Approach               | Description                                   |
-+------------------------+-----------------------------------------------+
-| Standard Regression    | Basic ML models where Temporal SHAP reveals   |
-|                        | how feature importance evolves naturally      |
-|                        | over time without enforced constraints.       |
-+------------------------+-----------------------------------------------+
-| Time Series            | Group-aware models (e.g., by stock_id) where  |
-| Regression             | Temporal SHAP shows how features impact       |
-|                        | predictions differently across groups and     |
-|                        | their unique temporal patterns.               |
-+------------------------+-----------------------------------------------+
-| Bayesian               | Probabilistic models where Temporal SHAP      |
-| Regression             | explains how features drive both predictions  |
-|                        | and uncertainty estimates through time.       |
-+------------------------+-----------------------------------------------+
+| Approach | Description |
+|-----------|-------------|
+| Standard Regression | Basic ML models where Temporal SHAP reveals how feature importance evolves naturally over time without enforced constraints. |
+| Time Series Regression | Group-aware models (e.g., by stock_id) where Temporal SHAP shows how features impact predictions differently across groups and their unique temporal patterns. |
+| Bayesian Regression | Probabilistic models where Temporal SHAP explains how features drive both predictions and uncertainty estimates through time. |
 
 Supported Modes:
 ----------------
-+----------------+-------------------------------------------------------------------+
-| Mode           | Description                                                       |
-|                | Data Structure                                                    |
-+----------------+-------------------------------------------------------------------+
-| single_target  | General machine learning tasks with scalar targets. Each row is   |
-|                | a single time step, and the target is scalar.                     |
-|                | Single DataFrame: each row is an observation.                     |
-+----------------+-------------------------------------------------------------------+
-| multi_target   | Sequential time series tasks (e.g., seq2seq) for deep learning.   |
-|                | The data is split into sequences (input X, target Y).             |
-|                | Two DataFrames: X for input sequences, Y for targets.             |
-|                | Frameworks: TensorFlow, PyTorch, Keras.                           |
-+----------------+-------------------------------------------------------------------+
+| Mode | Description & Data Structure |
+|------|---------------------------|
+| single_target | General machine learning tasks with scalar targets. Each row is a single time step, and the target is scalar. Single DataFrame: each row is an observation. |
+| multi_target | Sequential time series tasks (e.g., seq2seq) for deep learning. The data is split into sequences (input X, target Y). Two DataFrames: X for input sequences, Y for targets. Frameworks: TensorFlow, PyTorch, Keras. |
+
 
 References
 ----------
@@ -129,11 +110,6 @@ class TimeFrame:
     - All non-time columns are expected to be numeric. Users are responsible for handling non-numeric features
       (e.g., encoding categorical features).
 
-    Backend Handling:
-    -----------------
-    - If a `dataframe_backend` is explicitly provided, it takes precedence over backend inference.
-    - If no backend is specified, the class infers the backend from the DataFrame type, supporting Polars, Pandas, and Modin.
-
     Examples
     --------
     ```python
@@ -196,9 +172,6 @@ class TimeFrame:
             - 'datetime': Convert to Datetime.
             - None: Validate only.
             Default is None.
-        dataframe_backend : Optional[str], optional
-            The backend to use. If not provided, it will be inferred
-            based on the DataFrame type. Default is None.
         sort : bool, optional
             If True, the data will be sorted by `time_col`. Default is True.
         ascending : bool, optional
@@ -525,7 +498,7 @@ class TimeFrame:
         time_col_conversion : Optional[str]
             Optional. Specify the conversion type for the `time_col`:
             - 'numeric': Convert to Float64.
-        the input DataFrame for use in TemporalScope workflows. The method is idempotent.
+            the input DataFrame for use in TemporalScope workflows. The method is idempotent.
 
         Steps:
         ------
