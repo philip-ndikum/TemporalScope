@@ -70,12 +70,16 @@ keywords = [
 docs = [
   "mkdocs",
   "mkdocstrings-python",
+  "mkdocs-jupyter",
   "mkdocs-material",
   "mkdocs-gen-files",
   "mkdocs-literate-nav",
   "mkdocs-section-index",
   "markdown-callouts",
   "black",
+  "polars",
+  "dask",
+  "dask-expr"
 ]
 
 [project.urls]

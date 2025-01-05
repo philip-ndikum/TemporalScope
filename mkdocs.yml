@@ -10,7 +10,7 @@ nav:
   - About: index.md
   - Getting Started:
     - Installation: installation.md
-    - Usage: usage.md
+    - Quick Start: quick_start.md
   - Development:
     - Contributing: contributing.md
   - Disclaimers:
@@ -19,9 +19,10 @@ nav:
     - References: references.md
     - Cite: citation.md
 - API reference: reference/
-
+- Tutorials: tutorials/
 theme:
   name: "material"
+  custom_dir: docs/overrides
   language: en
   favicon: "images/favicon.ico"
   icon:
@@ -67,6 +68,7 @@ plugins:
 - gen-files:
     scripts:
       - scripts/gen_ref_pages.py
+      - scripts/gen_tutorial_pages.py
 - literate-nav:
     nav_file: SUMMARY.md
 - section-index
@@ -91,6 +93,12 @@ plugins:
           show_signature_annotations: true
           signature_crossrefs: true
           line_length: 60
+- mkdocs-jupyter:
+    execute: true
+    allow_errors: false
+    include_requirejs: true
+    include_source: true
+    ignore_h1_titles: true
 
 extra:
   social:
