@@ -70,6 +70,7 @@ keywords = [
 docs = [
   "mkdocs",
   "mkdocstrings-python",
+  "mkdocs-jupyter",
   "mkdocs-material",
   "mkdocs-gen-files",
   "mkdocs-literate-nav",
