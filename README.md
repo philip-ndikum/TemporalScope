@@ -29,7 +29,7 @@
 
 ---
 <div align="center">
-	
+
 |  |  |
 |:---|:---|
 | **Compatibility** | [![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://img.shields.io/badge/python-3.10%2B-blue) [![Linux Compatible](https://img.shields.io/badge/OS-Linux-blue)](https://img.shields.io/badge/OS-Linux-blue) |
