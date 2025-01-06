@@ -76,6 +76,7 @@ docs = [
   "mkdocs-literate-nav",
   "mkdocs-section-index",
   "markdown-callouts",
+  "nbformat",
   "black",
   "polars",
   "dask",
