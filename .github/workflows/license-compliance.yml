@@ -22,7 +22,7 @@ jobs:
           ref: ${{ github.head_ref }}  # Ensure the branch is checked out
 
       - name: Fix License Header
-        uses: apache/skywalking-eyes/header@v0.6.0
+        uses: apache/skywalking-eyes/header@v0.7.0
         with:
           mode: fix
 
@@ -43,4 +43,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check Dependencies' License
-        uses: apache/skywalking-eyes/dependency@v0.6.0
+        uses: apache/skywalking-eyes/dependency@v0.7.0
