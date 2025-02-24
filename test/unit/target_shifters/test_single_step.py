@@ -143,9 +143,9 @@ def assert_row_reduction(df: FrameT, original_df: FrameT, n_lags: int) -> None:
     transformed_count = _get_scalar_value(df.select([count_expr]), "count")
 
     # Verify row reduction
-    assert (
-        transformed_count == original_count - n_lags
-    ), f"Expected {original_count - n_lags} rows, got {transformed_count}"
+    assert transformed_count == original_count - n_lags, (
+        f"Expected {original_count - n_lags} rows, got {transformed_count}"
+    )
 
 
 def test_transform_dataframe(sample_df: Tuple[FrameT, str]) -> None:
