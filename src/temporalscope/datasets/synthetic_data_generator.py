@@ -244,7 +244,7 @@ def generate_synthetic_time_series(
         columns["time"] = time_column
     columns["target"] = np.random.rand(num_samples)
     for i in range(num_features):
-        columns[f"feature_{i+1}"] = np.random.rand(num_samples)
+        columns[f"feature_{i + 1}"] = np.random.rand(num_samples)
 
     df = pd.DataFrame(columns)
 
@@ -269,7 +269,7 @@ def generate_synthetic_time_series(
             # Target column (always present)
             nw.col("target").alias("target"),
             # Feature columns
-            *[nw.col(f"feature_{i+1}").alias(f"feature_{i+1}") for i in range(num_features)],
+            *[nw.col(f"feature_{i + 1}").alias(f"feature_{i + 1}") for i in range(num_features)],
         ]
     )
 
