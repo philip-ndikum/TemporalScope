@@ -254,6 +254,13 @@ Thank you to all of these people who have contributed to TemporalScope!
 	<tbody>
 		<tr>
             <td align="center">
+                <a href="https://github.com/SylCard">
+                    <img src="https://avatars.githubusercontent.com/u/7727788?v=4" width="100;" alt="SylCard"/>
+                    <br />
+                    <sub><b>Sylvester Cardorelle</b></sub>
+                </a>
+            </td>
+            <td align="center">
                 <a href="https://github.com/kanenorman">
                     <img src="https://avatars.githubusercontent.com/u/51185594?v=4" width="100;" alt="kanenorman"/>
                     <br />
